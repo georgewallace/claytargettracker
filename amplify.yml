@@ -18,25 +18,11 @@ frontend:
     build:
       commands:
         - npm run build
-        # Copy static files to standalone build
-        - cp -r .next/static .next/standalone/.next/static
-        - cp -r public .next/standalone/public
-        # Copy Prisma files to standalone build (both locations)
-        - mkdir -p .next/standalone/node_modules/.prisma
-        - cp -r node_modules/.prisma/client .next/standalone/node_modules/.prisma/
-        - mkdir -p .next/standalone/node_modules/@prisma
-        - cp -r node_modules/@prisma/client .next/standalone/node_modules/@prisma/
-        # Copy prisma schema and migrations
-        - cp -r prisma .next/standalone/
-        # Verify Prisma binaries in standalone (both locations)
-        - echo "=== Verifying Prisma binaries in .prisma/client ==="
-        - ls -laR .next/standalone/node_modules/.prisma/client/ | grep -E "\.node$|^d" || echo "Binary check failed!"
-        - echo "=== Verifying Prisma binaries in @prisma/client ==="
-        - ls -laR .next/standalone/node_modules/@prisma/client/ | grep -E "\.node$|^d" || echo "Binary check failed!"
-        - echo "=== Checking for rhel binary specifically ==="
-        - find .next/standalone -name "*rhel-openssl-3.0.x.so.node" -ls || echo "RHEL binary NOT FOUND!"
+        # Verify Prisma binaries were generated
+        - echo "=== Verifying Prisma binaries for AWS Lambda ==="
+        - find node_modules/.prisma/client -name "*rhel-openssl-3.0.x.so.node" -ls || echo "RHEL binary NOT FOUND!"
   artifacts:
-    baseDirectory: .next/standalone
+    baseDirectory: .next
     files:
       - '**/*'
   cache:
