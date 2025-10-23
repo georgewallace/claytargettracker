@@ -23,6 +23,11 @@ const nextConfig = {
   
   // Ensure Prisma binaries are included in serverless functions (Next.js 16+)
   serverExternalPackages: ['@prisma/client', '@prisma/engines'],
+  
+  // Explicitly expose environment variables to Lambda runtime
+  env: {
+    DATABASE_URL: process.env.DATABASE_URL,
+  },
 }
 
 export default nextConfig
