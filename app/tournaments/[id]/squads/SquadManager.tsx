@@ -444,7 +444,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                   {format(new Date(date), 'EEEE, MMMM d, yyyy')}
                 </h2>
                 <div className="space-y-6">
-                  {slots.map(timeSlot => (
+                  {(slots as any[]).map((timeSlot: any) => (
                     <TimeSlotSection 
                       key={timeSlot.id} 
                       timeSlot={timeSlot}

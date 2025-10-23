@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 
+export const dynamic = "force-static"
+
+// For static export (demo mode)
+export async function generateStaticParams() {
+  return []
+}
+
 type RouteParams = {
   params: Promise<{
     id: string
@@ -43,7 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const shooterIds = squad.members.map(m => m.shooter.id)
+    const shooterIds = squad.members.map((m: { shooter: { id: string } }) => m.shooter.id)
 
     // Fetch existing shoots and scores
     const shoots = await prisma.shoot.findMany({
@@ -96,7 +103,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Process each shooter's scores
-    for (const shooterScore of scores) {
+    for (const shooterScore of scores as Array<{
+      shooterId: string;
+      disciplineId: string;
+      date: string;
+      rounds: Array<{ station: number; targets: number; totalTargets: number }>;
+    }>) {
       const { shooterId, disciplineId, date, rounds } = shooterScore
 
       if (!shooterId || !disciplineId || !date || !Array.isArray(rounds)) {
@@ -132,7 +144,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       // Create new scores
       if (rounds.length > 0) {
         await prisma.score.createMany({
-          data: rounds.map((round: any) => ({
+          data: rounds.map((round: { station: number; targets: number; totalTargets: number }) => ({
             shootId: shoot.id,
             station: round.station,
             targets: round.targets,

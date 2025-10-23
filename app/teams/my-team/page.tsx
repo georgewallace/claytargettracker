@@ -20,7 +20,8 @@ export default async function MyTeamPage() {
     include: {
       shooters: {
         include: {
-          user: true
+          user: true,
+          team: true
         },
         orderBy: {
           user: {

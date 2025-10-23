@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/auth'
 import { createSession } from '@/lib/session'
 
+export const dynamic = "force-static"
+
 export async function POST(request: NextRequest) {
   try {
     const { email, password, name, role } = await request.json()

@@ -106,7 +106,7 @@ export default function GenerateTimeSlotsModal({ tournament, onClose, onSuccess 
           }
           const slots = generateTimeSlots(config)
           // Add fieldNum for sorting
-          slots.forEach(slot => (slot.fieldNum = fieldNum))
+          slots.forEach(slot => ((slot as any).fieldNum = fieldNum))
           allSlots.push(...slots)
         }
       } else if (isSportingClays) {
@@ -131,7 +131,7 @@ export default function GenerateTimeSlotsModal({ tournament, onClose, onSuccess 
           }
           const slots = generateTimeSlots(config)
           // Add stationNum for sorting
-          slots.forEach(slot => (slot.stationNum = stationNum))
+          slots.forEach(slot => ((slot as any).stationNum = stationNum))
           allSlots.push(...slots)
         }
       } else {
@@ -155,8 +155,8 @@ export default function GenerateTimeSlotsModal({ tournament, onClose, onSuccess 
           return a.startTime.localeCompare(b.startTime)
         }
         // If same time, compare field/station numbers
-        const aNum = a.fieldNum || a.stationNum || 0
-        const bNum = b.fieldNum || b.stationNum || 0
+        const aNum = (a as any).fieldNum || (a as any).stationNum || 0
+        const bNum = (b as any).fieldNum || (b as any).stationNum || 0
         return aNum - bNum
       })
       

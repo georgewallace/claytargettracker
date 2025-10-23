@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 
+export const dynamic = "force-static"
+
 // POST: Create a join request
 export async function POST(request: NextRequest) {
   try {

@@ -2,10 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 
+export const dynamic = "force-static"
+
 interface RouteParams {
   params: Promise<{
     id: string // join request ID
   }>
+}
+
+// For static export (demo mode) - returns empty array since API routes aren't used in demo
+export async function generateStaticParams() {
+  return []
 }
 
 // PUT: Approve or reject a join request

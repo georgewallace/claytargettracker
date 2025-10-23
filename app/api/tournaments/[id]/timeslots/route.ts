@@ -3,6 +3,13 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { format } from 'date-fns'
 
+export const dynamic = "force-static"
+
+// For static export (demo mode)
+export async function generateStaticParams() {
+  return []
+}
+
 interface RouteParams {
   params: Promise<{
     id: string // tournamentId

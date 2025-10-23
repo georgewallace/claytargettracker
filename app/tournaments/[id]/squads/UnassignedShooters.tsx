@@ -46,7 +46,7 @@ export default function UnassignedShooters({ shooters }: UnassignedShootersProps
                 {division} ({byDivision[division].length})
               </div>
               <div className="space-y-2">
-                {byDivision[division].map(shooter => (
+                {byDivision[division].map((shooter: any) => (
                   <DraggableShooter key={shooter.id} shooter={shooter} />
                 ))}
               </div>

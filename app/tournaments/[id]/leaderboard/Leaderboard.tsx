@@ -195,8 +195,10 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
     return lastUpdated > twoMinutesAgo
   }
 
-  // Get unique divisions
-  const divisions = Array.from(new Set(allShooters.map(s => s.division).filter(Boolean))).sort()
+  // Get unique divisions (filter out null/undefined)
+  const divisions = Array.from(
+    new Set(allShooters.map(s => s.division).filter((d): d is string => Boolean(d)))
+  ).sort()
   
   // Group shooters by discipline AND division
   const shootersByDisciplineAndDivision: Record<string, Record<string, ShooterScore[]>> = {}

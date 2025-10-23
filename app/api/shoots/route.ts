@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 
+export const dynamic = "force-static"
+
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
     
     // Check if shooter is registered for this discipline
     const isRegisteredForDiscipline = registration.disciplines.some(
-      d => d.disciplineId === disciplineId
+      (d: { disciplineId: string }) => d.disciplineId === disciplineId
     )
     
     if (!isRegisteredForDiscipline) {
@@ -70,15 +72,17 @@ export async function POST(request: NextRequest) {
     })
     
     if (shoot) {
+      const shootId = shoot.id // Store the ID to avoid null reference issues
+      
       // Delete existing scores
       await prisma.score.deleteMany({
-        where: { shootId: shoot.id }
+        where: { shootId }
       })
       
       // Create new scores
       await prisma.score.createMany({
-        data: scores.map((score: any) => ({
-          shootId: shoot.id,
+        data: scores.map((score: { station: number; targets: number; totalTargets: number }) => ({
+          shootId,
           station: score.station,
           targets: score.targets,
           totalTargets: score.totalTargets
@@ -87,7 +91,7 @@ export async function POST(request: NextRequest) {
       
       // Update the shoot
       shoot = await prisma.shoot.update({
-        where: { id: shoot.id },
+        where: { id: shootId },
         data: { updatedAt: new Date() },
         include: {
           scores: true
@@ -101,7 +105,7 @@ export async function POST(request: NextRequest) {
           shooterId,
           disciplineId,
           scores: {
-            create: scores.map((score: any) => ({
+            create: scores.map((score: { station: number; targets: number; totalTargets: number }) => ({
               station: score.station,
               targets: score.targets,
               totalTargets: score.totalTargets
