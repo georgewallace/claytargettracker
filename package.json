@@ -12,7 +12,7 @@
     "db:studio": "DATABASE_URL=\"file:./dev.db\" npx prisma studio",
     "db:generate": "DATABASE_URL=\"file:./dev.db\" npx prisma generate",
     "demo:dev": "NEXT_PUBLIC_DEMO_MODE=true next dev",
-    "build:demo": "mv app/api ./api-temp && NEXT_PUBLIC_DEMO_MODE=true next build; mv ./api-temp app/api",
+    "build:demo": "mv app/api ./api-temp && NEXT_PUBLIC_DEMO_MODE=true next build && mv ./api-temp app/api || (mv ./api-temp app/api 2>/dev/null; exit 1)",
     "export:demo": "NEXT_PUBLIC_DEMO_MODE=true next build && next export"
   },
   "dependencies": {
