@@ -72,8 +72,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       select: { disciplineId: true }
     })
     
-    const currentDisciplineIds = currentDisciplines.map(td => td.disciplineId)
-    const removedDisciplineIds = currentDisciplineIds.filter(id => !disciplineIds.includes(id))
+    const currentDisciplineIds = currentDisciplines.map((td: { disciplineId: string }) => td.disciplineId)
+    const removedDisciplineIds = currentDisciplineIds.filter((id: string) => !disciplineIds.includes(id))
     
     // Check if any removed disciplines have registrations
     if (removedDisciplineIds.length > 0) {
@@ -92,7 +92,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       })
       
       if (registrationsWithRemovedDisciplines.length > 0) {
-        const disciplineNames = [...new Set(registrationsWithRemovedDisciplines.map(rd => rd.discipline.displayName))]
+        const disciplineNames = [...new Set(registrationsWithRemovedDisciplines.map((rd: { discipline: { displayName: string } }) => rd.discipline.displayName))]
         return NextResponse.json(
           { 
             error: `Cannot remove discipline(s): ${disciplineNames.join(', ')}. Shooters are registered for this discipline.`,
