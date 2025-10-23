@@ -83,7 +83,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       })
 
       // Get team of existing squad members
-      const existingTeamIds = squad.members.map(m => m.shooter.teamId).filter(Boolean)
+      const existingTeamIds = squad.members.map((m: { shooter: { teamId: string | null } }) => m.shooter.teamId).filter(Boolean)
       const firstTeamId = existingTeamIds[0]
 
       // Check if new shooter is from the same team
