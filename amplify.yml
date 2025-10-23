@@ -18,8 +18,11 @@ frontend:
     build:
       commands:
         - npm run build
+        # Copy Prisma binaries to standalone build
+        - cp -r node_modules/.prisma .next/standalone/node_modules/
+        - cp -r node_modules/@prisma .next/standalone/node_modules/
   artifacts:
-    baseDirectory: .
+    baseDirectory: .next
     files:
       - '**/*'
   cache:
