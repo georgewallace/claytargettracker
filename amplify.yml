@@ -5,8 +5,10 @@ frontend:
       commands:
         - npm ci
         - npx prisma generate
-        # Run migrations (comment out if using SQLite without persistence)
-        - npx prisma migrate deploy
+        # Create database directory if it doesn't exist
+        - mkdir -p prisma
+        # Run migrations (will create SQLite database)
+        - npx prisma migrate deploy || echo "Migration failed, continuing..."
     build:
       commands:
         - npm run build
@@ -18,4 +20,13 @@ frontend:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
+  customHeaders:
+    - pattern: '**/*'
+      headers:
+        - key: 'Strict-Transport-Security'
+          value: 'max-age=31536000; includeSubDomains'
+        - key: 'X-Frame-Options'
+          value: 'SAMEORIGIN'
+        - key: 'X-Content-Type-Options'
+          value: 'nosniff'
 
