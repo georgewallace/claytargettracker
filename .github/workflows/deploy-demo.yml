@@ -39,14 +39,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: 'file:./dev.db'
+      
       - name: Build demo
         run: npm run build:demo
         env:
           NEXT_PUBLIC_DEMO_MODE: 'true'
+          DATABASE_URL: 'file:./dev.db'
           # If your repo is user.github.io, use: NEXT_PUBLIC_BASE_PATH: ''
           # If your repo is named something else, use: NEXT_PUBLIC_BASE_PATH: '/repo-name'
           # For example: NEXT_PUBLIC_BASE_PATH: '/claytargettracker'
           NEXT_PUBLIC_BASE_PATH: ''
+      
+      - name: List output directory
+        run: ls -la out/ || echo "out directory not found"
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

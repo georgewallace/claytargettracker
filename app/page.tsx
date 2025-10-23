@@ -33,7 +33,7 @@ export default async function Home() {
   })
 
   // Add registration status to each tournament
-  const tournamentsWithStatus = tournaments.map(tournament => ({
+  const tournamentsWithStatus = tournaments.map((tournament: any) => ({
     ...tournament,
     isRegistered: user?.shooter && Array.isArray(tournament.registrations) 
       ? tournament.registrations.length > 0 
