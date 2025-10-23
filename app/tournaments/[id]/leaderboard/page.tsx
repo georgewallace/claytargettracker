@@ -4,6 +4,9 @@ import Link from 'next/link'
 import Leaderboard from './Leaderboard'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 
+// Force dynamic rendering (real-time leaderboard data)
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: Promise<{
     id: string
