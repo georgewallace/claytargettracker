@@ -4,6 +4,9 @@ import { getCurrentUser } from '@/lib/auth'
 import ScoreEntryForm from './ScoreEntryForm'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 
+// Force dynamic rendering (required for getCurrentUser)
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: Promise<{
     id: string

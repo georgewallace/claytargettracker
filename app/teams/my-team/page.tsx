@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import CoachTeamManager from './CoachTeamManager'
 
+// Force dynamic rendering (required for getCurrentUser)
+export const dynamic = 'force-dynamic'
+
 export default async function MyTeamPage() {
   const user = await getCurrentUser()
   

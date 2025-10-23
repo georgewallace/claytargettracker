@@ -4,6 +4,9 @@ import { getCurrentUser } from '@/lib/auth'
 import { format } from 'date-fns'
 import Link from 'next/link'
 
+// Force dynamic rendering (required for getCurrentUser)
+export const dynamic = 'force-dynamic'
+
 export default async function ShooterHistoryPage() {
   const user = await getCurrentUser()
   

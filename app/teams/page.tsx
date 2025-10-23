@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation'
 import CreateTeamForm from './CreateTeamForm'
 import TeamBrowser from './TeamBrowser'
 
+// Force dynamic rendering (required for getCurrentUser)
+export const dynamic = 'force-dynamic'
+
 export default async function TeamsPage() {
   const user = await getCurrentUser()
   

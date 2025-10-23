@@ -4,6 +4,9 @@ import { getCurrentUser } from '@/lib/auth'
 import TournamentList from './TournamentList'
 import { demoTournaments } from '@/lib/demoData'
 
+// Force dynamic rendering (required for getCurrentUser)
+export const dynamic = 'force-dynamic'
+
 export default async function Home() {
   const user = await getCurrentUser()
   

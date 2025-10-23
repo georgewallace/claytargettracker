@@ -3,6 +3,9 @@ import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import CreateTournamentForm from './CreateTournamentForm'
 
+// Force dynamic rendering (required for getCurrentUser)
+export const dynamic = 'force-dynamic'
+
 export default async function CreateTournamentPage() {
   const user = await getCurrentUser()
   
