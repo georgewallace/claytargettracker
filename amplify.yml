@@ -19,6 +19,14 @@ frontend:
         # Verify Prisma binaries were generated
         - echo "=== Verifying Prisma binaries for AWS Lambda ==="
         - find node_modules/.prisma/client -name "*rhel-openssl-3.0.x.so.node" -ls || echo "RHEL binary NOT FOUND!"
+        # CRITICAL: Copy Prisma binaries to Next.js server output
+        - echo "=== Copying Prisma binaries to .next output ==="
+        - mkdir -p .next/server/node_modules/.prisma
+        - cp -r node_modules/.prisma/client .next/server/node_modules/.prisma/
+        - mkdir -p .next/server/node_modules/@prisma
+        - cp -r node_modules/@prisma/client .next/server/node_modules/@prisma/
+        - echo "=== Verifying Prisma binaries in .next/server ==="
+        - ls -la .next/server/node_modules/.prisma/client/*.node || echo "Copy failed!"
   artifacts:
     baseDirectory: .next
     files:

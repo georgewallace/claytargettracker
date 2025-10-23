@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && npm run copy-prisma-binaries",
+    "copy-prisma-binaries": "mkdir -p .next/server/node_modules/.prisma && cp -r node_modules/.prisma/client .next/server/node_modules/.prisma/ && mkdir -p .next/server/node_modules/@prisma && cp -r node_modules/@prisma/client .next/server/node_modules/@prisma/ || true",
     "start": "next start",
     "postinstall": "prisma generate",
     "lint": "eslint",
