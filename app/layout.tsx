@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import DemoModeNotice from "@/components/DemoModeNotice";
 import { getCurrentUser } from "@/lib/auth";
 
 const geistSans = Geist({
@@ -38,6 +39,7 @@ export default async function RootLayout({
           {children}
         </main>
         <Footer />
+        <DemoModeNotice />
       </body>
     </html>
   );

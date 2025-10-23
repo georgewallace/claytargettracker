@@ -10,7 +10,10 @@
     "db:migrate": "DATABASE_URL=\"file:./dev.db\" npx prisma migrate dev",
     "db:reset": "DATABASE_URL=\"file:./dev.db\" npx prisma migrate reset",
     "db:studio": "DATABASE_URL=\"file:./dev.db\" npx prisma studio",
-    "db:generate": "DATABASE_URL=\"file:./dev.db\" npx prisma generate"
+    "db:generate": "DATABASE_URL=\"file:./dev.db\" npx prisma generate",
+    "demo:dev": "NEXT_PUBLIC_DEMO_MODE=true next dev",
+    "build:demo": "NEXT_PUBLIC_DEMO_MODE=true next build",
+    "export:demo": "NEXT_PUBLIC_DEMO_MODE=true next build && next export"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

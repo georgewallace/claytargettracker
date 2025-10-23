@@ -2,6 +2,18 @@
 
 A comprehensive web application for tracking clay target shooting tournaments, managing scores, and organizing teams.
 
+## 🎭 Try the Demo
+
+**See it in action!** Try our demo mode with simulated data:
+
+```bash
+npm run demo:dev
+```
+
+Login with: `admin@demo.com` / `demo` (or `coach@demo.com` or `shooter@demo.com`)
+
+**Or deploy to GitHub Pages**: See [DEMO_QUICKSTART.md](./DEMO_QUICKSTART.md)
+
 ## Features
 
 ### 🎯 Tournament Management
