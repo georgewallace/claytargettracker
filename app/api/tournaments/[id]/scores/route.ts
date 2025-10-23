@@ -10,42 +10,51 @@ type RouteParams = {
   }>
 }
 
-// GET: Fetch existing scores for a squad
+// GET: Fetch existing scores for a squad or shooter
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id: tournamentId } = await params
     const { searchParams } = new URL(request.url)
     const squadId = searchParams.get('squadId')
+    const shooterId = searchParams.get('shooterId')
     const disciplineId = searchParams.get('disciplineId')
 
-    if (!squadId || !disciplineId) {
+    // Must have either squadId or shooterId, and must have disciplineId
+    if (!disciplineId || (!squadId && !shooterId)) {
       return NextResponse.json(
-        { error: 'Missing squadId or disciplineId' },
+        { error: 'Missing required parameters. Need disciplineId and either squadId or shooterId' },
         { status: 400 }
       )
     }
 
-    // Get squad members
-    const squad = await prisma.squad.findUnique({
-      where: { id: squadId },
-      include: {
-        members: {
-          include: {
-            shooter: true
+    let shooterIds: string[] = []
+
+    if (squadId) {
+      // Get squad members
+      const squad = await prisma.squad.findUnique({
+        where: { id: squadId },
+        include: {
+          members: {
+            include: {
+              shooter: true
+            }
           }
         }
+      })
+
+      if (!squad) {
+        return NextResponse.json(
+          { error: 'Squad not found' },
+          { status: 404 }
+        )
       }
-    })
 
-    if (!squad) {
-      return NextResponse.json(
-        { error: 'Squad not found' },
-        { status: 404 }
-      )
+      shooterIds = squad.members.map((m: { shooter: { id: string } }) => m.shooter.id)
+    } else if (shooterId) {
+      // Query for a single shooter
+      shooterIds = [shooterId]
     }
-
-    const shooterIds = squad.members.map((m: { shooter: { id: string } }) => m.shooter.id)
 
     // Fetch existing shoots and scores
     const shoots = await prisma.shoot.findMany({

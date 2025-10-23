@@ -6,6 +6,7 @@
     "dev": "DATABASE_URL=\"file:./dev.db\" next dev",
     "build": "DATABASE_URL=\"file:./dev.db\" next build",
     "start": "DATABASE_URL=\"file:./dev.db\" next start",
+    "postinstall": "prisma generate",
     "lint": "eslint",
     "db:migrate": "DATABASE_URL=\"file:./dev.db\" npx prisma migrate dev",
     "db:reset": "DATABASE_URL=\"file:./dev.db\" npx prisma migrate reset",

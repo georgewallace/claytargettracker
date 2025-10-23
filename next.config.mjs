@@ -20,6 +20,11 @@ const nextConfig = {
   ...(process.env.NEXT_PUBLIC_DEMO_MODE !== 'true' && {
     // API routes are only available in non-demo mode
   }),
+  
+  // Ensure Prisma binaries are included in serverless functions
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', '@prisma/engines'],
+  },
 }
 
 export default nextConfig
