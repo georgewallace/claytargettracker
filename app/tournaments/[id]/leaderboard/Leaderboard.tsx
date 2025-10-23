@@ -10,6 +10,13 @@ interface Tournament {
   disciplines: any[]
   shoots: any[]
   timeSlots: any[]
+  // HAA/HOA Configuration
+  enableHOA: boolean
+  enableHAA: boolean
+  hoaSeparateGender: boolean
+  haaCoreDisciplines: string | null
+  hoaExcludesHAA: boolean
+  haaExcludesDivision: boolean
 }
 
 interface ShooterScore {
@@ -17,6 +24,7 @@ interface ShooterScore {
   shooterName: string
   teamName: string | null
   division: string | null
+  gender: string | null
   disciplineScores: Record<string, number>
   totalScore: number
   disciplineCount: number
@@ -92,6 +100,7 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
         shooterName: shoot.shooter.user.name,
         teamName: shoot.shooter.team?.name || null,
         division: shoot.shooter.division || null,
+        gender: shoot.shooter.gender || null,
         disciplineScores: {},
         totalScore: 0,
         disciplineCount: 0,
@@ -154,40 +163,102 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
     .sort((a, b) => b.totalScore - a.totalScore)
     .slice(0, 3)
 
+  // Parse HAA Core Disciplines from tournament config
+  let coreDisciplines: string[] = []
+  if (tournament.haaCoreDisciplines) {
+    try {
+      coreDisciplines = JSON.parse(tournament.haaCoreDisciplines)
+    } catch (e) {
+      // Fallback to default if parsing fails
+      coreDisciplines = tournament.disciplines
+        .filter(d => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
+        .map(d => d.disciplineId)
+    }
+  } else {
+    // Default core disciplines
+    coreDisciplines = tournament.disciplines
+      .filter(d => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
+      .map(d => d.disciplineId)
+  }
+
   // HOA (High Over All) - All disciplines combined
-  const hoaShooters = [...allShooters]
-    .filter(s => s.disciplineCount > 0)
-    .sort((a, b) => b.totalScore - a.totalScore)
-    .slice(0, 3)
-
-  const hoaWinnersByDivision = new Set(
-    hoaShooters.filter(s => s.division).map(s => `${s.shooterId}-${s.division}`)
-  )
-
-  // HAA (High All-Around) - Specific core disciplines (Trap, Skeet, Sporting Clays)
-  // Only includes shooters who have shot in multiple core disciplines
-  const coreDisciplines = tournament.disciplines
-    .filter(d => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
-    .map(d => d.disciplineId)
-
-  const haaShooters = allShooters
-    .map(shooter => {
-      const coreDisciplineScores = Object.entries(shooter.disciplineScores)
-        .filter(([disciplineId]) => coreDisciplines.includes(disciplineId))
+  // Calculate HOA separately by gender if configured
+  let hoaShooters: ShooterScore[] = []
+  let hoaMaleShooters: ShooterScore[] = []
+  let hoaFemaleShooters: ShooterScore[] = []
+  
+  if (tournament.enableHOA) {
+    if (tournament.hoaSeparateGender) {
+      // Separate HOA for males and females
+      hoaMaleShooters = [...allShooters]
+        .filter(s => s.disciplineCount > 0 && s.gender === 'male')
+        .sort((a, b) => b.totalScore - a.totalScore)
+        .slice(0, 3)
       
-      const haaTotal = coreDisciplineScores.reduce((sum, [, score]) => sum + score, 0)
-      const haaDisciplineCount = coreDisciplineScores.length
+      hoaFemaleShooters = [...allShooters]
+        .filter(s => s.disciplineCount > 0 && s.gender === 'female')
+        .sort((a, b) => b.totalScore - a.totalScore)
+        .slice(0, 3)
+    } else {
+      // Combined HOA
+      hoaShooters = [...allShooters]
+        .filter(s => s.disciplineCount > 0)
+        .sort((a, b) => b.totalScore - a.totalScore)
+        .slice(0, 3)
+    }
+  }
 
-      return {
-        ...shooter,
-        haaTotal,
-        haaDisciplineCount
-      }
-    })
-    .filter(s => s.haaDisciplineCount >= 2) // Must shoot at least 2 core disciplines
-    .filter(s => !hoaWinnersByDivision.has(`${s.shooterId}-${s.division}`)) // Exclude HOA winners from HAA in their division
-    .sort((a, b) => b.haaTotal - a.haaTotal)
-    .slice(0, 3)
+  // Collect all HOA winners for exclusion
+  const hoaWinnerIds = new Set([
+    ...hoaShooters.map(s => s.shooterId),
+    ...hoaMaleShooters.map(s => s.shooterId),
+    ...hoaFemaleShooters.map(s => s.shooterId)
+  ])
+
+  // HAA (High All-Around) - Specific core disciplines
+  // Only includes shooters who have shot in multiple core disciplines
+  let haaShooters: any[] = []
+  let haaMaleShooters: any[] = []
+  let haaFemaleShooters: any[] = []
+  
+  if (tournament.enableHAA) {
+    const calculateHAA = (shooters: ShooterScore[]) => {
+      return shooters
+        .map(shooter => {
+          const coreDisciplineScores = Object.entries(shooter.disciplineScores)
+            .filter(([disciplineId]) => coreDisciplines.includes(disciplineId))
+          
+          const haaTotal = coreDisciplineScores.reduce((sum, [, score]) => sum + score, 0)
+          const haaDisciplineCount = coreDisciplineScores.length
+
+          return {
+            ...shooter,
+            haaTotal,
+            haaDisciplineCount
+          }
+        })
+        .filter(s => s.haaDisciplineCount >= 2) // Must shoot at least 2 core disciplines
+        .filter(s => !tournament.hoaExcludesHAA || !hoaWinnerIds.has(s.shooterId)) // Exclude HOA winners if configured
+        .sort((a, b) => b.haaTotal - a.haaTotal)
+        .slice(0, 3)
+    }
+
+    if (tournament.hoaSeparateGender) {
+      // Separate HAA for males and females
+      haaMaleShooters = calculateHAA(allShooters.filter(s => s.gender === 'male'))
+      haaFemaleShooters = calculateHAA(allShooters.filter(s => s.gender === 'female'))
+    } else {
+      // Combined HAA
+      haaShooters = calculateHAA(allShooters)
+    }
+  }
+
+  // Collect all HAA winners for exclusion from division leaderboards
+  const haaWinnerIds = new Set([
+    ...haaShooters.map(s => s.shooterId),
+    ...haaMaleShooters.map(s => s.shooterId),
+    ...haaFemaleShooters.map(s => s.shooterId)
+  ])
 
   // Get medal emoji
   const getMedal = (index: number) => {
@@ -229,9 +300,18 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
     shootersByDisciplineAndDivision[disciplineId] = {}
     
     divisions.forEach(division => {
-      const shootersInDisciplineAndDivision = allShooters.filter(
+      let shootersInDisciplineAndDivision = allShooters.filter(
         s => s.division === division && s.disciplineScores[disciplineId] !== undefined
-      ).sort((a, b) => {
+      )
+      
+      // Exclude HAA winners from division leaderboards if configured
+      if (tournament.haaExcludesDivision && tournament.enableHAA) {
+        shootersInDisciplineAndDivision = shootersInDisciplineAndDivision.filter(
+          s => !haaWinnerIds.has(s.shooterId)
+        )
+      }
+      
+      shootersInDisciplineAndDivision.sort((a, b) => {
         // Sort by score for this specific discipline
         const aScore = a.disciplineScores[disciplineId] || 0
         const bScore = b.disciplineScores[disciplineId] || 0
@@ -333,90 +413,274 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
       {activeView === 'podium' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* HOA - High Over All */}
-        <div className="bg-gradient-to-br from-orange-600 to-orange-800 rounded-lg shadow-xl p-4">
-          <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-            👑 HOA - High Over All
-          </h2>
-          <p className="text-white/90 text-xs mb-4">All Disciplines Combined</p>
-          
-          {hoaShooters.length > 0 ? (
-            <div className="space-y-2">
-              {hoaShooters.map((shooter, idx) => (
-                <div
-                  key={shooter.shooterId}
-                  className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-3xl">{getMedal(idx)}</span>
-                    <div>
-                      <div className="text-lg font-bold text-white">
-                        {shooter.shooterName}
+          {tournament.enableHOA && !tournament.hoaSeparateGender && (
+            <div className="bg-gradient-to-br from-orange-600 to-orange-800 rounded-lg shadow-xl p-4">
+              <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+                👑 HOA - High Over All
+              </h2>
+              <p className="text-white/90 text-xs mb-4">All Disciplines Combined</p>
+              
+              {hoaShooters.length > 0 ? (
+                <div className="space-y-2">
+                  {hoaShooters.map((shooter, idx) => (
+                    <div
+                      key={shooter.shooterId}
+                      className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-3xl">{getMedal(idx)}</span>
+                        <div>
+                          <div className="text-lg font-bold text-white">
+                            {shooter.shooterName}
+                          </div>
+                          <div className="text-xs text-white/80">
+                            {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-white/80">
-                        {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-white">
+                          {shooter.totalScore}
+                        </div>
+                        <div className="text-xs text-white/80">
+                          {shooter.disciplineCount} disc{shooter.disciplineCount !== 1 ? 's' : ''}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-white">
-                      {shooter.totalScore}
-                    </div>
-                    <div className="text-xs text-white/80">
-                      {shooter.disciplineCount} disc{shooter.disciplineCount !== 1 ? 's' : ''}
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-white/70 text-sm">
-              No scores recorded yet
+              ) : (
+                <div className="text-center py-8 text-white/70 text-sm">
+                  No scores recorded yet
+                </div>
+              )}
             </div>
           )}
-        </div>
+
+          {/* HOA - Male */}
+          {tournament.enableHOA && tournament.hoaSeparateGender && (
+            <div className="bg-gradient-to-br from-orange-600 to-orange-800 rounded-lg shadow-xl p-4">
+              <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+                👑 HOA - Male
+              </h2>
+              <p className="text-white/90 text-xs mb-4">All Disciplines Combined</p>
+              
+              {hoaMaleShooters.length > 0 ? (
+                <div className="space-y-2">
+                  {hoaMaleShooters.map((shooter, idx) => (
+                    <div
+                      key={shooter.shooterId}
+                      className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-3xl">{getMedal(idx)}</span>
+                        <div>
+                          <div className="text-lg font-bold text-white">
+                            {shooter.shooterName}
+                          </div>
+                          <div className="text-xs text-white/80">
+                            {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-white">
+                          {shooter.totalScore}
+                        </div>
+                        <div className="text-xs text-white/80">
+                          {shooter.disciplineCount} disc{shooter.disciplineCount !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-white/70 text-sm">
+                  No scores recorded yet
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* HOA - Female */}
+          {tournament.enableHOA && tournament.hoaSeparateGender && (
+            <div className="bg-gradient-to-br from-orange-600 to-orange-800 rounded-lg shadow-xl p-4">
+              <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+                👑 HOA - Female
+              </h2>
+              <p className="text-white/90 text-xs mb-4">All Disciplines Combined</p>
+              
+              {hoaFemaleShooters.length > 0 ? (
+                <div className="space-y-2">
+                  {hoaFemaleShooters.map((shooter, idx) => (
+                    <div
+                      key={shooter.shooterId}
+                      className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-3xl">{getMedal(idx)}</span>
+                        <div>
+                          <div className="text-lg font-bold text-white">
+                            {shooter.shooterName}
+                          </div>
+                          <div className="text-xs text-white/80">
+                            {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-white">
+                          {shooter.totalScore}
+                        </div>
+                        <div className="text-xs text-white/80">
+                          {shooter.disciplineCount} disc{shooter.disciplineCount !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-white/70 text-sm">
+                  No scores recorded yet
+                </div>
+              )}
+            </div>
+          )}
 
         {/* HAA - High All-Around */}
-        <div className="bg-gradient-to-br from-amber-700 to-orange-900 rounded-lg shadow-xl p-4">
-          <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-            🎯 HAA - High All-Around
-          </h2>
-          <p className="text-white/90 text-xs mb-4">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
-          
-          {haaShooters.length > 0 ? (
-            <div className="space-y-2">
-              {haaShooters.map((shooter, idx) => (
-                <div
-                  key={shooter.shooterId}
-                  className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-3xl">{getMedal(idx)}</span>
-                    <div>
-                      <div className="text-lg font-bold text-white">
-                        {shooter.shooterName}
+        {tournament.enableHAA && !tournament.hoaSeparateGender && (
+          <div className="bg-gradient-to-br from-amber-700 to-orange-900 rounded-lg shadow-xl p-4">
+            <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+              🎯 HAA - High All-Around
+            </h2>
+            <p className="text-white/90 text-xs mb-4">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
+            
+            {haaShooters.length > 0 ? (
+              <div className="space-y-2">
+                {haaShooters.map((shooter, idx) => (
+                  <div
+                    key={shooter.shooterId}
+                    className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-3xl">{getMedal(idx)}</span>
+                      <div>
+                        <div className="text-lg font-bold text-white">
+                          {shooter.shooterName}
+                        </div>
+                        <div className="text-xs text-white/80">
+                          {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-white">
+                        {shooter.haaTotal}
                       </div>
                       <div className="text-xs text-white/80">
-                        {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                        {shooter.haaDisciplineCount} core
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-white">
-                      {shooter.haaTotal}
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-white/70 text-sm">
+                Need 2+ core disciplines
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* HAA - Male */}
+        {tournament.enableHAA && tournament.hoaSeparateGender && (
+          <div className="bg-gradient-to-br from-amber-700 to-orange-900 rounded-lg shadow-xl p-4">
+            <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+              🎯 HAA - Male
+            </h2>
+            <p className="text-white/90 text-xs mb-4">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
+            
+            {haaMaleShooters.length > 0 ? (
+              <div className="space-y-2">
+                {haaMaleShooters.map((shooter, idx) => (
+                  <div
+                    key={shooter.shooterId}
+                    className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-3xl">{getMedal(idx)}</span>
+                      <div>
+                        <div className="text-lg font-bold text-white">
+                          {shooter.shooterName}
+                        </div>
+                        <div className="text-xs text-white/80">
+                          {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-white/80">
-                      {shooter.haaDisciplineCount} core
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-white">
+                        {shooter.haaTotal}
+                      </div>
+                      <div className="text-xs text-white/80">
+                        {shooter.haaDisciplineCount} core
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-white/70 text-sm">
-              Need 2+ core disciplines
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-white/70 text-sm">
+                Need 2+ core disciplines
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* HAA - Female */}
+        {tournament.enableHAA && tournament.hoaSeparateGender && (
+          <div className="bg-gradient-to-br from-amber-700 to-orange-900 rounded-lg shadow-xl p-4">
+            <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+              🎯 HAA - Female
+            </h2>
+            <p className="text-white/90 text-xs mb-4">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
+            
+            {haaFemaleShooters.length > 0 ? (
+              <div className="space-y-2">
+                {haaFemaleShooters.map((shooter, idx) => (
+                  <div
+                    key={shooter.shooterId}
+                    className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-3xl">{getMedal(idx)}</span>
+                      <div>
+                        <div className="text-lg font-bold text-white">
+                          {shooter.shooterName}
+                        </div>
+                        <div className="text-xs text-white/80">
+                          {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-white">
+                        {shooter.haaTotal}
+                      </div>
+                      <div className="text-xs text-white/80">
+                        {shooter.haaDisciplineCount} core
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-white/70 text-sm">
+                Need 2+ core disciplines
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Top 3 Overall */}
         <div className="bg-gradient-to-br from-stone-700 to-stone-900 rounded-lg shadow-xl p-4">

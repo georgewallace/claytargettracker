@@ -61,6 +61,7 @@ model Shooter {
   teamId     String?
   birthMonth Int?     // 1-12
   birthYear  Int?     // e.g., 2008
+  gender     String?  // "male", "female", "other"
   nscaClass  String?  // NSCA classification
   ataClass   String?  // ATA classification
   grade      String?  // "6", "7", "8", "9", "10", "11", "12", "College"
@@ -86,6 +87,15 @@ model Tournament {
   description String?
   status      String   @default("upcoming") // upcoming, active, completed
   createdById String
+  
+  // HAA/HOA Configuration
+  enableHOA           Boolean @default(true)  // Enable High Over All award
+  enableHAA           Boolean @default(true)  // Enable High All-Around award
+  hoaSeparateGender   Boolean @default(false) // Separate male/female for HOA
+  haaCoreDisciplines  String? // JSON array of discipline IDs for HAA (e.g., ["trap", "skeet", "sporting_clays"])
+  hoaExcludesHAA      Boolean @default(true)  // If true, HOA winners can't win HAA
+  haaExcludesDivision Boolean @default(true)  // If true, HAA winners can't win 1st in their division
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   

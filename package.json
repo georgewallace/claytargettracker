@@ -13,6 +13,7 @@
     "db:reset": "npx prisma migrate reset",
     "db:studio": "npx prisma studio",
     "db:generate": "npx prisma generate",
+    "db:seed": "tsx scripts/seed-test-data.ts",
     "demo:dev": "NEXT_PUBLIC_DEMO_MODE=true next dev",
     "build:demo": "mv app/api ./api-temp && NEXT_PUBLIC_DEMO_MODE=true next build && mv ./api-temp app/api || (mv ./api-temp app/api 2>/dev/null; exit 1)",
     "export:demo": "NEXT_PUBLIC_DEMO_MODE=true next build && next export"
@@ -41,6 +42,7 @@
   },
   "devDependencies": {
     "eslint": "^9",
-    "eslint-config-next": "16.0.0"
+    "eslint-config-next": "16.0.0",
+    "tsx": "^4.20.6"
   }
 }
