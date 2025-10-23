@@ -21,17 +21,49 @@
 
 ---
 
+### ✅ Issue 3: TypeScript Type Checking Error
+**Error**: `It looks like you're trying to use TypeScript but do not have the required package(s) installed.`
+
+**Solution**: Moved ALL TypeScript and build-related packages from `devDependencies` to `dependencies`:
+- `@types/bcrypt`
+- `@types/node`
+- `@types/react`
+- `@types/react-dom`
+- `typescript`
+
+**Why**: AWS Amplify's build process needs these packages during the TypeScript type-checking phase.
+
+---
+
 ## Current Configuration
 
 ### package.json Changes
+All build-time packages moved to `dependencies`:
 ```json
 "dependencies": {
+  // Build tools (moved from devDependencies)
   "@tailwindcss/postcss": "^4",
   "tailwindcss": "^4",
   "prisma": "^6.18.0",
-  // ... other dependencies
+  "typescript": "^5",
+  
+  // Type definitions (moved from devDependencies)
+  "@types/bcrypt": "^6.0.0",
+  "@types/node": "^20",
+  "@types/react": "^19",
+  "@types/react-dom": "^19",
+  
+  // ... other runtime dependencies
+}
+
+"devDependencies": {
+  // Only linting/development tools remain
+  "eslint": "^9",
+  "eslint-config-next": "16.0.0"
 }
 ```
+
+**Key Point**: In AWS Amplify, packages needed during build MUST be in `dependencies`, not `devDependencies`.
 
 ### amplify.yml Configuration
 - ✅ Node.js 20 explicitly set
