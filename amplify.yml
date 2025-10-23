@@ -8,6 +8,9 @@ frontend:
         - node --version
         - npm ci
         - npx prisma generate
+        # Verify Prisma binaries were generated
+        - echo "Checking for Prisma binaries..."
+        - ls -la node_modules/.prisma/client/*.node || echo "Prisma binaries not found!"
         # Create database directory if it doesn't exist
         - mkdir -p prisma
         # Run migrations (will create SQLite database)
@@ -16,9 +19,14 @@ frontend:
       commands:
         - npm run build
   artifacts:
-    baseDirectory: .next
+    baseDirectory: .
     files:
-      - '**/*'
+      - '.next/**/*'
+      - 'node_modules/.prisma/client/**/*'
+      - 'node_modules/@prisma/client/**/*'
+      - 'node_modules/**/*'
+      - 'package.json'
+      - 'prisma/**/*'
   cache:
     paths:
       - node_modules/**/*
