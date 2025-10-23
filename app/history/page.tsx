@@ -149,7 +149,7 @@ export default async function ShooterHistoryPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {shootsWithTotals.map((shoot) => (
+                  {shootsWithTotals.map((shoot: any) => (
                     <tr key={shoot.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {format(new Date(shoot.date), 'PP')}
