@@ -130,9 +130,13 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
   // Get discipline details
   const activeDisciplineData = disciplinesWithSquads.find(d => d.id === activeDiscipline)
   const isSkeetOrTrap = activeDisciplineData?.name === 'skeet' || activeDisciplineData?.name === 'trap'
+  const isSportingClays = activeDisciplineData?.name === 'sporting_clays'
+  const isFiveStand = activeDisciplineData?.name === 'five_stand'
 
-  // Default number of rounds for skeet/trap
-  const maxRounds = 4
+  // Configuration based on discipline
+  const maxRounds = 4 // For skeet/trap
+  const maxStations = isSportingClays ? 14 : (isFiveStand ? 5 : 4) // Sporting Clays: 14 stations, 5-Stand: 5 stations
+  const maxTargetsPerStation = isSportingClays ? 10 : (isFiveStand ? 25 : 25) // Sporting Clays varies, default 10
 
   // Initialize scores when squad is selected
   useEffect(() => {
@@ -194,8 +198,9 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
 
     const numValue = parseInt(value)
     
-    // Validate score (0-25 for skeet/trap)
-    if (isNaN(numValue) || numValue < 0 || numValue > 25) return
+    // Validate score based on discipline
+    const maxValue = isSkeetOrTrap ? 25 : maxTargetsPerStation
+    if (isNaN(numValue) || numValue < 0 || numValue > maxValue) return
 
     setScores(prev => ({
       ...prev,
@@ -237,7 +242,7 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
           rounds: Object.entries(rounds).map(([round, targets]) => ({
             station: parseInt(round),
             targets,
-            totalTargets: 25
+            totalTargets: isSkeetOrTrap ? 25 : maxTargetsPerStation
           }))
         }))
 
@@ -413,7 +418,7 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
       )}
 
       {/* Score Entry Tables */}
-      {squadsToDisplay.length > 0 && isSkeetOrTrap && (
+      {squadsToDisplay.length > 0 && (isSkeetOrTrap || isSportingClays || isFiveStand) && (
         <div className="space-y-6">
           {/* Save Button at Top */}
           <div className="bg-white rounded-lg shadow-md p-4 flex justify-between items-center sticky top-0 z-10">
@@ -422,7 +427,9 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
                 {selectedSquadId === 'all' ? 'All Squads' : squadsToDisplay[0]?.name} - {activeDisciplineData?.displayName}
               </h2>
               <p className="text-sm text-gray-600">
-                Enter scores for each round (0-25 targets per round)
+                {isSkeetOrTrap && 'Enter scores for each round (0-25 targets per round)'}
+                {isSportingClays && 'Enter scores for each station (0-10 targets per station, 100 total)'}
+                {isFiveStand && 'Enter scores for each station (0-25 targets per station)'}
               </p>
             </div>
             <button
@@ -456,9 +463,9 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-r border-gray-300 whitespace-nowrap">
                         Team
                       </th>
-                      {Array.from({ length: maxRounds }, (_, i) => (
+                      {Array.from({ length: isSkeetOrTrap ? maxRounds : maxStations }, (_, i) => (
                         <th key={i} className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border-r border-gray-300 whitespace-nowrap w-16">
-                          R{i + 1}
+                          {isSkeetOrTrap ? `R${i + 1}` : `S${i + 1}`}
                         </th>
                       ))}
                       <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 bg-indigo-100 whitespace-nowrap w-20">
@@ -482,7 +489,7 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
                         <td className="px-3 py-1.5 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap">
                           {member.shooter.team?.name || '—'}
                         </td>
-                        {Array.from({ length: maxRounds }, (_, i) => (
+                        {Array.from({ length: isSkeetOrTrap ? maxRounds : maxStations }, (_, i) => (
                           <td key={i} className="px-1 py-1 text-center border-r border-gray-200">
                             <input
                               type="text"
@@ -493,6 +500,7 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
                               onFocus={(e) => e.target.select()}
                               className="w-full h-8 px-1 text-center border-0 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-yellow-50 text-base font-mono"
                               placeholder="-"
+                              title={isSportingClays ? `Station ${i + 1} (max ${maxTargetsPerStation})` : ''}
                             />
                           </td>
                         ))}
