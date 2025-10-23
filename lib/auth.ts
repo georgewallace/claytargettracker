@@ -11,6 +11,11 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 export async function getCurrentUser() {
+  // In demo mode during static generation, return null (no authentication)
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    return null
+  }
+  
   const cookieStore = await cookies()
   const userId = cookieStore.get('userId')?.value
   

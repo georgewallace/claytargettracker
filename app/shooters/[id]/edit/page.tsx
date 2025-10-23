@@ -9,6 +9,18 @@ interface PageProps {
   }>
 }
 
+// For static export (demo mode)
+export async function generateStaticParams() {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    return [
+      { id: 'shooter-1' },
+      { id: 'shooter-2' },
+      { id: 'shooter-3' },
+    ]
+  }
+  return []
+}
+
 export default async function EditShooterPage({ params }: PageProps) {
   const { id } = await params
   const user = await getCurrentUser()

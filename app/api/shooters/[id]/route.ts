@@ -3,12 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { calculateDivision } from '@/lib/divisions'
 
-export const dynamic = "force-static"
 
-// For static export (demo mode)
-export async function generateStaticParams() {
-  return []
-}
 
 interface RouteParams {
   params: Promise<{

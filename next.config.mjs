@@ -15,6 +15,11 @@ const nextConfig = {
   
   // Optional: trailing slashes for better GitHub Pages compatibility
   trailingSlash: process.env.NEXT_PUBLIC_DEMO_MODE === 'true',
+  
+  // Skip API routes during static export
+  ...(process.env.NEXT_PUBLIC_DEMO_MODE !== 'true' && {
+    // API routes are only available in non-demo mode
+  }),
 }
 
 export default nextConfig

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 
-export const dynamic = "force-static"
 
 // Assign coach to team
 export async function POST(request: NextRequest) {

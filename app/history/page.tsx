@@ -29,9 +29,9 @@ export default async function ShooterHistoryPage() {
   })
 
   // Calculate totals for each shoot
-  const shootsWithTotals = shoots.map(shoot => {
-    const totalTargets = shoot.scores.reduce((sum, score) => sum + score.targets, 0)
-    const totalPossible = shoot.scores.reduce((sum, score) => sum + score.totalTargets, 0)
+  const shootsWithTotals = shoots.map((shoot: any) => {
+    const totalTargets = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
+    const totalPossible = shoot.scores.reduce((sum: number, score: any) => sum + score.totalTargets, 0)
     const percentage = totalPossible > 0 ? ((totalTargets / totalPossible) * 100).toFixed(1) : '0'
     
     return {
@@ -43,7 +43,7 @@ export default async function ShooterHistoryPage() {
   })
 
   // Group by discipline for statistics
-  const disciplineStats = shoots.reduce((acc, shoot) => {
+  const disciplineStats = shoots.reduce((acc: any, shoot: any) => {
     const disciplineId = shoot.discipline.id
     if (!acc[disciplineId]) {
       acc[disciplineId] = {
@@ -54,8 +54,8 @@ export default async function ShooterHistoryPage() {
       }
     }
     
-    const targets = shoot.scores.reduce((sum, score) => sum + score.targets, 0)
-    const possible = shoot.scores.reduce((sum, score) => sum + score.totalTargets, 0)
+    const targets = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
+    const possible = shoot.scores.reduce((sum: number, score: any) => sum + score.totalTargets, 0)
     
     acc[disciplineId].totalShoots++
     acc[disciplineId].totalTargets += targets
@@ -179,7 +179,7 @@ export default async function ShooterHistoryPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex gap-2">
-                          {shoot.scores.map(score => (
+                          {shoot.scores.map((score: any) => (
                             <span 
                               key={score.id}
                               className="text-xs text-gray-600"

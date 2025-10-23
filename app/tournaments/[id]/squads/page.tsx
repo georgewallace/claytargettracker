@@ -9,6 +9,18 @@ interface PageProps {
   }>
 }
 
+// For static export (demo mode)
+export async function generateStaticParams() {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    return [
+      { id: 'demo-tournament-1' },
+      { id: 'demo-tournament-2' },
+      { id: 'demo-tournament-3' },
+    ]
+  }
+  return []
+}
+
 export default async function TournamentSquadsPage({ params }: PageProps) {
   const { id } = await params
   const user = await getCurrentUser()
