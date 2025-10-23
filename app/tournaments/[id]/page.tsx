@@ -8,6 +8,9 @@ import CoachRegistration from './CoachRegistration'
 import RemoveRegistrationButton from './RemoveRegistrationButton'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 
+// Force dynamic rendering (required for getCurrentUser and dynamic params)
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: Promise<{
     id: string
