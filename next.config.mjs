@@ -3,6 +3,11 @@ const nextConfig = {
   // Enable static export for demo mode, standalone for AWS Amplify
   output: process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ? 'export' : 'standalone',
   
+  // Set the correct root directory to prevent nested standalone builds
+  experimental: {
+    outputFileTracingRoot: process.cwd(),
+  },
+  
   // Set base path for GitHub Pages (if using repo pages)
   basePath: process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && process.env.NEXT_PUBLIC_BASE_PATH 
     ? process.env.NEXT_PUBLIC_BASE_PATH 

@@ -18,11 +18,21 @@ frontend:
     build:
       commands:
         - npm run build
-        # Copy Prisma binaries to standalone build
-        - cp -r node_modules/.prisma .next/standalone/node_modules/
-        - cp -r node_modules/@prisma .next/standalone/node_modules/
+        # Copy static files to standalone build
+        - cp -r .next/static .next/standalone/.next/static
+        - cp -r public .next/standalone/public
+        # Copy Prisma files to standalone build
+        - mkdir -p .next/standalone/node_modules/.prisma
+        - cp -r node_modules/.prisma/client .next/standalone/node_modules/.prisma/
+        - mkdir -p .next/standalone/node_modules/@prisma
+        - cp -r node_modules/@prisma/client .next/standalone/node_modules/@prisma/
+        # Copy prisma schema and migrations
+        - cp -r prisma .next/standalone/
+        # Verify Prisma binaries in standalone
+        - echo "Verifying Prisma binaries in standalone..."
+        - ls -la .next/standalone/node_modules/.prisma/client/*.node
   artifacts:
-    baseDirectory: .next
+    baseDirectory: .next/standalone
     files:
       - '**/*'
   cache:
