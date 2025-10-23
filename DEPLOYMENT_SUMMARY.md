@@ -1,6 +1,6 @@
 # 🚀 AWS Amplify Deployment - All Issues Fixed!
 
-## ✅ All 3 Issues Resolved
+## ✅ All 4 Issues Resolved
 
 ### Issue 1: Prisma Config ❌ → ✅
 **Error**: `Cannot find module 'prisma/config'`
@@ -13,6 +13,10 @@
 ### Issue 3: TypeScript Types ❌ → ✅
 **Error**: `TypeScript but do not have the required package(s) installed`
 **Fix**: Moved all TypeScript packages to `dependencies`
+
+### Issue 4: Prisma Lambda Binary ❌ → ✅ (NEW!)
+**Error**: `Prisma Client could not locate the Query Engine for runtime "rhel-openssl-3.0.x"`
+**Fix**: Added AWS Lambda binary target to `prisma/schema.prisma`
 
 ---
 

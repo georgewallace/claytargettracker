@@ -35,6 +35,21 @@
 
 ---
 
+### ✅ Issue 4: Prisma Query Engine Binary Missing (Runtime Error)
+**Error**: `Prisma Client could not locate the Query Engine for runtime "rhel-openssl-3.0.x"`
+
+**Solution**: Updated `prisma/schema.prisma` to generate binaries for both local development and AWS Lambda:
+```prisma
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+```
+
+**Why**: Prisma by default only generates binaries for your local machine. AWS Lambda runs on Red Hat Enterprise Linux with OpenSSL 3.0, so we need to explicitly tell Prisma to generate that binary during the build.
+
+---
+
 ## Current Configuration
 
 ### package.json Changes
