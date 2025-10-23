@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    const existingShooterIds = existingRegistrations.map(r => r.shooterId)
+    const existingShooterIds = existingRegistrations.map((r: { shooterId: string }) => r.shooterId)
     const newShooterIds = shooterIds.filter((id: string) => !existingShooterIds.includes(id))
     
     // Create registrations for shooters who aren't already registered with disciplines
