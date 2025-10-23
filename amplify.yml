@@ -11,10 +11,8 @@ frontend:
         # Verify Prisma binaries were generated
         - echo "Checking for Prisma binaries..."
         - ls -la node_modules/.prisma/client/*.node || echo "Prisma binaries not found!"
-        # Create database directory if it doesn't exist
-        - mkdir -p prisma
-        # Run migrations (will create SQLite database)
-        - npx prisma migrate deploy || echo "Migration failed, continuing..."
+        # Run database migrations (PostgreSQL via DATABASE_URL env var)
+        - npx prisma migrate deploy
     build:
       commands:
         - npm run build

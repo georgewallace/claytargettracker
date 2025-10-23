@@ -42,6 +42,8 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
   const router = useRouter()
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [expandedShooter, setExpandedShooter] = useState<string | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [zoom, setZoom] = useState(100)
   
   // Determine initial view based on tournament status
   const isTournamentComplete = tournament.status === 'completed'
@@ -59,6 +61,25 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
 
     return () => clearInterval(interval)
   }, [autoRefresh, router])
+  
+  // Fullscreen toggle
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen()
+      setIsFullscreen(true)
+    } else {
+      document.exitFullscreen()
+      setIsFullscreen(false)
+    }
+  }
+  
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
 
   // Calculate individual scores
   const shooterScores: Record<string, ShooterScore> = {}
@@ -224,19 +245,20 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
   })
 
   return (
-    <div className="space-y-8">
-      {/* Auto-refresh and View Toggle */}
-      <div className="bg-white/10 backdrop-blur rounded-lg p-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <div className="space-y-4" style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}>
+      {/* Controls Bar */}
+      <div className="bg-gradient-to-r from-orange-900/50 to-amber-900/50 backdrop-blur rounded-lg p-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {/* Auto-refresh */}
           <div className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${autoRefresh ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
-            <span className="text-white font-medium">
-              {autoRefresh ? 'Auto-refreshing every 30s' : 'Auto-refresh paused'}
+            <div className={`w-2.5 h-2.5 rounded-full ${autoRefresh ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+            <span className="text-white text-sm font-medium">
+              {autoRefresh ? 'Auto 30s' : 'Paused'}
             </span>
           </div>
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-md transition font-medium"
+            className="px-3 py-1.5 bg-orange-700/40 hover:bg-orange-700/60 text-white rounded text-sm transition font-medium"
           >
             {autoRefresh ? 'Pause' : 'Resume'}
           </button>
@@ -247,10 +269,10 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
           {isTournamentComplete && (
             <button
               onClick={() => setActiveView('podium')}
-              className={`px-4 py-2 rounded-md transition font-medium ${
+              className={`px-3 py-1.5 rounded text-sm transition font-medium ${
                 activeView === 'podium'
-                  ? 'bg-white text-indigo-900'
-                  : 'bg-white/20 text-white hover:bg-white/30'
+                  ? 'bg-orange-500 text-white shadow-lg'
+                  : 'bg-orange-900/30 text-white hover:bg-orange-800/40'
               }`}
             >
               🏆 Podium
@@ -258,212 +280,229 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
           )}
           <button
             onClick={() => setActiveView('divisions')}
-            className={`px-4 py-2 rounded-md transition font-medium ${
+            className={`px-3 py-1.5 rounded text-sm transition font-medium ${
               activeView === 'divisions'
-                ? 'bg-white text-indigo-900'
-                : 'bg-white/20 text-white hover:bg-white/30'
+                ? 'bg-orange-500 text-white shadow-lg'
+                : 'bg-orange-900/30 text-white hover:bg-orange-800/40'
             }`}
           >
-            📊 By Division
+            📊 Divisions
           </button>
           <button
             onClick={() => setActiveView('squads')}
-            className={`px-4 py-2 rounded-md transition font-medium ${
+            className={`px-3 py-1.5 rounded text-sm transition font-medium ${
               activeView === 'squads'
-                ? 'bg-white text-indigo-900'
-                : 'bg-white/20 text-white hover:bg-white/30'
+                ? 'bg-orange-500 text-white shadow-lg'
+                : 'bg-orange-900/30 text-white hover:bg-orange-800/40'
             }`}
           >
-            👥 By Squad
+            👥 Squads
+          </button>
+        </div>
+        
+        {/* Zoom and Fullscreen Controls */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setZoom(Math.max(50, zoom - 10))}
+            className="px-2 py-1.5 bg-orange-700/40 hover:bg-orange-700/60 text-white rounded text-sm transition font-bold"
+            title="Zoom Out"
+          >
+            −
+          </button>
+          <span className="text-white text-sm font-medium min-w-[3rem] text-center">
+            {zoom}%
+          </span>
+          <button
+            onClick={() => setZoom(Math.min(150, zoom + 10))}
+            className="px-2 py-1.5 bg-orange-700/40 hover:bg-orange-700/60 text-white rounded text-sm transition font-bold"
+            title="Zoom In"
+          >
+            +
+          </button>
+          <button
+            onClick={toggleFullscreen}
+            className="px-3 py-1.5 bg-orange-700/40 hover:bg-orange-700/60 text-white rounded text-sm transition font-medium ml-2"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? '⊗' : '⛶'} {isFullscreen ? 'Exit' : 'Fullscreen'}
           </button>
         </div>
       </div>
 
       {/* Podium View */}
       {activeView === 'podium' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* HOA - High Over All */}
-        <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg shadow-2xl p-6">
-          <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
+        <div className="bg-gradient-to-br from-orange-600 to-orange-800 rounded-lg shadow-xl p-4">
+          <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
             👑 HOA - High Over All
           </h2>
-          <p className="text-white/90 text-sm mb-6">All Disciplines Combined</p>
+          <p className="text-white/90 text-xs mb-4">All Disciplines Combined</p>
           
           {hoaShooters.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {hoaShooters.map((shooter, idx) => (
                 <div
                   key={shooter.shooterId}
-                  className="bg-white/20 backdrop-blur rounded-lg p-4 flex items-center justify-between"
+                  className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl">{getMedal(idx)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl">{getMedal(idx)}</span>
                     <div>
-                      <div className="text-xl font-bold text-white">
+                      <div className="text-lg font-bold text-white">
                         {shooter.shooterName}
                       </div>
-                      <div className="text-sm text-white/80">
+                      <div className="text-xs text-white/80">
                         {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-3xl font-bold text-white">
+                    <div className="text-2xl font-bold text-white">
                       {shooter.totalScore}
                     </div>
                     <div className="text-xs text-white/80">
-                      {shooter.disciplineCount} discipline{shooter.disciplineCount !== 1 ? 's' : ''}
+                      {shooter.disciplineCount} disc{shooter.disciplineCount !== 1 ? 's' : ''}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-white/70">
+            <div className="text-center py-8 text-white/70 text-sm">
               No scores recorded yet
             </div>
           )}
         </div>
 
         {/* HAA - High All-Around */}
-        <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg shadow-2xl p-6">
-          <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
+        <div className="bg-gradient-to-br from-amber-700 to-orange-900 rounded-lg shadow-xl p-4">
+          <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
             🎯 HAA - High All-Around
           </h2>
-          <p className="text-white/90 text-sm mb-6">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
+          <p className="text-white/90 text-xs mb-4">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
           
           {haaShooters.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {haaShooters.map((shooter, idx) => (
                 <div
                   key={shooter.shooterId}
-                  className="bg-white/20 backdrop-blur rounded-lg p-4 flex items-center justify-between"
+                  className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl">{getMedal(idx)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl">{getMedal(idx)}</span>
                     <div>
-                      <div className="text-xl font-bold text-white">
+                      <div className="text-lg font-bold text-white">
                         {shooter.shooterName}
                       </div>
-                      <div className="text-sm text-white/80">
+                      <div className="text-xs text-white/80">
                         {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-3xl font-bold text-white">
+                    <div className="text-2xl font-bold text-white">
                       {shooter.haaTotal}
                     </div>
                     <div className="text-xs text-white/80">
-                      {shooter.haaDisciplineCount} core discipline{shooter.haaDisciplineCount !== 1 ? 's' : ''}
+                      {shooter.haaDisciplineCount} core
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-white/70">
-              No eligible scores yet (need 2+ core disciplines)
+            <div className="text-center py-8 text-white/70 text-sm">
+              Need 2+ core disciplines
             </div>
           )}
         </div>
 
         {/* Top 3 Overall */}
-        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg shadow-2xl p-6">
-          <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
+        <div className="bg-gradient-to-br from-stone-700 to-stone-900 rounded-lg shadow-xl p-4">
+          <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
             🏅 Top 3 Individuals
           </h2>
-          <p className="text-white/90 text-sm mb-6">Overall Tournament Leaders</p>
+          <p className="text-white/90 text-xs mb-4">Overall Tournament Leaders</p>
           
           {top3Overall.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {top3Overall.map((shooter, idx) => (
                 <div
                   key={shooter.shooterId}
-                  className="bg-white/20 backdrop-blur rounded-lg p-4 flex items-center justify-between"
+                  className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl">{getMedal(idx)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl">{getMedal(idx)}</span>
                     <div>
-                      <div className="text-xl font-bold text-white">
+                      <div className="text-lg font-bold text-white">
                         {shooter.shooterName}
                       </div>
-                      <div className="text-sm text-white/80">
+                      <div className="text-xs text-white/80">
                         {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-3xl font-bold text-white">
+                    <div className="text-2xl font-bold text-white">
                       {shooter.totalScore}
                     </div>
                     <div className="text-xs text-white/80">
-                      {shooter.disciplineCount} discipline{shooter.disciplineCount !== 1 ? 's' : ''}
+                      {shooter.disciplineCount} disc{shooter.disciplineCount !== 1 ? 's' : ''}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-white/70">
+            <div className="text-center py-8 text-white/70 text-sm">
               No scores recorded yet
             </div>
           )}
         </div>
 
         {/* Top 3 Squads */}
-        <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg shadow-2xl p-6">
-          <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
+        <div className="bg-gradient-to-br from-green-800 to-green-950 rounded-lg shadow-xl p-4">
+          <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
             👥 Top 3 Squads
           </h2>
-          <p className="text-white/90 text-sm mb-6">Combined Squad Scores</p>
+          <p className="text-white/90 text-xs mb-4">Combined Squad Scores</p>
           
           {top3Squads.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {top3Squads.map((squad, idx) => (
                 <div
                   key={squad.squadId}
-                  className={`bg-white/20 backdrop-blur rounded-lg p-4 flex items-center justify-between ${!squad.isComplete ? 'border-2 border-yellow-300' : ''}`}
+                  className={`bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between ${!squad.isComplete ? 'border border-yellow-400/50' : ''}`}
                 >
-                  <div className="flex items-center gap-3 flex-1">
-                    <span className="text-4xl">{getMedal(idx)}</span>
-                    <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-3xl">{getMedal(idx)}</span>
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <div className="text-xl font-bold text-white">
+                        <div className="text-lg font-bold text-white truncate">
                           {squad.squadName}
                         </div>
                         {!squad.isComplete && (
-                          <span className="px-2 py-0.5 bg-yellow-300/30 text-yellow-100 text-xs font-semibold rounded-full border border-yellow-300">
-                            ⚠️ {squad.completionPercentage}%
+                          <span className="px-1.5 py-0.5 bg-yellow-400/20 text-yellow-200 text-xs font-semibold rounded">
+                            {squad.completionPercentage}%
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-white/80">
-                        {squad.teamName || 'Mixed Team'}
-                      </div>
-                      <div className="text-xs text-white/70 mt-1">
-                        {squad.members.join(', ')}
+                      <div className="text-xs text-white/80 truncate">
+                        {squad.teamName || 'Mixed'} • {squad.memberCount} shooters
                       </div>
                     </div>
                   </div>
-                  <div className="text-right ml-3">
-                    <div className="text-3xl font-bold text-white">
+                  <div className="text-right ml-2">
+                    <div className="text-2xl font-bold text-white">
                       {squad.totalScore}
                     </div>
-                    <div className="text-xs text-white/80">
-                      {squad.memberCount} member{squad.memberCount !== 1 ? 's' : ''}
-                    </div>
-                    {squad.isComplete && (
-                      <div className="text-xs text-white/80 mt-1">
-                        ✓ Complete
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-white/70">
+            <div className="text-center py-8 text-white/70 text-sm">
               No squads with scores yet
             </div>
           )}
@@ -471,9 +510,9 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
         </div>
       )}
 
-      {/* Divisions View - Separate Tables for Each Discipline × Division */}
+      {/* Divisions View - Compact Grid */}
       {activeView === 'divisions' && (
-        <div className="space-y-8">
+        <div className="space-y-3">
           {tournament.disciplines.map(td => {
             const disciplineId = td.disciplineId
             const discipline = td.discipline
@@ -484,33 +523,32 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
             }
             
             return (
-              <div key={disciplineId} className="space-y-4">
+              <div key={disciplineId} className="space-y-2">
                 {/* Discipline Header */}
-                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-4">
-                  <h2 className="text-3xl font-bold text-white">{discipline.displayName}</h2>
-                  <p className="text-white/90 text-sm mt-1">
-                    {Object.keys(disciplineDivisions).length} division{Object.keys(disciplineDivisions).length !== 1 ? 's' : ''} competing
+                <div className="bg-gradient-to-r from-orange-800 to-amber-900 rounded-lg p-2">
+                  <h2 className="text-xl font-bold text-white">{discipline.displayName}</h2>
+                  <p className="text-white/90 text-xs">
+                    {Object.keys(disciplineDivisions).length} division{Object.keys(disciplineDivisions).length !== 1 ? 's' : ''}
                   </p>
                 </div>
                 
-                {/* Division Tables Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Division Tables Grid - More columns to fit on one screen */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                   {Object.entries(disciplineDivisions).map(([division, shooters]) => (
-                    <div key={`${disciplineId}-${division}`} className="bg-white/10 backdrop-blur rounded-lg shadow-2xl overflow-hidden">
-                      <div className="bg-gradient-to-r from-gray-800 to-gray-700 p-3 border-b border-white/10">
-                        <h3 className="text-xl font-bold text-white">{division} Division</h3>
-                        <p className="text-white/70 text-xs mt-1">
+                    <div key={`${disciplineId}-${division}`} className="bg-stone-900/40 backdrop-blur rounded-lg overflow-hidden">
+                      <div className="bg-gradient-to-r from-stone-800 to-stone-900 p-2 border-b border-orange-400/20">
+                        <h3 className="text-sm font-bold text-white">{division}</h3>
+                        <p className="text-white/70 text-xs">
                           {shooters.length} shooter{shooters.length !== 1 ? 's' : ''}
                         </p>
                       </div>
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-white/10">
-                          <thead className="bg-white/5">
+                        <table className="min-w-full text-xs">
+                          <thead className="bg-black/20">
                             <tr>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-white/80 w-12">#</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-white/80">Entrant</th>
-                              <th className="px-3 py-2 text-left text-xs font-semibold text-white/80 whitespace-nowrap">Team</th>
-                              <th className="px-3 py-2 text-right text-xs font-semibold text-white/80 bg-white/5">Score</th>
+                              <th className="px-2 py-1 text-left text-xs font-semibold text-white/70 w-8">#</th>
+                              <th className="px-2 py-1 text-left text-xs font-semibold text-white/70">Name</th>
+                              <th className="px-2 py-1 text-right text-xs font-semibold text-white/70 bg-orange-900/20">Pts</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-white/5">
@@ -524,21 +562,16 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
                                       ? 'bg-green-500/20 animate-pulse' 
                                       : 'hover:bg-white/5'
                                   }`}
-                                  title={isRecent ? 'Score updated in the last 2 minutes' : ''}
+                                  title={shooter.teamName || 'Independent'}
                                 >
-                                  <td className="px-3 py-2 text-sm text-white/70">
+                                  <td className="px-2 py-1 text-white/60">
                                     {idx < 3 ? getMedal(idx) : `${idx + 1}`}
                                   </td>
-                                  <td className="px-3 py-2 text-sm font-medium text-white whitespace-nowrap">
+                                  <td className="px-2 py-1 font-medium text-white text-xs truncate max-w-[120px]" title={shooter.shooterName}>
                                     {shooter.shooterName}
-                                    {isRecent && (
-                                      <span className="ml-2 text-xs text-green-400">✨ NEW</span>
-                                    )}
+                                    {isRecent && <span className="ml-1 text-green-400">✨</span>}
                                   </td>
-                                  <td className="px-3 py-2 text-xs text-white/70 whitespace-nowrap">
-                                    {shooter.teamName || '—'}
-                                  </td>
-                                  <td className="px-3 py-2 text-right text-sm font-bold text-white bg-white/5">
+                                  <td className="px-2 py-1 text-right font-bold text-white bg-orange-900/10">
                                     {shooter.disciplineScores[disciplineId]}
                                   </td>
                                 </tr>
@@ -555,8 +588,8 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
           })}
           
           {Object.keys(shootersByDisciplineAndDivision).length === 0 && (
-            <div className="bg-white/10 backdrop-blur rounded-lg p-12 text-center">
-              <p className="text-white/70">No scores recorded yet</p>
+            <div className="bg-stone-900/40 backdrop-blur rounded-lg p-8 text-center">
+              <p className="text-white/70 text-sm">No scores recorded yet</p>
             </div>
           )}
         </div>
