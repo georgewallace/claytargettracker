@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import Leaderboard from './Leaderboard'
+import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 
 interface PageProps {
   params: Promise<{
@@ -23,6 +24,11 @@ export async function generateStaticParams() {
 
 export default async function LeaderboardPage({ params }: PageProps) {
   const { id } = await params
+  
+  // In demo mode, show placeholder
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    return <DemoModePlaceholder pageName="Tournament Leaderboard" />
+  }
 
   const tournament = await prisma.tournament.findUnique({
     where: { id },

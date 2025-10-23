@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import ScheduleManager from './ScheduleManager'
+import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 
 interface PageProps {
   params: Promise<{
@@ -22,6 +23,10 @@ export async function generateStaticParams() {
 }
 
 export default async function TournamentSchedulePage({ params }: PageProps) {
+  // In demo mode, show placeholder
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    return <DemoModePlaceholder pageName="Tournament Schedule" />
+  }
   const { id } = await params
   const user = await getCurrentUser()
 

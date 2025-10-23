@@ -6,6 +6,7 @@ import Link from 'next/link'
 import RegisterButton from './RegisterButton'
 import CoachRegistration from './CoachRegistration'
 import RemoveRegistrationButton from './RemoveRegistrationButton'
+import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 
 interface PageProps {
   params: Promise<{
@@ -26,6 +27,10 @@ export async function generateStaticParams() {
 }
 
 export default async function TournamentDetailPage({ params }: PageProps) {
+  // In demo mode, show placeholder
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    return <DemoModePlaceholder pageName="Tournament Details" />
+  }
   const { id } = await params
   const user = await getCurrentUser()
   
