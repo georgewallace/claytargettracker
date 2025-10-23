@@ -27,6 +27,11 @@ frontend:
         - cp -r node_modules/@prisma/client .next/server/node_modules/@prisma/
         - echo "=== Verifying Prisma binaries in .next/server ==="
         - ls -la .next/server/node_modules/.prisma/client/*.node || echo "Copy failed!"
+        # Create .env.production for Lambda runtime (in multiple locations to ensure it's found)
+        - echo "DATABASE_URL=$DATABASE_URL" > .env.production
+        - echo "DATABASE_URL=$DATABASE_URL" > .next/.env.production
+        - echo "=== Created .env.production for Lambda runtime ==="
+        - cat .env.production
   artifacts:
     baseDirectory: .next
     files:
