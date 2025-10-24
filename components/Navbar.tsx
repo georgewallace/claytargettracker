@@ -16,6 +16,8 @@ interface NavbarProps {
 export default function Navbar({ user }: NavbarProps) {
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [tournamentsOpen, setTournamentsOpen] = useState(false)
+  const [teamsOpen, setTeamsOpen] = useState(false)
 
   const handleLogout = async () => {
     try {
@@ -33,65 +35,120 @@ export default function Navbar({ user }: NavbarProps) {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
-              <span className="text-2xl font-bold text-indigo-600">🎯</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" style={{color: 'rgb(255, 107, 53)'}}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+              </svg>
               <span className="ml-2 text-xl font-bold text-gray-900">Clay Target Tracker</span>
             </Link>
           </div>
 
-          <div className="hidden md:flex items-center space-x-4">
-            <Link
-              href="/"
-              className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
+          <div className="hidden md:flex items-center space-x-1">
+            {/* Tournaments Dropdown */}
+            <div 
+              className="relative"
+              onMouseEnter={() => setTournamentsOpen(true)}
+              onMouseLeave={() => setTournamentsOpen(false)}
             >
-              Tournaments
-            </Link>
+              <button className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition flex items-center">
+                Tournaments
+                <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {tournamentsOpen && (
+                <div className="absolute left-0 mt-0 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="py-1">
+                    <Link
+                      href="/"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                    >
+                      Browse Tournaments
+                    </Link>
+                    {user && (
+                      <>
+                        <Link
+                          href="/history"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                        >
+                          My History
+                        </Link>
+                        {(user.role === 'coach' || user.role === 'admin') && (
+                          <Link
+                            href="/tournaments/create"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                          >
+                            Create Tournament
+                          </Link>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Teams Dropdown */}
             {user && (
-              <>
-                <Link
-                  href="/history"
-                  className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
-                >
-                  My History
-                </Link>
-                {user.role === 'shooter' && (
-                  <Link
-                    href="/profile"
-                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
-                  >
-                    My Profile
-                  </Link>
-                )}
-                {(user.role === 'coach' || user.role === 'admin') && (
-                  <>
-                    <Link
-                      href="/tournaments/create"
-                      className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
-                    >
-                      Create Tournament
-                    </Link>
-                    <Link
-                      href="/teams/my-team"
-                      className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
-                    >
-                      My Team
-                    </Link>
-                  </>
-                )}
-                {user.role === 'admin' && (
-                  <Link
-                    href="/admin/coaches"
-                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
-                  >
-                    Manage Coaches
-                  </Link>
-                )}
-                <Link
-                  href="/teams"
-                  className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
-                >
+              <div 
+                className="relative"
+                onMouseEnter={() => setTeamsOpen(true)}
+                onMouseLeave={() => setTeamsOpen(false)}
+              >
+                <button className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition flex items-center">
                   Teams
-                </Link>
-              </>
+                  <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {teamsOpen && (
+                  <div className="absolute left-0 mt-0 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="py-1">
+                      <Link
+                        href="/teams"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                      >
+                        Browse Teams
+                      </Link>
+                      {(user.role === 'coach' || user.role === 'admin') && (
+                        <>
+                          <Link
+                            href="/teams/my-team"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                          >
+                            My Team
+                          </Link>
+                          <Link
+                            href="/teams/history"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                          >
+                            Team History
+                          </Link>
+                        </>
+                      )}
+                      {user.role === 'admin' && (
+                        <Link
+                          href="/admin/coaches"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                        >
+                          Manage Coaches
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* My Profile Link */}
+            {user && user.role === 'shooter' && (
+              <Link
+                href="/profile"
+                className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
+              >
+                My Profile
+              </Link>
             )}
           </div>
 
@@ -153,57 +210,85 @@ export default function Navbar({ user }: NavbarProps) {
       {isMenuOpen && (
         <div className="md:hidden border-t border-gray-200">
           <div className="px-2 pt-2 pb-3 space-y-1">
+            {/* Tournaments Section */}
+            <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Tournaments
+            </div>
             <Link
               href="/"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+              className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
             >
-              Tournaments
+              Browse Tournaments
             </Link>
             {user && (
               <>
                 <Link
                   href="/history"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                  className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
                 >
                   My History
                 </Link>
-                {user.role === 'shooter' && (
+                {(user.role === 'coach' || user.role === 'admin') && (
                   <Link
-                    href="/profile"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                    href="/tournaments/create"
+                    className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
                   >
-                    My Profile
+                    Create Tournament
                   </Link>
                 )}
+              </>
+            )}
+
+            {/* Teams Section */}
+            {user && (
+              <>
+                <div className="px-3 py-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Teams
+                </div>
+                <Link
+                  href="/teams"
+                  className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                >
+                  Browse Teams
+                </Link>
                 {(user.role === 'coach' || user.role === 'admin') && (
                   <>
                     <Link
-                      href="/tournaments/create"
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
-                    >
-                      Create Tournament
-                    </Link>
-                    <Link
                       href="/teams/my-team"
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                      className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
                     >
                       My Team
+                    </Link>
+                    <Link
+                      href="/teams/history"
+                      className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                    >
+                      Team History
                     </Link>
                   </>
                 )}
                 {user.role === 'admin' && (
                   <Link
                     href="/admin/coaches"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                    className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
                   >
                     Manage Coaches
                   </Link>
                 )}
+              </>
+            )}
+
+            {/* My Profile */}
+            {user && user.role === 'shooter' && (
+              <>
+                <div className="px-3 py-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Profile
+                </div>
                 <Link
-                  href="/teams"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                  href="/profile"
+                  className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
                 >
-                  Teams
+                  My Profile
                 </Link>
               </>
             )}

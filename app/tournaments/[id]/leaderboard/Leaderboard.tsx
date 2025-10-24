@@ -551,7 +551,12 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
         {tournament.enableHAA && !tournament.hoaSeparateGender && (
           <div className="bg-gradient-to-br from-amber-700 to-orange-900 rounded-lg shadow-xl p-4">
             <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-              🎯 HAA - High All-Around
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" style={{color: 'white'}}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+              </svg>
+              HAA - High All-Around
             </h2>
             <p className="text-white/90 text-xs mb-4">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
             
@@ -596,7 +601,12 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
         {tournament.enableHAA && tournament.hoaSeparateGender && (
           <div className="bg-gradient-to-br from-amber-700 to-orange-900 rounded-lg shadow-xl p-4">
             <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-              🎯 HAA - Male
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" style={{color: 'white'}}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+              </svg>
+              HAA - Male
             </h2>
             <p className="text-white/90 text-xs mb-4">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
             
@@ -641,7 +651,12 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
         {tournament.enableHAA && tournament.hoaSeparateGender && (
           <div className="bg-gradient-to-br from-amber-700 to-orange-900 rounded-lg shadow-xl p-4">
             <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-              🎯 HAA - Female
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" style={{color: 'white'}}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+              </svg>
+              HAA - Female
             </h2>
             <p className="text-white/90 text-xs mb-4">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
             
