@@ -79,8 +79,12 @@ model Shooter {
   gender     String?  // "male", "female", "other"
   nscaClass  String?  // NSCA classification
   ataClass   String?  // ATA classification
+  nssaClass  String?  // NSSA classification
   grade      String?  // "6", "7", "8", "9", "10", "11", "12", "College"
   division   String?  // Auto-calculated: Novice, Intermediate, JV, Senior, College
+  ataNumber  String?  // ATA membership number
+  nscaNumber String?  // NSCA membership number
+  nssaNumber String?  // NSSA membership number
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   
