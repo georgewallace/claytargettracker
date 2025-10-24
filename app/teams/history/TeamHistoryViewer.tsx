@@ -57,6 +57,7 @@ interface TeamHistoryViewerProps {
 export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryViewerProps) {
   const [selectedShooterId, setSelectedShooterId] = useState<string>('all')
   const [selectedDiscipline, setSelectedDiscipline] = useState<string>('all')
+  const [timeRange, setTimeRange] = useState<string>('all') // 30, 90, 180, all
 
   // Get filtered shooter(s)
   const filteredShooters = useMemo(() => {
@@ -77,76 +78,86 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
     return Array.from(disciplineMap.values())
   }, [shooters])
 
-  // Prepare chart data with averages
+  // Prepare chart data with averages - restructured to have unique dates
   const chartData = useMemo(() => {
     const dataByDiscipline: Record<string, any[]> = {}
-    const averagesByDateAndDiscipline: Record<string, Record<string, { total: number, count: number }>> = {}
+    
+    // Apply time filter
+    const now = new Date()
+    const cutoffDate = timeRange === 'all' ? null : 
+      new Date(now.getTime() - parseInt(timeRange) * 24 * 60 * 60 * 1000)
 
-    // Collect all shooter data points
+    // Collect all shooter data points grouped by date
+    const shootsByDateAndDiscipline: Record<string, Record<string, any[]>> = {}
+
     filteredShooters.forEach(shooter => {
       shooter.stats.forEach(stat => {
         if (selectedDiscipline !== 'all' && stat.discipline.id !== selectedDiscipline) return
 
-        if (!dataByDiscipline[stat.discipline.id]) {
-          dataByDiscipline[stat.discipline.id] = []
-        }
-        if (!averagesByDateAndDiscipline[stat.discipline.id]) {
-          averagesByDateAndDiscipline[stat.discipline.id] = {}
+        if (!shootsByDateAndDiscipline[stat.discipline.id]) {
+          shootsByDateAndDiscipline[stat.discipline.id] = {}
         }
 
         stat.shoots.forEach(shoot => {
-          const dateKey = format(new Date(shoot.date), 'MMM d, yyyy')
-          const existingPoint = dataByDiscipline[stat.discipline.id].find(
-            (d: any) => d.date === dateKey && d.shooterId === shooter.id
-          )
+          const shootDate = new Date(shoot.date)
+          
+          // Apply time filter
+          if (cutoffDate && shootDate < cutoffDate) return
 
-          if (!existingPoint) {
-            dataByDiscipline[stat.discipline.id].push({
-              date: dateKey,
-              dateObj: new Date(shoot.date),
-              percentage: shoot.percentage,
-              shooterId: shooter.id,
-              shooterName: shooter.name,
-              tournamentName: shoot.tournamentName,
-              score: shoot.score
-            })
-
-            // Track for average calculation
-            if (!averagesByDateAndDiscipline[stat.discipline.id][dateKey]) {
-              averagesByDateAndDiscipline[stat.discipline.id][dateKey] = { total: 0, count: 0 }
-            }
-            averagesByDateAndDiscipline[stat.discipline.id][dateKey].total += shoot.percentage
-            averagesByDateAndDiscipline[stat.discipline.id][dateKey].count += 1
+          const dateKey = format(shootDate, 'MMM d, yyyy')
+          
+          if (!shootsByDateAndDiscipline[stat.discipline.id][dateKey]) {
+            shootsByDateAndDiscipline[stat.discipline.id][dateKey] = []
           }
+
+          shootsByDateAndDiscipline[stat.discipline.id][dateKey].push({
+            shooterId: shooter.id,
+            shooterName: shooter.name,
+            percentage: shoot.percentage,
+            tournamentName: shoot.tournamentName,
+            score: shoot.score,
+            dateObj: shootDate
+          })
         })
       })
     })
 
-    // Calculate averages and merge into data points
-    Object.keys(dataByDiscipline).forEach(disciplineId => {
-      // Sort by date first
-      dataByDiscipline[disciplineId].sort((a, b) => 
-        a.dateObj.getTime() - b.dateObj.getTime()
-      )
+    // Convert to chart format with unique dates
+    Object.keys(shootsByDateAndDiscipline).forEach(disciplineId => {
+      const dates = Object.keys(shootsByDateAndDiscipline[disciplineId]).sort((a, b) => {
+        const dateA = shootsByDateAndDiscipline[disciplineId][a][0].dateObj
+        const dateB = shootsByDateAndDiscipline[disciplineId][b][0].dateObj
+        return dateA.getTime() - dateB.getTime()
+      })
 
-      // Add average for each unique date
-      const uniqueDates = new Set(dataByDiscipline[disciplineId].map(d => d.date))
-      uniqueDates.forEach(date => {
-        const dateData = dataByDiscipline[disciplineId].filter(d => d.date === date)
-        if (dateData.length > 0 && averagesByDateAndDiscipline[disciplineId][date]) {
-          const avgData = averagesByDateAndDiscipline[disciplineId][date]
-          const average = avgData.total / avgData.count
+      dataByDiscipline[disciplineId] = dates.map(dateKey => {
+        const shootsOnDate = shootsByDateAndDiscipline[disciplineId][dateKey]
+        
+        // Calculate team average for this date
+        const totalPercentage = shootsOnDate.reduce((sum, s) => sum + s.percentage, 0)
+        const teamAverage = totalPercentage / shootsOnDate.length
 
-          // Add average to each point with that date
-          dateData.forEach(point => {
-            point.teamAverage = average
-          })
+        // Create data point with all shooters' scores as properties
+        const dataPoint: any = {
+          date: dateKey,
+          dateObj: shootsOnDate[0].dateObj,
+          teamAverage,
+          tournamentName: shootsOnDate[0].tournamentName
         }
+
+        // Add each shooter's percentage as a separate property
+        shootsOnDate.forEach(shoot => {
+          dataPoint[`shooter_${shoot.shooterId}`] = shoot.percentage
+          dataPoint[`shooterName_${shoot.shooterId}`] = shoot.shooterName
+          dataPoint[`score_${shoot.shooterId}`] = shoot.score
+        })
+
+        return dataPoint
       })
     })
 
     return dataByDiscipline
-  }, [filteredShooters, selectedDiscipline])
+  }, [filteredShooters, selectedDiscipline, timeRange])
 
   // Calculate overall team statistics
   const teamStats = useMemo(() => {
@@ -213,7 +224,7 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Filters</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Shooter Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -251,6 +262,23 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
               ))}
             </select>
           </div>
+
+          {/* Time Range Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Time Range
+            </label>
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="all">All Time</option>
+              <option value="30">Last 30 Days</option>
+              <option value="90">Last 3 Months</option>
+              <option value="180">Last 6 Months</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -261,8 +289,16 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
         const discipline = allDisciplines.find(d => d.id === disciplineId)
         if (!discipline) return null
 
-        // Get unique shooters in this data
-        const shootersInChart = Array.from(new Set(data.map(d => d.shooterId)))
+        // Get unique shooters in this data by checking shooter_ properties
+        const shooterIds = new Set<string>()
+        data.forEach(point => {
+          Object.keys(point).forEach(key => {
+            if (key.startsWith('shooter_')) {
+              shooterIds.add(key.replace('shooter_', ''))
+            }
+          })
+        })
+        const shootersInChart = Array.from(shooterIds)
         const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
         return (
@@ -276,10 +312,11 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="date" 
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: 11 }}
                   angle={-45}
                   textAnchor="end"
-                  height={100}
+                  height={80}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   domain={[0, 100]}
@@ -291,14 +328,25 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
                     if (active && payload && payload.length) {
                       const data = payload[0].payload
                       return (
-                        <div className="bg-white p-4 border border-gray-300 rounded-lg shadow-lg">
-                          <p className="font-semibold">{data.shooterName}</p>
-                          <p className="text-sm text-gray-600">{data.date}</p>
-                          <p className="text-sm text-gray-600">{data.tournamentName}</p>
-                          <p className="text-lg font-bold text-indigo-600">{data.percentage.toFixed(1)}%</p>
-                          <p className="text-sm text-gray-500">{data.score}</p>
+                        <div className="bg-white p-4 border border-gray-300 rounded-lg shadow-lg max-w-xs">
+                          <p className="text-sm font-semibold text-gray-900">{data.date}</p>
+                          <p className="text-xs text-gray-600 mb-2">{data.tournamentName}</p>
+                          {payload.filter(p => p.dataKey.startsWith('shooter_')).map((entry: any) => {
+                            const shooterId = entry.dataKey.replace('shooter_', '')
+                            const shooterName = data[`shooterName_${shooterId}`]
+                            const score = data[`score_${shooterId}`]
+                            return (
+                              <div key={shooterId} className="mt-1">
+                                <span style={{ color: entry.color }} className="font-medium">
+                                  {shooterName}:
+                                </span>
+                                <span className="ml-2 font-bold">{entry.value.toFixed(1)}%</span>
+                                <span className="ml-1 text-xs text-gray-500">({score})</span>
+                              </div>
+                            )
+                          })}
                           {data.teamAverage && (
-                            <p className="text-sm text-orange-600 mt-2 font-medium">
+                            <p className="text-sm text-orange-600 mt-2 font-medium border-t pt-1">
                               Team Avg: {data.teamAverage.toFixed(1)}%
                             </p>
                           )}
@@ -311,26 +359,24 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
                 <Legend />
                 {shootersInChart.map((shooterId, index) => {
                   const shooter = filteredShooters.find(s => s.id === shooterId)
-                  const shooterData = data.filter(d => d.shooterId === shooterId)
                   
                   return (
                     <Line
                       key={shooterId}
                       type="monotone"
-                      data={shooterData}
-                      dataKey="percentage"
+                      dataKey={`shooter_${shooterId}`}
                       name={shooter?.name || 'Unknown'}
                       stroke={colors[index % colors.length]}
                       strokeWidth={2}
                       dot={{ r: 4 }}
                       activeDot={{ r: 6 }}
+                      connectNulls
                     />
                   )
                 })}
                 {/* Team Average Line */}
                 <Line
                   type="monotone"
-                  data={data}
                   dataKey="teamAverage"
                   name="Team Average"
                   stroke="#f97316"
@@ -471,4 +517,5 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
     </div>
   )
 }
+
 

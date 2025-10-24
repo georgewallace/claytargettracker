@@ -67,6 +67,7 @@ interface ShooterProfileViewProps {
 
 export default function ShooterProfileView({ shooter, divisionAverages, canEdit, isOwnProfile }: ShooterProfileViewProps) {
   const [selectedDiscipline, setSelectedDiscipline] = useState<string>('all')
+  const [timeRange, setTimeRange] = useState<string>('all')
 
   // Get all unique disciplines
   const allDisciplines = useMemo(() => {
@@ -79,9 +80,14 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
     return Array.from(disciplineMap.values())
   }, [shooter.stats])
 
-  // Prepare chart data
+  // Prepare chart data with time filter
   const chartData = useMemo(() => {
     const dataByDiscipline: Record<string, any[]> = {}
+
+    // Apply time filter
+    const now = new Date()
+    const cutoffDate = timeRange === 'all' ? null : 
+      new Date(now.getTime() - parseInt(timeRange) * 24 * 60 * 60 * 1000)
 
     shooter.stats.forEach(stat => {
       if (selectedDiscipline !== 'all' && stat.discipline.id !== selectedDiscipline) return
@@ -91,9 +97,14 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
       }
 
       stat.shoots.forEach(shoot => {
+        const shootDate = new Date(shoot.date)
+        
+        // Apply time filter
+        if (cutoffDate && shootDate < cutoffDate) return
+
         // Find the matching shoot in the shooter's actual shoots to get tournamentId
         const actualShoot = shooter.shoots.find(s => 
-          format(new Date(s.date), 'MMM d, yyyy') === format(new Date(shoot.date), 'MMM d, yyyy') &&
+          format(new Date(s.date), 'MMM d, yyyy') === format(shootDate, 'MMM d, yyyy') &&
           s.discipline.id === stat.discipline.id
         )
         
@@ -102,8 +113,8 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
           : undefined
 
         dataByDiscipline[stat.discipline.id].push({
-          date: format(new Date(shoot.date), 'MMM d, yyyy'),
-          dateObj: new Date(shoot.date),
+          date: format(shootDate, 'MMM d, yyyy'),
+          dateObj: shootDate,
           percentage: shoot.percentage,
           tournamentName: shoot.tournamentName,
           score: shoot.score,
@@ -120,7 +131,7 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
     })
 
     return dataByDiscipline
-  }, [shooter.stats, selectedDiscipline])
+  }, [shooter.stats, shooter.shoots, divisionAverages, selectedDiscipline, timeRange])
 
   const getTrendColor = (trend: string) => {
     if (trend === 'improving') return 'text-green-600 bg-green-50'
@@ -196,24 +207,49 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
         </div>
       ) : (
         <>
-          {/* Discipline Filter */}
-          {allDisciplines.length > 1 && (
-            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Filter by Discipline</h2>
-              <select
-                value={selectedDiscipline}
-                onChange={(e) => setSelectedDiscipline(e.target.value)}
-                className="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="all">All Disciplines</option>
-                {allDisciplines.map(discipline => (
-                  <option key={discipline.id} value={discipline.id}>
-                    {discipline.displayName}
-                  </option>
-                ))}
-              </select>
+          {/* Filters */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Filters</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Discipline Filter */}
+              {allDisciplines.length > 1 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Discipline
+                  </label>
+                  <select
+                    value={selectedDiscipline}
+                    onChange={(e) => setSelectedDiscipline(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="all">All Disciplines</option>
+                    {allDisciplines.map(discipline => (
+                      <option key={discipline.id} value={discipline.id}>
+                        {discipline.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Time Range Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Time Range
+                </label>
+                <select
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="all">All Time</option>
+                  <option value="30">Last 30 Days</option>
+                  <option value="90">Last 3 Months</option>
+                  <option value="180">Last 6 Months</option>
+                </select>
+              </div>
             </div>
-          )}
+          </div>
 
           {/* Performance Trends */}
           {Object.entries(chartData).map(([disciplineId, data]) => {
@@ -233,10 +269,11 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="date" 
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 11 }}
                       angle={-45}
                       textAnchor="end"
-                      height={100}
+                      height={80}
+                      interval="preserveStartEnd"
                     />
                     <YAxis 
                       domain={[0, 100]}
