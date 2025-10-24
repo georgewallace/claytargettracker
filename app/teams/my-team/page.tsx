@@ -62,13 +62,10 @@ export default async function MyTeamPage() {
     )
   }
 
-  // Get all shooters not on this team
+  // Get only shooters without a team
   const availableShooters = await prisma.shooter.findMany({
     where: {
-      OR: [
-        { teamId: null },
-        { teamId: { not: teamWithDetails.id } }
-      ]
+      teamId: null
     },
     include: {
       user: true,
