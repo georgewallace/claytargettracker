@@ -13,6 +13,8 @@ frontend:
         - ls -la node_modules/.prisma/client/*.node || echo "Prisma binaries not found!"
         # Run database migrations (PostgreSQL via DATABASE_URL env var)
         - npx prisma migrate deploy
+        # Seed historical tournament data (only if SEED_HISTORY env var is set)
+        - if [ "$SEED_HISTORY" = "true" ]; then npm run db:seed-history; fi
     build:
       commands:
         - npm run build

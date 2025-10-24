@@ -14,6 +14,7 @@
     "db:studio": "npx prisma studio",
     "db:generate": "npx prisma generate",
     "db:seed": "tsx scripts/seed-test-data.ts",
+    "db:seed-history": "tsx scripts/seed-tournament-history.ts",
     "demo:dev": "NEXT_PUBLIC_DEMO_MODE=true next dev",
     "build:demo": "mv app/api ./api-temp && NEXT_PUBLIC_DEMO_MODE=true next build && mv ./api-temp app/api || (mv ./api-temp app/api 2>/dev/null; exit 1)",
     "export:demo": "NEXT_PUBLIC_DEMO_MODE=true next build && next export"
