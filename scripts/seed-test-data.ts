@@ -110,10 +110,19 @@ async function main() {
       team = await prisma.team.create({
         data: {
           name: teamData.name,
-          coachId: coach.id,
         }
       })
       console.log('✅ Created team:', team.name)
+      
+      // Add coach to team
+      await prisma.teamCoach.create({
+        data: {
+          teamId: team.id,
+          userId: coach.id,
+          role: 'head_coach',
+        }
+      })
+      console.log('✅ Added coach to team')
     }
 
     createdTeams.push(team)

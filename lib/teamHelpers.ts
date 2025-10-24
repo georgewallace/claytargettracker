@@ -52,4 +52,3 @@ export async function isUserCoachingAnyTeam(userId: string): Promise<boolean> {
 export async function getUserFirstCoachedTeam(userId: string) {
   return getUserCoachedTeam(userId)
 }
-

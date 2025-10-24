@@ -40,12 +40,24 @@ async function main() {
   console.log('✅ Found team:', thunderRidge.name)
 
   // Assign john doe as coach of Thunder Ridge
-  await prisma.team.update({
-    where: { id: thunderRidge.id },
-    data: {
-      coachId: johnDoe.id
+  const existingCoach = await prisma.teamCoach.findUnique({
+    where: {
+      teamId_userId: {
+        teamId: thunderRidge.id,
+        userId: johnDoe.id
+      }
     }
   })
+
+  if (!existingCoach) {
+    await prisma.teamCoach.create({
+      data: {
+        teamId: thunderRidge.id,
+        userId: johnDoe.id,
+        role: 'head_coach'
+      }
+    })
+  }
 
   console.log('✅ Assigned john doe as coach of Thunder Ridge Shooting Club')
 
