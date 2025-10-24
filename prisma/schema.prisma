@@ -87,10 +87,28 @@ model Shooter {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   team      Team?    @relation(fields: [teamId], references: [id])
   
-  registrations Registration[]
-  shoots        Shoot[]
-  squadMembers  SquadMember[]
+  registrations    Registration[]
+  shoots           Shoot[]
+  squadMembers     SquadMember[]
   teamJoinRequests TeamJoinRequest[]
+  averages         ShooterAverage[]
+}
+
+model ShooterAverage {
+  id           String   @id @default(cuid())
+  shooterId    String
+  disciplineId String
+  average      Float    // Current average score
+  isManual     Boolean  @default(false) // True if manually set, false if auto-calculated
+  lastUpdated  DateTime @default(now()) @updatedAt
+  createdAt    DateTime @default(now())
+  
+  shooter    Shooter              @relation(fields: [shooterId], references: [id], onDelete: Cascade)
+  discipline TournamentDiscipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  
+  @@unique([shooterId, disciplineId]) // One average per shooter per discipline
+  @@index([shooterId])
+  @@index([disciplineId])
 }
 
 model Tournament {
@@ -192,8 +210,9 @@ model TournamentDiscipline {
   tournamentId String
   disciplineId String
   
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  discipline Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  discipline      Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  shooterAverages ShooterAverage[]
   
   @@unique([tournamentId, disciplineId])
 }

@@ -53,6 +53,14 @@ export default function Navbar({ user }: NavbarProps) {
                 >
                   My History
                 </Link>
+                {user.role === 'shooter' && (
+                  <Link
+                    href="/profile"
+                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
+                  >
+                    My Profile
+                  </Link>
+                )}
                 {(user.role === 'coach' || user.role === 'admin') && (
                   <>
                     <Link
@@ -159,6 +167,14 @@ export default function Navbar({ user }: NavbarProps) {
                 >
                   My History
                 </Link>
+                {user.role === 'shooter' && (
+                  <Link
+                    href="/profile"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                  >
+                    My Profile
+                  </Link>
+                )}
                 {(user.role === 'coach' || user.role === 'admin') && (
                   <>
                     <Link
