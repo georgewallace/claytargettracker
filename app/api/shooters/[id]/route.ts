@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { calculateDivision } from '@/lib/divisions'
+import { isUserCoachOfTeam } from '@/lib/teamHelpers'
 
 
 
@@ -42,7 +43,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // If user is a coach (not admin), verify they coach this shooter's team
     if (user.role === 'coach') {
-      if (!shooter.team || shooter.team.coachId !== user.id) {
+      if (!shooter.team || !(await isUserCoachOfTeam(user.id, shooter.team.id))) {
         return NextResponse.json(
           { error: 'You can only update shooters on your team' },
           { status: 403 }

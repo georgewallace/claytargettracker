@@ -3,11 +3,14 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 
 
-// Assign coach to team
+// Assign coach to team (coaches can only coach ONE team)
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
-    const { teamId } = await request.json()
+    const { teamId, userId } = await request.json()
+    
+    // If userId is provided, admin is assigning a coach. Otherwise, coach is self-assigning
+    const coachUserId = userId || user.id
     
     // Validate input
     if (!teamId) {
@@ -17,32 +20,80 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Verify the user is a coach or admin
-    if (user.role !== 'coach' && user.role !== 'admin') {
+    // Check authorization: admin can assign anyone, coach can only assign themselves
+    if (userId && user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Only coaches can manage teams' },
+        { error: 'Only admins can assign coaches to teams' },
         { status: 403 }
       )
     }
     
-    // Check if user already coaches a team
-    const existingTeam = await prisma.team.findFirst({
-      where: { coachId: user.id }
+    // Get the coach user to verify they are a coach
+    const coachUser = await prisma.user.findUnique({
+      where: { id: coachUserId },
+      include: { shooter: true }
     })
     
-    if (existingTeam) {
+    if (!coachUser) {
       return NextResponse.json(
-        { error: 'You are already coaching a team. Please leave that team first.' },
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Verify the user has coach or admin role
+    if (coachUser.role !== 'coach' && coachUser.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'User must be a coach or admin' },
         { status: 400 }
       )
     }
     
-    // Assign coach to team
-    const team = await prisma.team.update({
+    // RULE: Coaches cannot be shooters
+    if (coachUser.shooter) {
+      return NextResponse.json(
+        { error: 'Coaches cannot be shooters on a team. This user is already a shooter.' },
+        { status: 400 }
+      )
+    }
+    
+    // RULE: Check if user is already coaching another team
+    const existingCoachAssignment = await prisma.teamCoach.findFirst({
+      where: { userId: coachUserId }
+    })
+    
+    if (existingCoachAssignment) {
+      if (existingCoachAssignment.teamId === teamId) {
+        return NextResponse.json(
+          { error: 'This user is already coaching this team.' },
+          { status: 400 }
+        )
+      } else {
+        return NextResponse.json(
+          { error: 'This user is already coaching another team. Coaches can only coach one team.' },
+          { status: 400 }
+        )
+      }
+    }
+    
+    // Add user as coach of team
+    await prisma.teamCoach.create({
+      data: {
+        teamId,
+        userId: coachUserId,
+        role: 'coach'
+      }
+    })
+    
+    // Return updated team
+    const team = await prisma.team.findUnique({
       where: { id: teamId },
-      data: { coachId: user.id },
       include: {
-        coach: true,
+        coaches: {
+          include: {
+            user: true
+          }
+        },
         shooters: {
           include: {
             user: true
@@ -69,30 +120,55 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Leave coaching position
+// Leave coaching position (or admin removes a coach)
 export async function DELETE(request: NextRequest) {
   try {
     const user = await requireAuth()
+    const { teamId, userId } = await request.json()
     
-    // Find team coached by this user
-    const team = await prisma.team.findFirst({
-      where: { coachId: user.id }
-    })
+    // If userId is provided, admin is removing a coach. Otherwise, coach is leaving
+    const coachUserId = userId || user.id
     
-    if (!team) {
+    if (!teamId) {
       return NextResponse.json(
-        { error: 'You are not coaching any team' },
+        { error: 'Team ID is required' },
         { status: 400 }
       )
     }
     
-    // Remove coach from team
-    const updatedTeam = await prisma.team.update({
-      where: { id: team.id },
-      data: { coachId: null }
+    // Check authorization: admin can remove anyone, coach can only remove themselves
+    if (userId && user.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Only admins can remove other coaches from teams' },
+        { status: 403 }
+      )
+    }
+    
+    // Find coach assignment
+    const teamCoach = await prisma.teamCoach.findUnique({
+      where: {
+        teamId_userId: {
+          teamId,
+          userId: coachUserId
+        }
+      }
     })
     
-    return NextResponse.json(updatedTeam)
+    if (!teamCoach) {
+      return NextResponse.json(
+        { error: userId ? 'This coach is not on this team' : 'You are not coaching this team' },
+        { status: 400 }
+      )
+    }
+    
+    // Remove coach assignment
+    await prisma.teamCoach.delete({
+      where: {
+        id: teamCoach.id
+      }
+    })
+    
+    return NextResponse.json({ message: 'Successfully removed coach from team' })
   } catch (error) {
     console.error('Leave coaching error:', error)
     

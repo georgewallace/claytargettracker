@@ -120,7 +120,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       // 1. They're the tournament creator, OR
       // 2. The shooter is on their team
       const isTournamentCreator = registration.tournament.createdById === user.id
-      const isShooterOnTheirTeam = registration.shooter.team?.coachId === user.id
+      const { isUserCoachOfTeam: checkCoach } = await import('@/lib/teamHelpers')
+      const isShooterOnTheirTeam = registration.shooter.team ? await checkCoach(user.id, registration.shooter.team.id) : false
       
       if (!isTournamentCreator && !isShooterOnTheirTeam) {
         return NextResponse.json(

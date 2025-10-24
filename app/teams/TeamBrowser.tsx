@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation'
 interface Team {
   id: string
   name: string
-  coach: {
-    name: string
-  } | null
+  coaches: Array<{
+    user: {
+      name: string
+    }
+  }>
   shooters: Array<{
     user: {
       name: string
@@ -93,9 +95,9 @@ export default function TeamBrowser({ teams, currentShooter, pendingRequests }: 
               {team.name}
             </h3>
 
-            {team.coach && (
+            {team.coaches.length > 0 && (
               <p className="text-sm text-gray-600 mb-3">
-                <span className="font-medium">Coach:</span> {team.coach.name}
+                <span className="font-medium">Coach{team.coaches.length > 1 ? 'es' : ''}:</span> {team.coaches.map(c => c.user.name).join(', ')}
               </p>
             )}
 

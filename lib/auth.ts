@@ -31,7 +31,11 @@ export async function getCurrentUser() {
           team: true
         }
       },
-      coachedTeam: true
+      coachedTeams: {
+        include: {
+          team: true
+        }
+      }
     }
   })
   

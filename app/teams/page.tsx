@@ -16,7 +16,11 @@ export default async function TeamsPage() {
 
   const teams = await prisma.team.findMany({
     include: {
-      coach: true,
+      coaches: {
+        include: {
+          user: true
+        }
+      },
       shooters: {
         include: {
           user: true
@@ -41,7 +45,11 @@ export default async function TeamsPage() {
     include: {
       team: {
         include: {
-          coach: true
+          coaches: {
+            include: {
+              user: true
+            }
+          }
         }
       }
     }
@@ -93,8 +101,10 @@ export default async function TeamsPage() {
                 <div key={request.id} className="flex items-center justify-between bg-white p-4 rounded-md">
                   <div>
                     <p className="font-medium text-gray-900">{request.team.name}</p>
-                    {request.team.coach && (
-                      <p className="text-sm text-gray-600">Coach: {request.team.coach.name}</p>
+                    {request.team.coaches.length > 0 && (
+                      <p className="text-sm text-gray-600">
+                        Coach{request.team.coaches.length > 1 ? 'es' : ''}: {request.team.coaches.map(c => c.user.name).join(', ')}
+                      </p>
                     )}
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${

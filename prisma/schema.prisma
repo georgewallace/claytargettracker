@@ -22,19 +22,34 @@ model User {
   
   shooter            Shooter?
   createdTournaments Tournament[]
-  coachedTeam        Team?
+  coachedTeams       TeamCoach[] // Many-to-many relationship for coaches
 }
 
 model Team {
   id        String   @id @default(cuid())
   name      String
-  coachId   String?  @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  coach        User?              @relation(fields: [coachId], references: [id])
+  coaches      TeamCoach[] // Many-to-many relationship for coaches
   shooters     Shooter[]
   joinRequests TeamJoinRequest[]
+}
+
+model TeamCoach {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      String   @default("coach") // coach, head_coach, assistant_coach
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([teamId, userId]) // A user can only be a coach once per team
+  @@index([teamId])
+  @@index([userId])
 }
 
 model TeamJoinRequest {

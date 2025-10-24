@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { getUserFirstCoachedTeam } from '@/lib/teamHelpers'
 
 
 export async function POST(request: NextRequest) {
@@ -24,10 +25,8 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Find team coached by this user
-    const team = await prisma.team.findFirst({
-      where: { coachId: user.id }
-    })
+    // Find first team coached by this user
+    const team = await getUserFirstCoachedTeam(user.id)
     
     if (!team) {
       return NextResponse.json(

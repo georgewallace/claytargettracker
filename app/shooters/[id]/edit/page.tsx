@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { isUserCoachOfTeam } from '@/lib/teamHelpers'
 import EditShooterForm from './EditShooterForm'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 
@@ -58,7 +59,7 @@ export default async function EditShooterPage({ params }: PageProps) {
 
   // If user is coach (not admin), verify they coach this shooter's team
   if (user.role === 'coach') {
-    if (!shooter.team || shooter.team.coachId !== user.id) {
+    if (!shooter.team || !(await isUserCoachOfTeam(user.id, shooter.team.id))) {
       redirect('/teams/my-team')
     }
   }

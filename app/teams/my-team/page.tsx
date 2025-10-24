@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { getUserFirstCoachedTeam } from '@/lib/teamHelpers'
 import CoachTeamManager from './CoachTeamManager'
 
 // Force dynamic rendering (required for getCurrentUser)
@@ -17,9 +18,12 @@ export default async function MyTeamPage() {
     redirect('/teams')
   }
   
-  // Find team coached by this user
-  const team = await prisma.team.findFirst({
-    where: { coachId: user.id },
+  // Find first team coached by this user
+  const team = await getUserFirstCoachedTeam(user.id)
+  
+  // If found, fetch full details
+  const teamWithDetails = team ? await prisma.team.findUnique({
+    where: { id: team.id },
     include: {
       shooters: {
         include: {
@@ -33,9 +37,9 @@ export default async function MyTeamPage() {
         }
       }
     }
-  })
+  }) : null
 
-  if (!team) {
+  if (!teamWithDetails) {
     return (
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -63,7 +67,7 @@ export default async function MyTeamPage() {
     where: {
       OR: [
         { teamId: null },
-        { teamId: { not: team.id } }
+        { teamId: { not: teamWithDetails.id } }
       ]
     },
     include: {
@@ -80,7 +84,7 @@ export default async function MyTeamPage() {
   // Get pending join requests for this team
   const joinRequests = await prisma.teamJoinRequest.findMany({
     where: {
-      teamId: team.id,
+      teamId: teamWithDetails.id,
       status: 'pending'
     },
     include: {
@@ -100,7 +104,7 @@ export default async function MyTeamPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Manage Team: {team.name}
+            Manage Team: {teamWithDetails.name}
           </h1>
           <p className="text-gray-600">
             Add or remove shooters from your team roster
@@ -108,7 +112,7 @@ export default async function MyTeamPage() {
         </div>
 
         <CoachTeamManager 
-          team={team}
+          team={teamWithDetails}
           availableShooters={availableShooters}
           joinRequests={joinRequests}
         />

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { isUserCoachOfTeam } from '@/lib/teamHelpers'
 
 
 interface RouteParams {
@@ -31,8 +32,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Join request not found' }, { status: 404 })
     }
 
-    // Check authorization: must be the coach of the team or an admin
-    const isCoach = joinRequest.team.coachId === user.id
+    // Check authorization: must be a coach of the team or an admin
+    const isCoach = await isUserCoachOfTeam(user.id, joinRequest.team.id)
     const isAdmin = user.role === 'admin'
 
     if (!isCoach && !isAdmin) {
@@ -43,14 +44,34 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     if (action === 'approve') {
-      // Check if shooter is already on another team
+      // Get full shooter details
       const shooter = await prisma.shooter.findUnique({
-        where: { id: joinRequest.shooterId }
+        where: { id: joinRequest.shooterId },
+        include: {
+          user: true,
+          team: true
+        }
       })
 
-      if (shooter?.teamId) {
+      if (!shooter) {
         return NextResponse.json(
-          { error: 'This shooter is already on a team' },
+          { error: 'Shooter not found' },
+          { status: 404 }
+        )
+      }
+
+      // RULE: Coaches cannot be shooters
+      if (shooter.user.role === 'coach' || shooter.user.role === 'admin') {
+        return NextResponse.json(
+          { error: 'Coaches and admins cannot be shooters on a team' },
+          { status: 400 }
+        )
+      }
+
+      // RULE: Shooters can only be on one team
+      if (shooter.teamId) {
+        return NextResponse.json(
+          { error: `This shooter is already on another team (${shooter.team?.name}). Shooters can only be on one team.` },
           { status: 400 }
         )
       }
@@ -108,7 +129,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Check authorization: shooter who made the request, team coach, or admin
     const isRequester = user.shooter && joinRequest.shooterId === user.shooter.id
-    const isCoach = joinRequest.team.coachId === user.id
+    const isCoach = await isUserCoachOfTeam(user.id, joinRequest.team.id)
     const isAdmin = user.role === 'admin'
 
     if (!isRequester && !isCoach && !isAdmin) {

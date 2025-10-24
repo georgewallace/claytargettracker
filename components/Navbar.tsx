@@ -69,6 +69,14 @@ export default function Navbar({ user }: NavbarProps) {
                     </Link>
                   </>
                 )}
+                {user.role === 'admin' && (
+                  <Link
+                    href="/admin/coaches"
+                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
+                  >
+                    Manage Coaches
+                  </Link>
+                )}
                 <Link
                   href="/teams"
                   className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
@@ -166,6 +174,14 @@ export default function Navbar({ user }: NavbarProps) {
                       My Team
                     </Link>
                   </>
+                )}
+                {user.role === 'admin' && (
+                  <Link
+                    href="/admin/coaches"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                  >
+                    Manage Coaches
+                  </Link>
                 )}
                 <Link
                   href="/teams"
