@@ -30,7 +30,7 @@ Once you have your production database URL, run:
 
 ```bash
 # Set environment variables
-export STAGING_DATABASE_URL="postgresql://neondb_owner:npg_cmYpQBg2e8NM@ep-wispy-hall-a4g4c6su-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+export STAGING_DATABASE_URL="your-staging-database-url-here"
 export PRODUCTION_DATABASE_URL="your-production-database-url-here"
 
 # Run the copy script
