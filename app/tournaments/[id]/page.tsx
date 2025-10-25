@@ -29,6 +29,12 @@ export async function generateStaticParams() {
   return []
 }
 
+// Format date without timezone shifts - extract YYYY-MM-DD and create date at noon UTC
+function parseDateSafe(date: Date) {
+  const dateStr = new Date(date).toISOString().split('T')[0]
+  return new Date(`${dateStr}T12:00:00.000Z`)
+}
+
 export default async function TournamentDetailPage({ params }: PageProps) {
   // In demo mode, show placeholder
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
@@ -201,9 +207,9 @@ export default async function TournamentDetailPage({ params }: PageProps) {
               </div>
               <div className="flex items-center text-gray-700">
                 <span className="font-semibold mr-2">📅 Date:</span>
-                {format(new Date(tournament.startDate), 'PPP')}
+                {format(parseDateSafe(tournament.startDate), 'PPP')}
                 {tournament.startDate !== tournament.endDate && (
-                  <> - {format(new Date(tournament.endDate), 'PPP')}</>
+                  <> - {format(parseDateSafe(tournament.endDate), 'PPP')}</>
                 )}
               </div>
               <div className="flex items-center text-gray-700">

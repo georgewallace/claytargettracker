@@ -37,18 +37,19 @@ interface TimeSlotCardProps {
 export default function TimeSlotCard({ timeSlot, onUpdate }: TimeSlotCardProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
     if (timeSlot.squads.length > 0) {
       setError('Cannot delete time slot with existing squads')
       setTimeout(() => setError(''), 3000)
       return
     }
 
-    if (!confirm(`Are you sure you want to delete this time slot?\n${formatTimeRange(timeSlot.startTime, timeSlot.endTime)}`)) {
-      return
-    }
+    setShowDeleteModal(true)
+  }
 
+  const handleConfirmDelete = async () => {
     setLoading(true)
     setError('')
 
@@ -62,13 +63,19 @@ export default function TimeSlotCard({ timeSlot, onUpdate }: TimeSlotCardProps) 
         throw new Error(data.error || 'Failed to delete time slot')
       }
 
+      setShowDeleteModal(false)
       onUpdate()
     } catch (err: any) {
       setError(err.message || 'An error occurred')
       setTimeout(() => setError(''), 3000)
+      setShowDeleteModal(false)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false)
   }
 
   return (
@@ -115,11 +122,11 @@ export default function TimeSlotCard({ timeSlot, onUpdate }: TimeSlotCardProps) 
 
         <div className="flex gap-2 ml-4">
           <button
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             disabled={loading}
             className="px-3 py-1.5 bg-red-100 text-red-700 rounded-md hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
           >
-            {loading ? 'Deleting...' : 'Delete'}
+            Delete
           </button>
         </div>
       </div>
@@ -127,6 +134,76 @@ export default function TimeSlotCard({ timeSlot, onUpdate }: TimeSlotCardProps) 
       {error && (
         <div className="mt-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
           {error}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">
+                  Delete Time Slot
+                </h3>
+                <button
+                  onClick={handleCancelDelete}
+                  className="text-gray-400 hover:text-gray-600 transition"
+                  disabled={loading}
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-gray-700 mb-4">
+                  Are you sure you want to delete this time slot?
+                </p>
+                <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+                  <div className="text-sm">
+                    <div className="font-semibold text-gray-900 mb-1">
+                      {formatTimeRange(timeSlot.startTime, timeSlot.endTime)}
+                    </div>
+                    <div className="text-gray-600">
+                      {timeSlot.discipline.displayName}
+                    </div>
+                    {timeSlot.fieldNumber && (
+                      <div className="text-gray-600 mt-1">
+                        {timeSlot.fieldNumber}
+                      </div>
+                    )}
+                    {timeSlot.stationNumber && (
+                      <div className="text-gray-600 mt-1">
+                        {timeSlot.stationNumber}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-3">
+                  This action cannot be undone.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelDelete}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {loading ? 'Deleting...' : 'Delete Time Slot'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

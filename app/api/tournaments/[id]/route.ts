@@ -14,7 +14,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id } = await params
-    const { name, location, startDate, endDate, description, status, disciplineIds } = await request.json()
+    const { name, location, startDate, endDate, description, status, disciplineConfigurations, disciplineIds } = await request.json()
+    
+    // Support both old (disciplineIds) and new (disciplineConfigurations) format
+    const disciplineData = disciplineConfigurations || (disciplineIds ? disciplineIds.map((id: string) => ({ disciplineId: id })) : [])
     
     // Validate input
     if (!name || !location || !startDate || !endDate) {
@@ -24,7 +27,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
     
-    if (!disciplineIds || disciplineIds.length === 0) {
+    if (!disciplineData || disciplineData.length === 0) {
       return NextResponse.json(
         { error: 'Please select at least one discipline' },
         { status: 400 }
@@ -41,7 +44,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Check if tournament exists
     const existingTournament = await prisma.tournament.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        disciplines: true
+      }
     })
 
     if (!existingTournament) {
@@ -61,14 +67,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
     
-    // Check if any disciplines are being removed
-    const currentDisciplines = await prisma.tournamentDiscipline.findMany({
-      where: { tournamentId: id },
-      select: { disciplineId: true }
-    })
-    
-    const currentDisciplineIds = currentDisciplines.map((td: { disciplineId: string }) => td.disciplineId)
-    const removedDisciplineIds = currentDisciplineIds.filter((id: string) => !disciplineIds.includes(id))
+    const incomingDisciplineIds = disciplineData.map((d: any) => d.disciplineId)
+    const currentDisciplineIds = existingTournament.disciplines.map(td => td.disciplineId)
+    const removedDisciplineIds = currentDisciplineIds.filter((id: string) => !incomingDisciplineIds.includes(id))
     
     // Check if any removed disciplines have registrations
     if (removedDisciplineIds.length > 0) {
@@ -98,25 +99,35 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Update tournament with disciplines
+    // Update tournament with disciplines and configurations
+    // Parse dates at noon UTC to avoid timezone boundary issues
+    const parseDate = (dateStr: string) => {
+      // Input format: YYYY-MM-DD
+      // Set time to noon UTC to avoid timezone shifts
+      return new Date(`${dateStr}T12:00:00.000Z`)
+    }
+
     // First, delete existing tournament disciplines
     await prisma.tournamentDiscipline.deleteMany({
       where: { tournamentId: id }
     })
 
-    // Then update tournament and create new discipline links
+    // Then update tournament and create new discipline links with configurations
     const tournament = await prisma.tournament.update({
       where: { id },
       data: {
         name,
         location,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: parseDate(startDate),
+        endDate: parseDate(endDate),
         description,
         status: status || 'upcoming',
         disciplines: {
-          create: disciplineIds.map((disciplineId: string) => ({
-            disciplineId
+          create: disciplineData.map((config: any) => ({
+            disciplineId: config.disciplineId,
+            rounds: config.rounds || null,
+            targets: config.targets || null,
+            stations: config.stations || null
           }))
         }
       },

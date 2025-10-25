@@ -90,6 +90,27 @@ export default async function EditTournamentPage({ params }: PageProps) {
     return acc
   }, {} as Record<string, number>)
 
+  // Check if scores have been recorded for each discipline
+  const disciplineScoreCounts = await Promise.all(
+    allDisciplines.map(async (discipline) => {
+      const count = await prisma.shoot.count({
+        where: {
+          tournamentId: id,
+          disciplineId: discipline.id
+        }
+      })
+      return {
+        disciplineId: discipline.id,
+        count
+      }
+    })
+  )
+
+  const disciplineScores = disciplineScoreCounts.reduce((acc, item) => {
+    acc[item.disciplineId] = item.count
+    return acc
+  }, {} as Record<string, number>)
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -99,6 +120,7 @@ export default async function EditTournamentPage({ params }: PageProps) {
             tournament={tournament}
             allDisciplines={allDisciplines}
             disciplineRegistrationCounts={disciplineCounts}
+            disciplineScoreCounts={disciplineScores}
           />
         </div>
       </div>

@@ -214,6 +214,11 @@ model TournamentDiscipline {
   tournamentId String
   disciplineId String
   
+  // Discipline-specific configuration
+  rounds       Int?   // For Trap/Skeet - number of rounds (e.g., 1, 2, 3)
+  targets      Int?   // For 5-Stand/Sporting Clays - total number of targets
+  stations     Int?   // For Sporting Clays - number of stations
+  
   tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   discipline      Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
   shooterAverages ShooterAverage[]

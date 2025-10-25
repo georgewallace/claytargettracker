@@ -68,7 +68,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Validate time slot exists
     const timeSlot = await prisma.timeSlot.findUnique({
       where: { id: timeSlotId },
-      include: { tournament: true }
+      include: { 
+        tournament: true 
+      }
     })
 
     if (!timeSlot) {

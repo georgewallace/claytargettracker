@@ -6,7 +6,7 @@ import { requireAuth } from '@/lib/auth'
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
-    const { name, location, startDate, endDate, description, status, disciplineIds } = await request.json()
+    const { name, location, startDate, endDate, description, status, disciplineConfigurations, disciplineIds } = await request.json()
     
     // Validate input
     if (!name || !location || !startDate || !endDate) {
@@ -16,7 +16,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    if (!disciplineIds || disciplineIds.length === 0) {
+    // Support both old (disciplineIds) and new (disciplineConfigurations) format
+    const disciplineData = disciplineConfigurations || (disciplineIds ? disciplineIds.map((id: string) => ({ disciplineId: id })) : [])
+    
+    if (!disciplineData || disciplineData.length === 0) {
       return NextResponse.json(
         { error: 'Please select at least one discipline' },
         { status: 400 }
@@ -31,19 +34,31 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Create tournament with disciplines
+    // Parse dates at noon UTC to avoid timezone boundary issues
+    const parseDate = (dateStr: string) => {
+      // Input format: YYYY-MM-DD
+      // Set time to noon UTC to avoid timezone shifts
+      return new Date(`${dateStr}T12:00:00.000Z`)
+    }
+
+    // Create tournament with disciplines and their configurations
+    console.log('Creating tournament with discipline data:', JSON.stringify(disciplineData, null, 2))
+    
     const tournament = await prisma.tournament.create({
       data: {
         name,
         location,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: parseDate(startDate),
+        endDate: parseDate(endDate),
         description,
         status: status || 'upcoming',
         createdById: user.id,
         disciplines: {
-          create: disciplineIds.map((disciplineId: string) => ({
-            disciplineId
+          create: disciplineData.map((config: any) => ({
+            disciplineId: config.disciplineId,
+            rounds: config.rounds !== undefined ? config.rounds : null,
+            targets: config.targets !== undefined ? config.targets : null,
+            stations: config.stations !== undefined ? config.stations : null
           }))
         }
       },
@@ -59,6 +74,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(tournament, { status: 201 })
   } catch (error) {
     console.error('Tournament creation error:', error)
+    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error')
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json(
@@ -68,7 +85,11 @@ export async function POST(request: NextRequest) {
     }
     
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     )
   }

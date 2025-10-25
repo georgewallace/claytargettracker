@@ -15,7 +15,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id: squadId } = await params
-    const { name, capacity, notes, teamOnly } = await request.json()
+    const { name, capacity, notes, teamOnly, tournamentId, disciplineId } = await request.json()
 
     // Check permissions (coach or admin)
     if (user.role !== 'coach' && user.role !== 'admin') {
@@ -23,6 +23,27 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         { error: 'Only coaches and admins can update squads' },
         { status: 403 }
       )
+    }
+
+    // If renaming, check for duplicate names within the same discipline
+    if (name !== undefined && tournamentId && disciplineId) {
+      const duplicateSquad = await prisma.squad.findFirst({
+        where: {
+          name: name,
+          id: { not: squadId },
+          timeSlot: {
+            tournamentId,
+            disciplineId
+          }
+        }
+      })
+
+      if (duplicateSquad) {
+        return NextResponse.json(
+          { error: 'A squad with this name already exists in this discipline' },
+          { status: 400 }
+        )
+      }
     }
 
     const squad = await prisma.squad.update({

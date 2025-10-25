@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { format } from 'date-fns'
@@ -92,34 +93,23 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         )
       }
 
-      // Validate date is within tournament range
-      // Handle timezone issues by allowing dates within +/- 1 day of the range
-      // This accounts for timezone differences when dates are stored
+      // Validate date is within tournament range (compare date strings to avoid timezone issues)
+      // Extract date string in YYYY-MM-DD format
       let slotDateStr: string
       if (typeof slot.date === 'string') {
         slotDateStr = slot.date.split('T')[0]
       } else {
-        slotDateStr = new Date(slot.date).toISOString().split('T')[0]
+        slotDateStr = format(new Date(slot.date), 'yyyy-MM-dd')
       }
       
-      // Get tournament date range accounting for timezone storage
-      const tournamentStartUTC = new Date(tournament.startDate)
-      const tournamentEndUTC = new Date(tournament.endDate)
+      // Convert tournament dates to YYYY-MM-DD format for comparison
+      const tournamentStartStr = format(new Date(tournament.startDate), 'yyyy-MM-dd')
+      const tournamentEndStr = format(new Date(tournament.endDate), 'yyyy-MM-dd')
       
-      // Create date objects for comparison (all at midnight local time)
-      const slotDate = new Date(slotDateStr + 'T00:00:00')
-      
-      // Allow dates within 1 day before start and 1 day after end to account for timezone
-      const startWithBuffer = new Date(tournamentStartUTC)
-      startWithBuffer.setDate(startWithBuffer.getDate() - 1)
-      
-      const endWithBuffer = new Date(tournamentEndUTC)
-      endWithBuffer.setDate(endWithBuffer.getDate() + 1)
-      
-      if (slotDate < startWithBuffer || slotDate > endWithBuffer) {
+      if (slotDateStr < tournamentStartStr || slotDateStr > tournamentEndStr) {
         return NextResponse.json(
           { 
-            error: `Time slot date must be within tournament date range (${format(tournamentStartUTC, 'PPP')} - ${format(tournamentEndUTC, 'PPP')})`
+            error: `Time slot date must be within tournament date range (${format(new Date(tournament.startDate), 'PPP')} - ${format(new Date(tournament.endDate), 'PPP')})`
           },
           { status: 400 }
         )
@@ -148,6 +138,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         })
       )
     )
+
+    // Revalidate the schedule and squads pages to show the new time slots
+    revalidatePath(`/tournaments/${tournamentId}/schedule`)
+    revalidatePath(`/tournaments/${tournamentId}/squads`)
 
     return NextResponse.json(createdSlots, { status: 201 })
   } catch (error) {

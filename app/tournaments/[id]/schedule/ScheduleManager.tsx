@@ -64,8 +64,14 @@ export default function ScheduleManager({ tournament }: ScheduleManagerProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedDisciplineFilter, setSelectedDisciplineFilter] = useState<string>('all')
 
+  // Format date without timezone shifts - extract YYYY-MM-DD and create date at noon UTC
+  const parseDateSafe = (date: Date) => {
+    const dateStr = new Date(date).toISOString().split('T')[0]
+    return new Date(`${dateStr}T12:00:00.000Z`)
+  }
+
   // Get date range for the tournament
-  const tournamentDates = getDateRange(new Date(tournament.startDate), new Date(tournament.endDate))
+  const tournamentDates = getDateRange(parseDateSafe(tournament.startDate), parseDateSafe(tournament.endDate))
   const [activeDay, setActiveDay] = useState(tournamentDates[0])
 
   // Filter time slots
@@ -121,7 +127,7 @@ export default function ScheduleManager({ tournament }: ScheduleManagerProps) {
             <div>
               <p className="text-sm text-gray-600">Tournament Dates</p>
               <p className="text-lg font-semibold text-gray-900">
-                {format(new Date(tournament.startDate), 'PPP')} - {format(new Date(tournament.endDate), 'PPP')}
+                {format(parseDateSafe(tournament.startDate), 'PPP')} - {format(parseDateSafe(tournament.endDate), 'PPP')}
               </p>
             </div>
             <div className="flex gap-3">
@@ -240,7 +246,8 @@ export default function ScheduleManager({ tournament }: ScheduleManagerProps) {
           onClose={() => setShowGenerateModal(false)}
           onSuccess={() => {
             setShowGenerateModal(false)
-            router.refresh()
+            // Force a full page reload to ensure data is refreshed
+            window.location.reload()
           }}
         />
       )}
@@ -252,7 +259,8 @@ export default function ScheduleManager({ tournament }: ScheduleManagerProps) {
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
             setShowAddModal(false)
-            router.refresh()
+            // Force a full page reload to ensure data is refreshed
+            window.location.reload()
           }}
         />
       )}
