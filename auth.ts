@@ -4,20 +4,11 @@ import { authConfig } from './auth.config'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcrypt'
 
-// Debug: Log environment variable status
-console.log('[Auth Config] AUTH_SECRET exists:', !!process.env.AUTH_SECRET)
-console.log('[Auth Config] AUTH_SECRET length:', process.env.AUTH_SECRET?.length || 0)
-
-// Ensure AUTH_SECRET is defined
-const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
-if (!authSecret) {
-  console.error('[Auth Config] ERROR: No AUTH_SECRET or NEXTAUTH_SECRET found in environment')
-  throw new Error('AUTH_SECRET environment variable is not set. Please add it to your environment variables.')
-}
-
+// Let Auth.js automatically infer the secret from AUTH_SECRET env var
+// Don't explicitly set it - this is the recommended approach for Next.js
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  secret: authSecret,
+  // secret is omitted - Auth.js will auto-detect from AUTH_SECRET
   providers: [
     Credentials({
       name: 'credentials',
