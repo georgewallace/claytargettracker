@@ -13,7 +13,6 @@ interface Shooter {
   ataClass: string | null
   grade: string | null
   division: string | null
-  profilePictureUrl: string | null
   user: {
     name: string
   }
@@ -41,9 +40,6 @@ export default function EditShooterForm({ shooter }: EditShooterFormProps) {
   const [calculatedDivision, setCalculatedDivision] = useState<string | null>(shooter.division)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [profilePicture, setProfilePicture] = useState<File | null>(null)
-  const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(shooter.profilePictureUrl)
-  const [uploadingPicture, setUploadingPicture] = useState(false)
 
   // Recalculate division when grade changes
   useEffect(() => {
@@ -86,96 +82,6 @@ export default function EditShooterForm({ shooter }: EditShooterFormProps) {
     })
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-      if (!allowedTypes.includes(file.type)) {
-        setError('Invalid file type. Please upload an image (JPEG, PNG, GIF, or WebP)')
-        return
-      }
-
-      // Validate file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024
-      if (file.size > maxSize) {
-        setError('File too large. Maximum size is 5MB')
-        return
-      }
-
-      setProfilePicture(file)
-      
-      // Create preview
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setProfilePicturePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-      setError('')
-    }
-  }
-
-  const handleUploadPicture = async () => {
-    if (!profilePicture) return
-
-    setUploadingPicture(true)
-    setError('')
-
-    try {
-      const formData = new FormData()
-      formData.append('file', profilePicture)
-
-      const response = await fetch(`/api/shooters/${shooter.id}/profile-picture`, {
-        method: 'POST',
-        body: formData
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to upload profile picture')
-        return
-      }
-
-      // Success - refresh the page
-      router.refresh()
-      setProfilePicture(null)
-    } catch (error) {
-      setError('An error occurred while uploading. Please try again.')
-    } finally {
-      setUploadingPicture(false)
-    }
-  }
-
-  const handleRemovePicture = async () => {
-    if (!confirm('Are you sure you want to remove your profile picture?')) return
-
-    setUploadingPicture(true)
-    setError('')
-
-    try {
-      const response = await fetch(`/api/shooters/${shooter.id}/profile-picture`, {
-        method: 'DELETE'
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to remove profile picture')
-        return
-      }
-
-      // Success - clear preview and refresh
-      setProfilePicturePreview(null)
-      setProfilePicture(null)
-      router.refresh()
-    } catch (error) {
-      setError('An error occurred while removing the picture. Please try again.')
-    } finally {
-      setUploadingPicture(false)
-    }
-  }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
@@ -183,81 +89,6 @@ export default function EditShooterForm({ shooter }: EditShooterFormProps) {
           {error}
         </div>
       )}
-
-      {/* Profile Picture */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <label className="block text-sm font-medium text-gray-900 mb-4">
-          Profile Picture
-        </label>
-        
-        <div className="flex items-start gap-6">
-          {/* Preview */}
-          <div className="flex-shrink-0">
-            {profilePicturePreview ? (
-              <div className="relative">
-                <img
-                  src={profilePicturePreview}
-                  alt="Profile preview"
-                  className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
-                />
-                {profilePicturePreview === shooter.profilePictureUrl && (
-                  <button
-                    type="button"
-                    onClick={handleRemovePicture}
-                    disabled={uploadingPicture}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition disabled:opacity-50"
-                    title="Remove picture"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
-                <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-            )}
-          </div>
-
-          {/* Upload controls */}
-          <div className="flex-1">
-            <div className="space-y-3">
-              <div>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                  onChange={handleFileChange}
-                  className="block w-full text-sm text-gray-600
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:text-sm file:font-medium
-                    file:bg-indigo-50 file:text-indigo-700
-                    hover:file:bg-indigo-100
-                    file:cursor-pointer cursor-pointer"
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  JPEG, PNG, GIF, or WebP. Max 5MB.
-                </p>
-              </div>
-
-              {profilePicture && (
-                <button
-                  type="button"
-                  onClick={handleUploadPicture}
-                  disabled={uploadingPicture}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                >
-                  {uploadingPicture ? 'Uploading...' : 'Upload Picture'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Gender (Read-only for coaches) */}
       {shooter.gender && (

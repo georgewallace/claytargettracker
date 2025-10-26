@@ -46,9 +46,3 @@ next-env.d.ts
 *.db
 *.db-journal
 prisma/migrations
-
-# uploads
-/public/uploads
-
-# private planning documents
-PRODUCTIZATION_ROADMAP.md

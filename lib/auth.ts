@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt'
-import { auth } from '@/auth'
+import { cookies } from 'next/headers'
 import { prisma } from './prisma'
 
 export async function hashPassword(password: string): Promise<string> {
@@ -16,14 +16,15 @@ export async function getCurrentUser() {
     return null
   }
   
-  const session = await auth()
+  const cookieStore = await cookies()
+  const userId = cookieStore.get('userId')?.value
   
-  if (!session?.user?.id) {
+  if (!userId) {
     return null
   }
   
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     include: {
       shooter: {
         include: {

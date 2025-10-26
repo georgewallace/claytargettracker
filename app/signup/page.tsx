@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { signIn } from 'next-auth/react'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -20,7 +19,6 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
-      // Create the user account
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -31,18 +29,6 @@ export default function SignupPage() {
 
       if (!response.ok) {
         setError(data.error || 'Signup failed')
-        return
-      }
-
-      // Sign in the newly created user
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        setError('Account created but login failed. Please try logging in.')
         return
       }
 

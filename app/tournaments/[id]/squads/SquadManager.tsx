@@ -41,8 +41,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
     keepTeamsCloseInTime: false,
     deleteExistingSquads: false,
     includeShootersWithoutTeams: false,
-    includeShootersWithoutDivisions: false,
-    autoAssignAcrossDisciplines: false
+    includeShootersWithoutDivisions: false
   })
   const [showAddTimeSlot, setShowAddTimeSlot] = useState(false)
   const [newTimeSlot, setNewTimeSlot] = useState({
@@ -254,10 +253,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
       const response = await fetch(`/api/tournaments/${tournament.id}/auto-assign-squads`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...autoAssignOptions,
-          activeDisciplineId: autoAssignOptions.autoAssignAcrossDisciplines ? null : activeDiscipline
-        })
+        body: JSON.stringify(autoAssignOptions)
       })
 
       const data = await response.json()
@@ -1005,24 +1001,6 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                       <div className="flex-1">
                         <span className="text-sm font-medium text-gray-900">Keep teams close in time</span>
                         <p className="text-xs text-gray-600 mt-0.5">Teams will be assigned to nearby time slots when possible</p>
-                      </div>
-                    </label>
-
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={autoAssignOptions.autoAssignAcrossDisciplines}
-                        onChange={(e) => setAutoAssignOptions(prev => ({ ...prev, autoAssignAcrossDisciplines: e.target.checked }))}
-                        className="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                      />
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-gray-900">Auto-assign across all disciplines</span>
-                        <p className="text-xs text-gray-600 mt-0.5">
-                          {autoAssignOptions.autoAssignAcrossDisciplines 
-                            ? 'Will assign shooters to squads in all disciplines' 
-                            : `Will only assign shooters to squads in ${tournamentDisciplines.find(d => d.id === activeDiscipline)?.displayName || 'the active discipline'}`
-                          }
-                        </p>
                       </div>
                     </label>
 
