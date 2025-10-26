@@ -47,6 +47,14 @@ Login with: `admin@demo.com` / `demo` (or `coach@demo.com` or `shooter@demo.com`
 - Select all/clear functionality for quick registration
 - Real-time registration status
 
+### 📖 Help System
+- Comprehensive in-app help documentation
+- Searchable help topics
+- Role-based guidance (Shooter, Coach, Admin)
+- Step-by-step tutorials
+- Troubleshooting guides
+- Mobile-friendly help interface
+
 ### 📱 Modern UI/UX
 - Responsive design for all devices
 - Clean, intuitive interface
@@ -221,8 +229,35 @@ DATABASE_URL="file:./dev.db" npx prisma studio
 npm run build
 ```
 
+## Help & Documentation
+
+### Accessing Help
+
+- **In-App Help**: Click "Help" in the navigation bar
+- **Comprehensive Guide**: See [HELP.md](./HELP.md)
+- **Help System Documentation**: See [HELP_SYSTEM_README.md](./HELP_SYSTEM_README.md)
+
+### Updating Documentation
+
+To sync documentation from source files:
+
+```bash
+npm run help:sync
+```
+
+This consolidates all user-facing markdown files into `HELP.md`.
+
+### Documentation Files
+
+- **User Guides**: `HELP.md`, `QUICKSTART.md`, `FEATURES.md`
+- **Feature Guides**: `DISCIPLINES_GUIDE.md`, `SQUAD_MANAGEMENT_GUIDE.md`, `SCHEDULE_MANAGEMENT_GUIDE.md`
+- **Role-Specific**: `COACH_TEAM_MANAGEMENT.md`, `SCORE_ENTRY.md`, `TOURNAMENT_EDITING.md`
+- **Technical**: `HELP_SYSTEM_README.md`, deployment guides
+
 ## Future Enhancements
 
+- [ ] Video tutorials in help system
+- [ ] Interactive onboarding wizard
 - [ ] Admin dashboard for tournament management
 - [ ] Email notifications for tournament updates
 - [ ] Export results to PDF/CSV

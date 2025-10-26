@@ -1,19 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/auth'
-import { createSession } from '@/lib/session'
+import { rateLimiters, getIdentifier, checkRateLimit, createRateLimitHeaders } from '@/lib/ratelimit'
+import { isValidEmail, isStrongPassword, sanitizeInput, validateCSRF, addSecurityHeaders } from '@/lib/security'
 
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate CSRF
+    if (!validateCSRF(request)) {
+      const response = NextResponse.json(
+        { error: 'Invalid request origin' },
+        { status: 403 }
+      )
+      return addSecurityHeaders(response)
+    }
+
+    // Check rate limit (5 attempts per 15 minutes)
+    const identifier = getIdentifier(request)
+    const rateLimitResult = await checkRateLimit(rateLimiters.auth, identifier)
+    
+    if (!rateLimitResult.success) {
+      const response = NextResponse.json(
+        { 
+          error: 'Too many signup attempts. Please try again later.',
+          retryAfter: Math.ceil((rateLimitResult.reset - Date.now()) / 1000)
+        },
+        { 
+          status: 429,
+          headers: createRateLimitHeaders(rateLimitResult)
+        }
+      )
+      return addSecurityHeaders(response)
+    }
+
     const { email, password, name, role } = await request.json()
     
     // Validate input
     if (!email || !password || !name) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       )
+      return addSecurityHeaders(response)
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      const response = NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      )
+      return addSecurityHeaders(response)
+    }
+
+    // Validate password strength
+    const passwordValidation = isStrongPassword(password)
+    if (!passwordValidation.isValid) {
+      const response = NextResponse.json(
+        { error: passwordValidation.errors[0] },
+        { status: 400 }
+      )
+      return addSecurityHeaders(response)
+    }
+
+    // Sanitize name
+    const sanitizedName = sanitizeInput(name)
+    if (sanitizedName.length < 2 || sanitizedName.length > 100) {
+      const response = NextResponse.json(
+        { error: 'Name must be between 2 and 100 characters' },
+        { status: 400 }
+      )
+      return addSecurityHeaders(response)
     }
     
     // Validate role
@@ -26,10 +84,11 @@ export async function POST(request: NextRequest) {
     })
     
     if (existingUser) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { error: 'User already exists' },
         { status: 400 }
       )
+      return addSecurityHeaders(response)
     }
     
     // Hash password and create user
@@ -38,7 +97,7 @@ export async function POST(request: NextRequest) {
       data: {
         email,
         password: hashedPassword,
-        name,
+        name: sanitizedName,
         role: userRole,
         // Only create shooter profile for shooter role
         ...(userRole === 'shooter' && {
@@ -49,19 +108,22 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    // Create session
-    await createSession(user.id)
-    
-    return NextResponse.json(
+    // Return success - Auth.js will handle the session
+    const response = NextResponse.json(
       { message: 'User created successfully', userId: user.id },
-      { status: 201 }
+      { 
+        status: 201,
+        headers: createRateLimitHeaders(rateLimitResult)
+      }
     )
+    return addSecurityHeaders(response)
   } catch (error) {
     console.error('Signup error:', error)
-    return NextResponse.json(
+    const response = NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
+    return addSecurityHeaders(response)
   }
 }
 

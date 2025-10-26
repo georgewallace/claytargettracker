@@ -45,6 +45,7 @@ interface Shooter {
   email: string
   grade: string | null
   division: string | null
+  profilePictureUrl: string | null
   team: {
     id: string
     name: string
@@ -67,6 +68,7 @@ interface ShooterProfileViewProps {
 
 export default function ShooterProfileView({ shooter, divisionAverages, canEdit, isOwnProfile }: ShooterProfileViewProps) {
   const [selectedDiscipline, setSelectedDiscipline] = useState<string>('all')
+  const [selectedTournament, setSelectedTournament] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<string>('all')
 
   // Get all unique disciplines
@@ -79,6 +81,20 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
     })
     return Array.from(disciplineMap.values())
   }, [shooter.stats])
+
+  // Get all unique tournaments
+  const allTournaments = useMemo(() => {
+    const tournamentMap = new Map()
+    shooter.shoots.forEach(shoot => {
+      if (!tournamentMap.has(shoot.tournamentId)) {
+        tournamentMap.set(shoot.tournamentId, {
+          id: shoot.tournamentId,
+          name: shoot.tournament.name
+        })
+      }
+    })
+    return Array.from(tournamentMap.values())
+  }, [shooter.shoots])
 
   // Prepare chart data with time filter
   const chartData = useMemo(() => {
@@ -149,29 +165,51 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
     <div>
       {/* Header */}
       <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">{shooter.name}</h1>
-            <p className="text-gray-600">{shooter.email}</p>
-            {shooter.team && (
-              <p className="text-gray-600 mt-2">
-                Team: <Link href={`/teams`} className="text-indigo-600 hover:text-indigo-700 font-medium">{shooter.team.name}</Link>
-                {shooter.team.coaches.length > 0 && (
-                  <span className="text-gray-500 text-sm ml-2">
-                    • Coach: {shooter.team.coaches.map(c => c.user.name).join(', ')}
-                  </span>
-                )}
-              </p>
+        <div className="flex items-start gap-6 mb-6">
+          {/* Profile Picture */}
+          <div className="flex-shrink-0">
+            {shooter.profilePictureUrl ? (
+              <img
+                src={shooter.profilePictureUrl}
+                alt={shooter.name}
+                className="w-32 h-32 rounded-full object-cover border-4 border-indigo-100"
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center border-4 border-indigo-100">
+                <span className="text-white text-4xl font-bold">
+                  {shooter.name.charAt(0).toUpperCase()}
+                </span>
+              </div>
             )}
           </div>
-          {canEdit && (
-            <Link
-              href={`/shooters/${shooter.id}/edit`}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition text-sm font-medium"
-            >
-              Edit Profile
-            </Link>
-          )}
+
+          {/* Header Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">{shooter.name}</h1>
+                <p className="text-gray-600">{shooter.email}</p>
+                {shooter.team && (
+                  <p className="text-gray-600 mt-2">
+                    Team: <Link href={`/teams`} className="text-indigo-600 hover:text-indigo-700 font-medium">{shooter.team.name}</Link>
+                    {shooter.team.coaches.length > 0 && (
+                      <span className="text-gray-500 text-sm ml-2">
+                        • Coach: {shooter.team.coaches.map(c => c.user.name).join(', ')}
+                      </span>
+                    )}
+                  </p>
+                )}
+              </div>
+              {canEdit && (
+                <Link
+                  href={`/shooters/${shooter.id}/edit`}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition text-sm font-medium whitespace-nowrap"
+                >
+                  Edit Profile
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Shooter Info */}
@@ -210,7 +248,7 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
           {/* Filters */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Filters</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Discipline Filter */}
               {allDisciplines.length > 1 && (
                 <div>
@@ -226,6 +264,27 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
                     {allDisciplines.map(discipline => (
                       <option key={discipline.id} value={discipline.id}>
                         {discipline.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Tournament Filter */}
+              {allTournaments.length > 1 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tournament
+                  </label>
+                  <select
+                    value={selectedTournament}
+                    onChange={(e) => setSelectedTournament(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="all">All Tournaments</option>
+                    {allTournaments.map(tournament => (
+                      <option key={tournament.id} value={tournament.id}>
+                        {tournament.name}
                       </option>
                     ))}
                   </select>
@@ -353,11 +412,11 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Shoots:</span>
-                          <span className="font-medium">{stat.totalShoots}</span>
+                          <span className="font-semibold text-gray-900">{stat.totalShoots}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Total Score:</span>
-                          <span className="font-medium">{stat.totalTargets} / {stat.totalPossible}</span>
+                          <span className="font-semibold text-gray-900">{stat.totalTargets} / {stat.totalPossible}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Average:</span>
@@ -386,7 +445,10 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {shooter.shoots
-                    .filter(shoot => selectedDiscipline === 'all' || shoot.discipline.id === selectedDiscipline)
+                    .filter(shoot => 
+                      (selectedDiscipline === 'all' || shoot.discipline.id === selectedDiscipline) &&
+                      (selectedTournament === 'all' || shoot.tournamentId === selectedTournament)
+                    )
                     .map(shoot => (
                       <tr key={shoot.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

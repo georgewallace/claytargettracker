@@ -133,9 +133,33 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
   const isSportingClays = activeDisciplineData?.name === 'sporting_clays'
   const isFiveStand = activeDisciplineData?.name === 'five_stand'
 
+  // Get tournament discipline configuration for limits
+  const tournamentDiscipline = tournament.disciplines?.find(
+    (td: any) => td.disciplineId === activeDiscipline
+  )
+  
+  // Calculate max possible score based on tournament configuration
+  const getMaxPossibleScore = (): number => {
+    if (!tournamentDiscipline) return 0
+    
+    if (isSkeetOrTrap) {
+      // Trap/Skeet: rounds * 25 targets per round
+      return (tournamentDiscipline.rounds || 4) * 25
+    } else if (isSportingClays) {
+      // Sporting Clays: total targets configured
+      return tournamentDiscipline.targets || 100
+    } else if (isFiveStand) {
+      // 5-Stand: total targets configured
+      return tournamentDiscipline.targets || 50
+    }
+    return 0
+  }
+
+  const maxPossibleScore = getMaxPossibleScore()
+
   // Configuration based on discipline
-  const maxRounds = 4 // For skeet/trap
-  const maxStations = isSportingClays ? 14 : (isFiveStand ? 5 : 4) // Sporting Clays: 14 stations, 5-Stand: 5 stations
+  const maxRounds = tournamentDiscipline?.rounds || 4 // For skeet/trap
+  const maxStations = tournamentDiscipline?.stations || (isSportingClays ? 14 : (isFiveStand ? 5 : 4))
   const maxTargetsPerStation = isSportingClays ? 10 : (isFiveStand ? 25 : 25) // Sporting Clays varies, default 10
 
   // Initialize scores when squad is selected
@@ -231,6 +255,28 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
           shooterToDateMap[member.shooter.id] = squad.timeSlot.date
         })
       })
+
+      // Validate scores before saving
+      const invalidShooters: string[] = []
+      Object.entries(scores).forEach(([shooterId, rounds]) => {
+        const total = Object.values(rounds).reduce((sum, score) => sum + score, 0)
+        if (total > maxPossibleScore) {
+          const member = squadsToDisplay
+            .flatMap(s => s.members)
+            .find((m: any) => m.shooter.id === shooterId)
+          if (member) {
+            invalidShooters.push(`${member.shooter.user.name} (${total}/${maxPossibleScore})`)
+          }
+        }
+      })
+
+      if (invalidShooters.length > 0) {
+        setError(
+          `Cannot save scores. The following shooter(s) have scores exceeding the tournament limit of ${maxPossibleScore} targets:\n\n${invalidShooters.join('\n')}\n\nPlease correct the scores before saving.`
+        )
+        setLoading(false)
+        return
+      }
 
       // Prepare scores data
       const scoresData = Object.entries(scores)
@@ -504,10 +550,23 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
                             />
                           </td>
                         ))}
-                        <td className="px-2 py-1 text-center bg-indigo-50 border-l-2 border-indigo-200">
-                          <div className="text-base font-bold text-indigo-900 font-mono">
+                        <td className={`px-2 py-1 text-center border-l-2 ${
+                          getShooterTotal(member.shooter.id) > maxPossibleScore
+                            ? 'bg-red-100 border-red-400'
+                            : 'bg-indigo-50 border-indigo-200'
+                        }`}>
+                          <div className={`text-base font-bold font-mono ${
+                            getShooterTotal(member.shooter.id) > maxPossibleScore
+                              ? 'text-red-700'
+                              : 'text-indigo-900'
+                          }`}>
                             {getShooterTotal(member.shooter.id)}
                           </div>
+                          {getShooterTotal(member.shooter.id) > maxPossibleScore && (
+                            <div className="text-xs text-red-600 font-semibold">
+                              Max: {maxPossibleScore}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}

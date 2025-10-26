@@ -87,9 +87,13 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
     const cutoffDate = timeRange === 'all' ? null : 
       new Date(now.getTime() - parseInt(timeRange) * 24 * 60 * 60 * 1000)
 
-    // Collect all shooter data points grouped by date
+    // Collect all shooter data points grouped by date (for filtered view)
     const shootsByDateAndDiscipline: Record<string, Record<string, any[]>> = {}
+    
+    // Collect ALL shooter data points grouped by date (for team average)
+    const allShootsByDateAndDiscipline: Record<string, Record<string, any[]>> = {}
 
+    // Process filtered shooters for display
     filteredShooters.forEach(shooter => {
       shooter.stats.forEach(stat => {
         if (selectedDiscipline !== 'all' && stat.discipline.id !== selectedDiscipline) return
@@ -122,6 +126,39 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
       })
     })
 
+    // Process ALL shooters for team average calculation
+    shooters.forEach(shooter => {
+      shooter.stats.forEach(stat => {
+        if (selectedDiscipline !== 'all' && stat.discipline.id !== selectedDiscipline) return
+
+        if (!allShootsByDateAndDiscipline[stat.discipline.id]) {
+          allShootsByDateAndDiscipline[stat.discipline.id] = {}
+        }
+
+        stat.shoots.forEach(shoot => {
+          const shootDate = new Date(shoot.date)
+          
+          // Apply time filter
+          if (cutoffDate && shootDate < cutoffDate) return
+
+          const dateKey = format(shootDate, 'MMM d, yyyy')
+          
+          if (!allShootsByDateAndDiscipline[stat.discipline.id][dateKey]) {
+            allShootsByDateAndDiscipline[stat.discipline.id][dateKey] = []
+          }
+
+          allShootsByDateAndDiscipline[stat.discipline.id][dateKey].push({
+            shooterId: shooter.id,
+            shooterName: shooter.name,
+            percentage: shoot.percentage,
+            tournamentName: shoot.tournamentName,
+            score: shoot.score,
+            dateObj: shootDate
+          })
+        })
+      })
+    })
+
     // Convert to chart format with unique dates
     Object.keys(shootsByDateAndDiscipline).forEach(disciplineId => {
       const dates = Object.keys(shootsByDateAndDiscipline[disciplineId]).sort((a, b) => {
@@ -133,9 +170,10 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
       dataByDiscipline[disciplineId] = dates.map(dateKey => {
         const shootsOnDate = shootsByDateAndDiscipline[disciplineId][dateKey]
         
-        // Calculate team average for this date
-        const totalPercentage = shootsOnDate.reduce((sum, s) => sum + s.percentage, 0)
-        const teamAverage = totalPercentage / shootsOnDate.length
+        // Calculate team average for this date using ALL shooters, not just filtered ones
+        const allShootsOnDate = allShootsByDateAndDiscipline[disciplineId]?.[dateKey] || []
+        const totalPercentage = allShootsOnDate.reduce((sum, s) => sum + s.percentage, 0)
+        const teamAverage = allShootsOnDate.length > 0 ? totalPercentage / allShootsOnDate.length : 0
 
         // Create data point with all shooters' scores as properties
         const dataPoint: any = {
@@ -157,7 +195,7 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
     })
 
     return dataByDiscipline
-  }, [filteredShooters, selectedDiscipline, timeRange])
+  }, [filteredShooters, shooters, selectedDiscipline, timeRange])
 
   // Calculate overall team statistics
   const teamStats = useMemo(() => {
@@ -435,11 +473,11 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Shoots:</span>
-                          <span className="font-medium">{stat.totalShoots}</span>
+                          <span className="font-semibold text-gray-900">{stat.totalShoots}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Total Score:</span>
-                          <span className="font-medium">{stat.totalTargets} / {stat.totalPossible}</span>
+                          <span className="font-semibold text-gray-900">{stat.totalTargets} / {stat.totalPossible}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Average:</span>
