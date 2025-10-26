@@ -197,6 +197,7 @@ export default async function ShooterProfilePage({ params }: PageProps) {
             email: shooter.user.email,
             grade: shooter.grade,
             division: shooter.division,
+            profilePictureUrl: shooter.profilePictureUrl,
             team: shooter.team,
             shoots: shootsWithTotals,
             stats

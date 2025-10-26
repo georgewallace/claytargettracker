@@ -16,6 +16,7 @@ interface AutoAssignOptions {
   deleteExistingSquads: boolean
   includeShootersWithoutTeams: boolean
   includeShootersWithoutDivisions: boolean
+  activeDisciplineId?: string | null
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
@@ -85,8 +86,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get all time slots with their squads and disciplines
+    // Filter by active discipline if specified
+    const timeSlotWhere: any = { tournamentId }
+    if (options.activeDisciplineId) {
+      timeSlotWhere.disciplineId = options.activeDisciplineId
+    }
+    
     const timeSlots = await prisma.timeSlot.findMany({
-      where: { tournamentId },
+      where: timeSlotWhere,
       include: {
         discipline: true,
         squads: {
@@ -220,6 +227,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     for (const reg of registrations) {
       for (const regDisc of reg.disciplines) {
         const disciplineId = regDisc.discipline.id
+        
+        // Skip if we're only assigning for a specific discipline and this isn't it
+        if (options.activeDisciplineId && disciplineId !== options.activeDisciplineId) {
+          continue
+        }
+        
         if (!shooterGroups[disciplineId]) {
           shooterGroups[disciplineId] = []
         }

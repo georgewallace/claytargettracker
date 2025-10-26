@@ -45,6 +45,14 @@ export default function Navbar({ user }: NavbarProps) {
           </div>
 
           <div className="hidden md:flex items-center space-x-1">
+            {/* Help Link */}
+            <Link
+              href="/help"
+              className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
+            >
+              Help
+            </Link>
+
             {/* Tournaments Dropdown */}
             <div 
               className="relative"
@@ -212,6 +220,14 @@ export default function Navbar({ user }: NavbarProps) {
       {isMenuOpen && (
         <div className="md:hidden border-t border-gray-200">
           <div className="px-2 pt-2 pb-3 space-y-1">
+            {/* Help Link */}
+            <Link
+              href="/help"
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+            >
+              Help
+            </Link>
+
             {/* Tournaments Section */}
             <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
               Tournaments
