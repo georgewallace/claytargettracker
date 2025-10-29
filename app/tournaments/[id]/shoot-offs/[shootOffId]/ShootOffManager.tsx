@@ -314,7 +314,7 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
                   <h3 className="text-xl font-bold text-gray-900">
                     Round {round.roundNumber}
                   </h3>
-                  {round.completed && (
+                  {round.completedAt && (
                     <span className="text-green-600 font-medium text-sm">✓ Completed</span>
                   )}
                 </div>
@@ -380,7 +380,7 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
                 </div>
 
                 {/* Score Entry Link */}
-                {isAdmin && !round.completed && shootOff.status === 'in_progress' && (
+                {isAdmin && !round.completedAt && shootOff.status === 'in_progress' && (
                   <div className="mt-4">
                     <a
                       href={`/tournaments/${tournament.id}/shoot-offs/${shootOff.id}/rounds/${round.id}/scores`}
