@@ -148,9 +148,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,
-            rounds: config.rounds || null,
-            targets: config.targets || null,
-            stations: config.stations || null
+            rounds: config.rounds ?? null,
+            targets: config.targets ?? null,
+            stations: config.stations ?? null
           }))
         }
       },
