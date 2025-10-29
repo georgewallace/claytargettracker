@@ -75,10 +75,28 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
     // Initialize with existing values from tournament
     const configs: Record<string, DisciplineConfig> = {}
     tournament.disciplines.forEach(td => {
-      configs[td.disciplineId] = {
-        rounds: td.rounds ?? undefined,
-        targets: td.targets ?? undefined,
-        stations: td.stations ?? undefined
+      const disciplineInfo = allDisciplines.find(d => d.id === td.disciplineId)
+      // Use discipline-specific defaults if values are null
+      if (disciplineInfo?.name === 'trap' || disciplineInfo?.name === 'skeet') {
+        configs[td.disciplineId] = {
+          rounds: td.rounds ?? 1
+        }
+      } else if (disciplineInfo?.name === 'five_stand') {
+        configs[td.disciplineId] = {
+          targets: td.targets ?? 25
+        }
+      } else if (disciplineInfo?.name === 'sporting_clays') {
+        configs[td.disciplineId] = {
+          stations: td.stations ?? 10,
+          targets: td.targets ?? 100
+        }
+      } else {
+        // Fallback for unknown disciplines
+        configs[td.disciplineId] = {
+          rounds: td.rounds ?? undefined,
+          targets: td.targets ?? undefined,
+          stations: td.stations ?? undefined
+        }
       }
     })
     // Add defaults for new disciplines
