@@ -36,24 +36,29 @@ async function fixWestEndTournament() {
       console.log(`\n📋 ${discipline.displayName}:`)
       console.log(`   Configured: ${td.rounds || td.targets || td.stations} ${td.rounds ? 'rounds' : 'targets/stations'}`)
 
-      // Count actual score records
+      // Count actual score records - check ALL shoots for max station
       const shoots = await prisma.shoot.findMany({
         where: {
           tournamentId: tournament.id,
           disciplineId: discipline.id
         },
         include: {
-          scores: {
-            orderBy: {
-              station: 'desc'
-            },
-            take: 1 // Get highest station number
-          }
+          scores: true
         }
       })
 
-      if (shoots.length > 0 && shoots[0].scores.length > 0) {
-        const maxStation = shoots[0].scores[0].station
+      if (shoots.length > 0) {
+        // Find the absolute maximum station across all shoots
+        let maxStation = 0
+        shoots.forEach(shoot => {
+          shoot.scores.forEach(score => {
+            if (score.station > maxStation) {
+              maxStation = score.station
+            }
+          })
+        })
+        
+        console.log(`   Total shoots: ${shoots.length}`)
         console.log(`   Actual max station: ${maxStation}`)
 
         // Calculate actual rounds based on discipline
