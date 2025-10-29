@@ -53,7 +53,7 @@ export default async function DeclareWinnerPage({ params }: PageProps) {
               href={`/tournaments/${tournamentId}`}
               className="text-indigo-600 hover:text-indigo-500 font-medium"
             >
-              ← Back to Tournament
+              Back to Tournament
             </Link>
           </div>
         </div>

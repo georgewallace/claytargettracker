@@ -54,7 +54,7 @@ export default async function RoundScoreEntryPage({ params }: PageProps) {
               href={`/tournaments/${tournamentId}`}
               className="text-indigo-600 hover:text-indigo-500 font-medium"
             >
-              ← Back to Tournament
+              Back to Tournament
             </Link>
           </div>
         </div>
@@ -127,7 +127,7 @@ export default async function RoundScoreEntryPage({ params }: PageProps) {
               href={`/tournaments/${tournamentId}/shoot-offs/${shootOffId}`}
               className="text-indigo-600 hover:text-indigo-500 font-medium"
             >
-              ← Back to Shoot-Off
+              Back to Shoot-Off
             </Link>
           </div>
         </div>
@@ -144,10 +144,10 @@ export default async function RoundScoreEntryPage({ params }: PageProps) {
             href={`/tournaments/${tournamentId}/shoot-offs/${shootOffId}`}
             className="inline-flex items-center text-indigo-600 hover:text-indigo-500 mb-4 transition"
           >
-            ← Back to Shoot-Off
+            Back to Shoot-Off
           </Link>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            📝 Enter Scores - Round {round.roundNumber}
+            Enter Scores - Round {round.roundNumber}
           </h1>
           <p className="text-xl text-gray-600">{round.shootOff.description}</p>
         </div>

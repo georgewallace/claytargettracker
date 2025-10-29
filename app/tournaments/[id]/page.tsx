@@ -187,7 +187,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                       href={`/tournaments/${tournament.id}/shoot-offs`}
                       className="bg-orange-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
                     >
-                      🎯 Shoot-Offs
+                      Shoot-Offs
                     </Link>
                   )}
                   <Link

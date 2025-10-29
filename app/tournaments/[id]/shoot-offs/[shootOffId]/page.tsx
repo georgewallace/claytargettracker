@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 import Link from 'next/link'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 import ShootOffManager from './ShootOffManager'
+import { ClayTargetIcon } from '@/components/ClayTargetIcon'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -135,8 +136,9 @@ export default async function ShootOffDetailPage({ params }: PageProps) {
           </Link>
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                🎯 {shootOff.description}
+              <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <ClayTargetIcon className="w-10 h-10 text-orange-600" />
+                {shootOff.description}
               </h1>
               <p className="text-xl text-gray-600">{tournament.name}</p>
             </div>

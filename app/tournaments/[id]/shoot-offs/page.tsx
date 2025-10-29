@@ -90,7 +90,7 @@ export default async function ShootOffsPage({ params }: PageProps) {
               href={`/tournaments/${id}`}
               className="text-indigo-600 hover:text-indigo-500 font-medium"
             >
-              ← Back to Tournament
+              Back to Tournament
             </Link>
           </div>
         </div>
@@ -118,7 +118,7 @@ export default async function ShootOffsPage({ params }: PageProps) {
       case 'pending':
         return '⏳'
       case 'in_progress':
-        return '🎯'
+        return '▶'
       case 'completed':
         return '✅'
       case 'cancelled':
@@ -137,12 +137,12 @@ export default async function ShootOffsPage({ params }: PageProps) {
             href={`/tournaments/${tournament.id}`}
             className="inline-flex items-center text-indigo-600 hover:text-indigo-500 mb-4 transition"
           >
-            ← Back to Tournament
+            Back to Tournament
           </Link>
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                🎯 Shoot-Offs Management
+                Shoot-Offs Management
               </h1>
               <p className="text-xl text-gray-600">{tournament.name}</p>
             </div>
@@ -240,7 +240,6 @@ export default async function ShootOffsPage({ params }: PageProps) {
         {/* Shoot-Offs List */}
         {tournament.shootOffs.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <div className="text-6xl mb-4">🎯</div>
             <h3 className="text-2xl font-semibold text-gray-900 mb-3">
               No Shoot-Offs Yet
             </h3>
@@ -253,7 +252,7 @@ export default async function ShootOffsPage({ params }: PageProps) {
               href={`/tournaments/${id}/leaderboard`}
               className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium"
             >
-              View Leaderboard →
+              View Leaderboard
             </Link>
           </div>
         ) : (
@@ -286,7 +285,7 @@ export default async function ShootOffsPage({ params }: PageProps) {
                       href={`/tournaments/${id}/shoot-offs/${shootOff.id}`}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold shadow-md transition"
                     >
-                      Manage →
+                      Manage
                     </Link>
                   </div>
 

@@ -303,7 +303,6 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
 
         {shootOff.rounds.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
-            <div className="text-4xl mb-3">🎯</div>
             <p>No rounds yet. {shootOff.status === 'in_progress' ? 'Create the first round to begin!' : 'Start the shoot-off to create rounds.'}</p>
           </div>
         ) : (
@@ -386,7 +385,7 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
                       href={`/tournaments/${tournament.id}/shoot-offs/${shootOff.id}/rounds/${round.id}/scores`}
                       className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium"
                     >
-                      📝 Enter Scores for Round {round.roundNumber} →
+                      Enter Scores for Round {round.roundNumber}
                     </a>
                   </div>
                 )}
@@ -417,7 +416,7 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
        activeParticipants.length === 1 && (
         <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6">
           <h3 className="text-xl font-bold text-yellow-900 mb-3">
-            🎯 Ready to Declare Winner
+            Ready to Declare Winner
           </h3>
           <p className="text-yellow-800 mb-4">
             Only one participant remains! You can now declare{' '}
@@ -427,7 +426,7 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
             href={`/tournaments/${tournament.id}/shoot-offs/${shootOff.id}/declare-winner`}
             className="inline-block bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg font-semibold shadow-md transition"
           >
-            Declare Winner →
+            Declare Winner
           </a>
         </div>
       )}
