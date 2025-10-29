@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import ProfileForm from './ProfileForm'
+import AccountSettings from './AccountSettings'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -95,12 +96,18 @@ export default async function ProfilePage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">My Profile</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Profile</h1>
           <p className="text-gray-600">
-            {user.name} • {user.email}
+            {user.name} • {user.email} • {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
           </p>
         </div>
 
+        {/* Account Settings - Available to all users */}
+        <div className="mb-8">
+          <AccountSettings user={user} />
+        </div>
+
+        {/* Shooter Profile - Only for users with shooter profiles */}
         {shooter ? (
           <>
             <ProfileForm shooter={shooter} />
@@ -175,9 +182,15 @@ export default async function ProfilePage() {
           </>
         ) : (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               You don't have a shooter profile yet.
             </p>
+            {(user.role === 'coach' || user.role === 'admin') && (
+              <p className="text-gray-500 text-sm">
+                As a {user.role}, you can manage tournaments and teams without a shooter profile. 
+                If you'd like to compete in tournaments, please contact an administrator to set up your shooter profile.
+              </p>
+            )}
           </div>
         )}
       </div>

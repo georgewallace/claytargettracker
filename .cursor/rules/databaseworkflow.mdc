@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+Leverage the guidance in database_migration.md when deploying to staging.

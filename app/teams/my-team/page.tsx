@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { getUserFirstCoachedTeam } from '@/lib/teamHelpers'
 import CoachTeamManager from './CoachTeamManager'
+import TeamLogoUpload from './TeamLogoUpload'
 
 // Force dynamic rendering (required for getCurrentUser)
 export const dynamic = 'force-dynamic'
@@ -107,6 +108,9 @@ export default async function MyTeamPage() {
             Add or remove shooters from your team roster
           </p>
         </div>
+
+        {/* Team Logo Upload */}
+        <TeamLogoUpload team={teamWithDetails} />
 
         <CoachTeamManager 
           team={teamWithDetails}

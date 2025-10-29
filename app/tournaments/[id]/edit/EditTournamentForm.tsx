@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ShootOffSettings, { ShootOffConfig } from '@/components/ShootOffSettings'
 
 interface Discipline {
   id: string
@@ -18,6 +19,13 @@ interface Tournament {
   endDate: Date
   description: string | null
   status: string
+  // Shoot-off configuration
+  enableShootOffs: boolean
+  shootOffTriggers: string | null
+  shootOffFormat: string
+  shootOffTargetsPerRound: number
+  shootOffStartStation: string | null
+  shootOffRequiresPerfect: boolean
   disciplines: Array<{
     id: string
     disciplineId: string
@@ -87,6 +95,15 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
     })
     return configs
   })
+
+  const [shootOffConfig, setShootOffConfig] = useState<ShootOffConfig>({
+    enableShootOffs: tournament.enableShootOffs,
+    shootOffTriggers: tournament.shootOffTriggers ? JSON.parse(tournament.shootOffTriggers) : ['1st', '2nd', '3rd'],
+    shootOffFormat: tournament.shootOffFormat as ShootOffConfig['shootOffFormat'],
+    shootOffTargetsPerRound: tournament.shootOffTargetsPerRound,
+    shootOffStartStation: tournament.shootOffStartStation || '',
+    shootOffRequiresPerfect: tournament.shootOffRequiresPerfect
+  })
   
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -138,7 +155,14 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          disciplineConfigurations
+          disciplineConfigurations,
+          // Shoot-off configuration
+          enableShootOffs: shootOffConfig.enableShootOffs,
+          shootOffTriggers: JSON.stringify(shootOffConfig.shootOffTriggers),
+          shootOffFormat: shootOffConfig.shootOffFormat,
+          shootOffTargetsPerRound: shootOffConfig.shootOffTargetsPerRound,
+          shootOffStartStation: shootOffConfig.shootOffStartStation || null,
+          shootOffRequiresPerfect: shootOffConfig.shootOffRequiresPerfect
         })
       })
 
@@ -297,6 +321,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
         >
           <option value="upcoming">Upcoming</option>
           <option value="active">Active</option>
+          <option value="finalizing">Finalizing (for Shoot-Offs)</option>
           <option value="completed">Completed</option>
         </select>
       </div>
@@ -524,6 +549,12 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           placeholder="Add tournament details, rules, and any other information..."
         />
       </div>
+
+      {/* Shoot-Off Configuration */}
+      <ShootOffSettings
+        config={shootOffConfig}
+        onChange={setShootOffConfig}
+      />
 
       <div className="flex gap-4">
         <button

@@ -479,6 +479,29 @@ See the [Score Entry](#score-entry) section above.
 
 ## Admin Features
 
+### Admin Dashboard
+
+The Admin Dashboard provides a centralized location to manage all aspects of the system.
+
+**Accessing the Dashboard:**
+1. Click **"Teams"** → **"Admin Dashboard"** in the navigation
+2. View comprehensive statistics and recent activity
+
+**Dashboard Features:**
+- **Statistics Overview**: See total tournaments, shooters, teams, and coaches at a glance
+- **Quick Actions**: One-click access to common tasks (create tournament, manage coaches, etc.)
+- **Tournament Management Table**: View all tournaments with inline actions for editing, scheduling, squad management, and leaderboards
+- **Recent Registrations**: Monitor the latest 10 tournament sign-ups
+- **Recent Scores**: Track the latest 10 score entries
+
+**Use Cases:**
+- Daily operations monitoring
+- Quick access to all tournament management tools
+- System health overview
+- Activity tracking
+
+See [ADMIN_DASHBOARD.md](ADMIN_DASHBOARD.md) for complete documentation.
+
 ### Creating Tournaments
 
 See the [Tournaments](#tournaments) section above.

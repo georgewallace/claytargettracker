@@ -7,6 +7,7 @@ import RegisterButton from './RegisterButton'
 import CoachRegistration from './CoachRegistration'
 import RemoveRegistrationButton from './RemoveRegistrationButton'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
+import TeamLogo from '@/components/TeamLogo'
 
 // Force dynamic rendering (required for getCurrentUser and dynamic params)
 export const dynamic = 'force-dynamic'
@@ -111,6 +112,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     const badges = {
       upcoming: 'bg-blue-100 text-blue-800',
       active: 'bg-green-100 text-green-800',
+      finalizing: 'bg-yellow-100 text-yellow-800',
       completed: 'bg-gray-100 text-gray-800'
     }
     return badges[status as keyof typeof badges] || badges.upcoming
@@ -130,10 +132,10 @@ export default async function TournamentDetailPage({ params }: PageProps) {
         )}
 
         {/* Tournament Header */}
-        <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-          <div className="flex justify-between items-start mb-4">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8 mb-8">
+          <div className="flex flex-col gap-4 mb-4">
             <div className="flex-1">
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
                 {tournament.name}
               </h1>
               <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(tournament.status)}`}>
@@ -141,11 +143,12 @@ export default async function TournamentDetailPage({ params }: PageProps) {
               </span>
             </div>
             
-            <div className="flex gap-3">
+            {/* Action Buttons - Responsive Grid */}
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               {/* Leaderboard button - visible to everyone */}
               <Link
                 href={`/tournaments/${tournament.id}/leaderboard`}
-                className="bg-yellow-500 text-white px-6 py-2 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition font-medium"
+                className="bg-yellow-500 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition font-medium text-sm sm:text-base whitespace-nowrap"
               >
                 🏆 Leaderboard
               </Link>
@@ -154,7 +157,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
               {user && (user.role === 'coach' || user.role === 'admin') && (
                 <Link
                   href={`/tournaments/${tournament.id}/scores`}
-                  className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition font-medium"
+                  className="bg-purple-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
                 >
                   Enter Scores
                 </Link>
@@ -164,7 +167,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
               {user && (user.role === 'coach' || user.role === 'admin') && (
                 <Link
                   href={`/tournaments/${tournament.id}/squads`}
-                  className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition font-medium"
+                  className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
                 >
                   Manage Squads
                 </Link>
@@ -175,13 +178,21 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                 <>
                   <Link
                     href={`/tournaments/${tournament.id}/schedule`}
-                    className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium"
+                    className="bg-indigo-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
                   >
                     Manage Schedule
                   </Link>
+                  {tournament.enableShootOffs && (
+                    <Link
+                      href={`/tournaments/${tournament.id}/shoot-offs`}
+                      className="bg-orange-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
+                    >
+                      🎯 Shoot-Offs
+                    </Link>
+                  )}
                   <Link
                     href={`/tournaments/${tournament.id}/edit`}
-                    className="bg-gray-100 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition font-medium"
+                    className="bg-gray-100 text-gray-700 px-4 sm:px-6 py-2 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
                   >
                     Edit Tournament
                   </Link>
@@ -247,8 +258,17 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                   className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <div className="font-semibold text-gray-900">
-                      {registration.shooter.user.name}
+                    <div className="flex items-center gap-2">
+                      {registration.shooter.team && (
+                        <TeamLogo 
+                          logoUrl={registration.shooter.team.logoUrl}
+                          teamName={registration.shooter.team.name}
+                          size="sm"
+                        />
+                      )}
+                      <div className="font-semibold text-gray-900">
+                        {registration.shooter.user.name}
+                      </div>
                     </div>
                     {/* Remove button for coaches/admins */}
                     {isCoach && (

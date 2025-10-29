@@ -252,6 +252,16 @@
   - Division system (Novice, Intermediate, JV, Senior, College)
   - View shooter details on team roster
 
+### Admin Features
+- [x] **Admin Dashboard**:
+  - Overview statistics (tournaments, shooters, teams, coaches)
+  - Quick actions for common tasks
+  - Tournament management table with inline actions
+  - Recent registrations monitoring
+  - Recent scores tracking
+  - Responsive card-based layout
+  - Fast server-side rendering
+
 ### Developer Experience
 - [x] TypeScript for type safety
 - [x] ESLint configuration
@@ -265,11 +275,11 @@
 
 ## 📊 Statistics
 
-- **Total Pages**: 12+ (Home, Login, Signup, Tournament List, Tournament Detail, **Tournament Edit**, Tournament Create, Score Entry, **Shooter Edit**, Teams, My Team, **Shooter History**)
+- **Total Pages**: 13+ (Home, Login, Signup, Tournament List, Tournament Detail, **Tournament Edit**, Tournament Create, Score Entry, **Shooter Edit**, Teams, My Team, **Shooter History**, **Admin Dashboard**)
 - **API Endpoints**: 17
 - **Database Models**: 10 (User, Shooter, Team, Tournament, Registration, **Discipline, TournamentDiscipline, RegistrationDiscipline, Shoot**, Score)
 - **Components**: 13+ (Navbar, Footer, RegisterButton, **RemoveRegistrationButton**, **DisciplineLeaderboard**, ScoreEntryForm, **CreateTournamentForm**, **EditTournamentForm**, **EditShooterForm**, CreateTeamForm, TeamCard, **CoachRegistration**, CoachTeamManager)
-- **Features**: 85+
+- **Features**: 90+
 
 ## 🎯 Key Workflows
 

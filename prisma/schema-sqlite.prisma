@@ -1,0 +1,378 @@
+// SQLite schema for local development
+// This is your Prisma schema file for LOCAL DEVELOPMENT ONLY
+// Uses SQLite for fast local development without needing PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("shooter") // shooter, coach, admin
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  shooter            Shooter?
+  createdTournaments Tournament[]
+  coachedTeams       TeamCoach[] // Many-to-many relationship for coaches
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  logoUrl   String?  // URL/path to team logo
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  coaches      TeamCoach[] // Many-to-many relationship for coaches
+  shooters     Shooter[]
+  joinRequests TeamJoinRequest[]
+}
+
+model TeamCoach {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      String   @default("coach") // coach, head_coach, assistant_coach
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([teamId, userId]) // A user can only be a coach once per team
+  @@index([teamId])
+  @@index([userId])
+}
+
+model TeamJoinRequest {
+  id        String   @id @default(cuid())
+  teamId    String
+  shooterId String
+  status    String   @default("pending") // pending, approved, rejected
+  message   String?  // Optional message from shooter
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  shooter Shooter @relation(fields: [shooterId], references: [id], onDelete: Cascade)
+  
+  @@unique([teamId, shooterId]) // One request per shooter per team
+  @@index([teamId])
+  @@index([shooterId])
+  @@index([status])
+}
+
+model Shooter {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  teamId            String?
+  birthMonth        Int?     // 1-12
+  birthYear         Int?     // e.g., 2008
+  gender            String?  // "male", "female", "other"
+  nscaClass         String?  // NSCA classification
+  ataClass          String?  // ATA classification
+  nssaClass         String?  // NSSA classification
+  grade             String?  // "6", "7", "8", "9", "10", "11", "12", "College"
+  division          String?  // Auto-calculated: Novice, Intermediate, JV, Senior, College
+  ataNumber         String?  // ATA membership number
+  nscaNumber        String?  // NSCA membership number
+  nssaNumber        String?  // NSSA membership number
+  profilePictureUrl String?  // URL/path to profile picture
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team      Team?    @relation(fields: [teamId], references: [id])
+  
+  registrations       Registration[]
+  shoots              Shoot[]
+  squadMembers        SquadMember[]
+  teamJoinRequests    TeamJoinRequest[]
+  averages            ShooterAverage[]
+  shootOffWins        ShootOff[] @relation("ShootOffWinner")
+  shootOffParticipations ShootOffParticipant[]
+}
+
+model ShooterAverage {
+  id           String   @id @default(cuid())
+  shooterId    String
+  disciplineId String
+  average      Float    // Current average score
+  isManual     Boolean  @default(false) // True if manually set, false if auto-calculated
+  lastUpdated  DateTime @default(now()) @updatedAt
+  createdAt    DateTime @default(now())
+  
+  shooter    Shooter              @relation(fields: [shooterId], references: [id], onDelete: Cascade)
+  discipline TournamentDiscipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  
+  @@unique([shooterId, disciplineId]) // One average per shooter per discipline
+  @@index([shooterId])
+  @@index([disciplineId])
+}
+
+model Tournament {
+  id          String   @id @default(cuid())
+  name        String
+  location    String
+  startDate   DateTime // Tournament start date
+  endDate     DateTime // Tournament end date
+  description String?
+  status      String   @default("upcoming") // upcoming, active, finalizing, completed
+  createdById String
+  
+  // HAA/HOA Configuration
+  enableHOA           Boolean @default(true)  // Enable High Over All award
+  enableHAA           Boolean @default(true)  // Enable High All-Around award
+  hoaSeparateGender   Boolean @default(false) // Separate male/female for HOA
+  haaCoreDisciplines  String? // JSON array of discipline IDs for HAA (e.g., ["trap", "skeet", "sporting_clays"])
+  hoaExcludesHAA      Boolean @default(true)  // If true, HOA winners can't win HAA
+  haaExcludesDivision Boolean @default(true)  // If true, HAA winners can't win 1st in their division
+  
+  // Shoot-Off Configuration
+  enableShootOffs          Boolean @default(true)  // Enable shoot-offs for this tournament
+  shootOffTriggers         String? // JSON: when to trigger shoot-offs (e.g., ["podium", "top5", "perfect"])
+  shootOffFormat           String  @default("sudden_death") // sudden_death, fixed_rounds, progressive
+  shootOffTargetsPerRound  Int     @default(2) // Number of targets per round in shoot-off
+  shootOffStartStation     String? // For discipline-specific shoot-offs (e.g., "station_4")
+  shootOffRequiresPerfect  Boolean @default(false) // Only shoot off if at least one shooter has perfect score
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  createdBy     User                      @relation(fields: [createdById], references: [id])
+  disciplines   TournamentDiscipline[]
+  registrations Registration[]
+  shoots        Shoot[]
+  timeSlots     TimeSlot[]
+  shootOffs     ShootOff[]
+}
+
+model TimeSlot {
+  id           String   @id @default(cuid())
+  tournamentId String
+  disciplineId String
+  date         DateTime // Which day of the tournament
+  startTime    String   // Format: "HH:MM" (24-hour)
+  endTime      String   // Format: "HH:MM" (24-hour)
+  squadCapacity Int     @default(5) // Number of shooters per squad
+  fieldNumber  String?  // For skeet/trap - e.g., "Field 1", "Field 2"
+  stationNumber String? // For sporting clays - e.g., "Station 1", "Station 2"
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  discipline Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  squads     Squad[]
+  
+  @@index([tournamentId, date])
+  @@index([disciplineId])
+}
+
+model Squad {
+  id         String   @id @default(cuid())
+  timeSlotId String
+  name       String   // e.g., "Squad A", "Squad 1"
+  capacity   Int      @default(5)
+  teamOnly   Boolean  @default(false) // If true, only shooters from the same team can join
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  timeSlot TimeSlot      @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+  members  SquadMember[]
+  
+  @@index([timeSlotId])
+}
+
+model SquadMember {
+  id         String   @id @default(cuid())
+  squadId    String
+  shooterId  String
+  position   Int?     // Optional position in squad (1-5 typically)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  squad   Squad   @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  shooter Shooter @relation(fields: [shooterId], references: [id], onDelete: Cascade)
+  
+  @@unique([squadId, shooterId]) // A shooter can only be in a squad once
+  @@index([squadId])
+  @@index([shooterId])
+}
+
+model Discipline {
+  id          String   @id @default(cuid())
+  name        String   @unique // sporting_clays, five_stand, skeet, trap
+  displayName String   // Sporting Clays, 5-Stand, Skeet, Trap
+  description String?
+  
+  tournaments TournamentDiscipline[]
+  registrations RegistrationDiscipline[]
+  shoots      Shoot[]
+  timeSlots   TimeSlot[]
+  shootOffs   ShootOff[]
+}
+
+model TournamentDiscipline {
+  id           String @id @default(cuid())
+  tournamentId String
+  disciplineId String
+  
+  // Discipline-specific configuration
+  rounds       Int?   // For Trap/Skeet - number of rounds (e.g., 1, 2, 3)
+  targets      Int?   // For 5-Stand/Sporting Clays - total number of targets
+  stations     Int?   // For Sporting Clays - number of stations
+  
+  tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  discipline      Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  shooterAverages ShooterAverage[]
+  
+  @@unique([tournamentId, disciplineId])
+}
+
+model Registration {
+  id           String   @id @default(cuid())
+  tournamentId String
+  shooterId    String
+  status       String   @default("registered") // registered, checked_in, withdrawn
+  createdAt    DateTime @default(now())
+  
+  tournament  Tournament                 @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  shooter     Shooter                    @relation(fields: [shooterId], references: [id], onDelete: Cascade)
+  disciplines RegistrationDiscipline[]
+  
+  @@unique([tournamentId, shooterId])
+}
+
+model RegistrationDiscipline {
+  id             String @id @default(cuid())
+  registrationId String
+  disciplineId   String
+  assignedBy     String? // userId of coach who assigned this (null if self-selected)
+  
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  discipline   Discipline   @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  
+  @@unique([registrationId, disciplineId])
+}
+
+model Shoot {
+  id           String   @id @default(cuid())
+  tournamentId String
+  shooterId    String
+  disciplineId String
+  date         DateTime @default(now())
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  shooter    Shooter    @relation(fields: [shooterId], references: [id], onDelete: Cascade)
+  discipline Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  scores     Score[]
+  
+  @@unique([tournamentId, shooterId, disciplineId])
+}
+
+model Score {
+  id           String   @id @default(cuid())
+  shootId      String
+  station      Int      // Station number
+  targets      Int      // Number of targets hit
+  totalTargets Int      @default(25) // Total targets at this station
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  shoot Shoot @relation(fields: [shootId], references: [id], onDelete: Cascade)
+  
+  @@unique([shootId, station])
+}
+
+model ShootOff {
+  id           String   @id @default(cuid())
+  tournamentId String
+  disciplineId String?  // Optional - if shoot-off is for specific discipline
+  position     Int      // What position is being decided (1=1st place, 2=2nd, etc.)
+  status       String   @default("pending") // pending, in_progress, completed, cancelled
+  format       String   // sudden_death, fixed_rounds, progressive
+  description  String?  // e.g., "1st Place Shoot-Off - Trap"
+  startedAt    DateTime?
+  completedAt  DateTime?
+  winnerId     String?  // Final winner of shoot-off
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  discipline   Discipline? @relation(fields: [disciplineId], references: [id])
+  winner       Shooter? @relation("ShootOffWinner", fields: [winnerId], references: [id])
+  participants ShootOffParticipant[]
+  rounds       ShootOffRound[]
+  
+  @@index([tournamentId])
+  @@index([status])
+}
+
+model ShootOffParticipant {
+  id          String   @id @default(cuid())
+  shootOffId  String
+  shooterId   String
+  tiedScore   Int      // Original score that caused the shoot-off
+  finalPlace  Int?     // Final placement after shoot-off (1, 2, 3, etc.)
+  eliminated  Boolean  @default(false)
+  eliminatedInRound Int? // Which round they were eliminated
+  createdAt   DateTime @default(now())
+  
+  shootOff  ShootOff @relation(fields: [shootOffId], references: [id], onDelete: Cascade)
+  shooter   Shooter  @relation(fields: [shooterId], references: [id], onDelete: Cascade)
+  scores    ShootOffScore[]
+  
+  @@unique([shootOffId, shooterId]) // Each shooter can only be in a shoot-off once
+  @@index([shootOffId])
+  @@index([shooterId])
+}
+
+model ShootOffRound {
+  id          String   @id @default(cuid())
+  shootOffId  String
+  roundNumber Int      // 1, 2, 3, etc.
+  targets     Int      // Number of targets in this round
+  station     String?  // Specific station if applicable (e.g., "Station 4")
+  difficulty  String?  // standard, challenging, extreme
+  notes       String?  // Additional notes about the round
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  
+  shootOff ShootOff @relation(fields: [shootOffId], references: [id], onDelete: Cascade)
+  scores   ShootOffScore[]
+  
+  @@unique([shootOffId, roundNumber])
+  @@index([shootOffId])
+}
+
+model ShootOffScore {
+  id            String   @id @default(cuid())
+  roundId       String
+  participantId String
+  targetsHit    Int      // Number of targets hit in this round
+  totalTargets  Int      // Total targets in this round
+  notes         String?  // Optional notes about performance
+  createdAt     DateTime @default(now())
+  
+  round       ShootOffRound        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  participant ShootOffParticipant  @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  
+  @@unique([roundId, participantId]) // One score per participant per round
+  @@index([roundId])
+  @@index([participantId])
+}
+
