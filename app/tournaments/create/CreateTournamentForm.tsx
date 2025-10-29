@@ -76,17 +76,17 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
       const config = disciplineConfigs[disciplineId]
       
       if (discipline && config) {
-        if ((discipline.name === 'trap' || discipline.name === 'skeet') && !config.rounds) {
+        if ((discipline.name === 'trap' || discipline.name === 'skeet') && (config.rounds == null || config.rounds <= 0)) {
           setError(`Please specify number of rounds for ${discipline.displayName}`)
           setLoading(false)
           return
         }
-        if (discipline.name === 'five_stand' && !config.targets) {
+        if (discipline.name === 'five_stand' && (config.targets == null || config.targets <= 0)) {
           setError(`Please specify number of targets for ${discipline.displayName}`)
           setLoading(false)
           return
         }
-        if (discipline.name === 'sporting_clays' && (!config.targets || !config.stations)) {
+        if (discipline.name === 'sporting_clays' && ((config.targets == null || config.targets <= 0) || (config.stations == null || config.stations <= 0))) {
           setError(`Please specify number of targets and stations for ${discipline.displayName}`)
           setLoading(false)
           return
