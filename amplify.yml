@@ -36,6 +36,11 @@ frontend:
         - echo "NEXTAUTH_URL=$NEXTAUTH_URL" >> .env.production
         - echo "UPSTASH_REDIS_REST_URL=$UPSTASH_REDIS_REST_URL" >> .env.production
         - echo "UPSTASH_REDIS_REST_TOKEN=$UPSTASH_REDIS_REST_TOKEN" >> .env.production
+        # S3 environment variables for team logo uploads
+        - echo "S3_ACCESS_KEY_ID=$S3_ACCESS_KEY_ID" >> .env.production
+        - echo "S3_SECRET_ACCESS_KEY=$S3_SECRET_ACCESS_KEY" >> .env.production
+        - echo "S3_BUCKET=$S3_BUCKET" >> .env.production
+        - echo "S3_REGION=$S3_REGION" >> .env.production
         - cp .env.production .next/.env.production
         - echo "=== Created .env.production for Lambda runtime ==="
         - cat .env.production
