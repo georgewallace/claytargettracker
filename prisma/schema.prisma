@@ -1,9 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// PostgreSQL schema for staging and production
+// This is your Prisma schema file for STAGING/PRODUCTION
+// Uses PostgreSQL for robust, scalable deployments
 
 generator client {
   provider = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -28,6 +28,7 @@ model User {
 model Team {
   id        String   @id @default(cuid())
   name      String
+  logoUrl   String?  // URL/path to team logo
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
@@ -71,31 +72,34 @@ model TeamJoinRequest {
 }
 
 model Shooter {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  teamId     String?
-  birthMonth Int?     // 1-12
-  birthYear  Int?     // e.g., 2008
-  gender     String?  // "male", "female", "other"
-  nscaClass  String?  // NSCA classification
-  ataClass   String?  // ATA classification
-  nssaClass  String?  // NSSA classification
-  grade      String?  // "6", "7", "8", "9", "10", "11", "12", "College"
-  division   String?  // Auto-calculated: Novice, Intermediate, JV, Senior, College
-  ataNumber  String?  // ATA membership number
-  nscaNumber String?  // NSCA membership number
-  nssaNumber String?  // NSSA membership number
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  teamId            String?
+  birthMonth        Int?     // 1-12
+  birthYear         Int?     // e.g., 2008
+  gender            String?  // "male", "female", "other"
+  nscaClass         String?  // NSCA classification
+  ataClass          String?  // ATA classification
+  nssaClass         String?  // NSSA classification
+  grade             String?  // "6", "7", "8", "9", "10", "11", "12", "College"
+  division          String?  // Auto-calculated: Novice, Intermediate, JV, Senior, College
+  ataNumber         String?  // ATA membership number
+  nscaNumber        String?  // NSCA membership number
+  nssaNumber        String?  // NSSA membership number
+  profilePictureUrl String?  // URL/path to profile picture
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
   
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   team      Team?    @relation(fields: [teamId], references: [id])
   
-  registrations    Registration[]
-  shoots           Shoot[]
-  squadMembers     SquadMember[]
-  teamJoinRequests TeamJoinRequest[]
-  averages         ShooterAverage[]
+  registrations       Registration[]
+  shoots              Shoot[]
+  squadMembers        SquadMember[]
+  teamJoinRequests    TeamJoinRequest[]
+  averages            ShooterAverage[]
+  shootOffWins        ShootOff[] @relation("ShootOffWinner")
+  shootOffParticipations ShootOffParticipant[]
 }
 
 model ShooterAverage {
@@ -122,7 +126,7 @@ model Tournament {
   startDate   DateTime // Tournament start date
   endDate     DateTime // Tournament end date
   description String?
-  status      String   @default("upcoming") // upcoming, active, completed
+  status      String   @default("upcoming") // upcoming, active, finalizing, completed
   createdById String
   
   // HAA/HOA Configuration
@@ -133,6 +137,14 @@ model Tournament {
   hoaExcludesHAA      Boolean @default(true)  // If true, HOA winners can't win HAA
   haaExcludesDivision Boolean @default(true)  // If true, HAA winners can't win 1st in their division
   
+  // Shoot-Off Configuration
+  enableShootOffs          Boolean @default(true)  // Enable shoot-offs for this tournament
+  shootOffTriggers         String? // JSON: when to trigger shoot-offs (e.g., ["podium", "top5", "perfect"])
+  shootOffFormat           String  @default("sudden_death") // sudden_death, fixed_rounds, progressive
+  shootOffTargetsPerRound  Int     @default(2) // Number of targets per round in shoot-off
+  shootOffStartStation     String? // For discipline-specific shoot-offs (e.g., "station_4")
+  shootOffRequiresPerfect  Boolean @default(false) // Only shoot off if at least one shooter has perfect score
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -141,6 +153,7 @@ model Tournament {
   registrations Registration[]
   shoots        Shoot[]
   timeSlots     TimeSlot[]
+  shootOffs     ShootOff[]
 }
 
 model TimeSlot {
@@ -207,6 +220,7 @@ model Discipline {
   registrations RegistrationDiscipline[]
   shoots      Shoot[]
   timeSlots   TimeSlot[]
+  shootOffs   ShootOff[]
 }
 
 model TournamentDiscipline {
@@ -283,3 +297,82 @@ model Score {
   
   @@unique([shootId, station])
 }
+
+model ShootOff {
+  id           String   @id @default(cuid())
+  tournamentId String
+  disciplineId String?  // Optional - if shoot-off is for specific discipline
+  position     Int      // What position is being decided (1=1st place, 2=2nd, etc.)
+  status       String   @default("pending") // pending, in_progress, completed, cancelled
+  format       String   // sudden_death, fixed_rounds, progressive
+  description  String?  // e.g., "1st Place Shoot-Off - Trap"
+  startedAt    DateTime?
+  completedAt  DateTime?
+  winnerId     String?  // Final winner of shoot-off
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  discipline   Discipline? @relation(fields: [disciplineId], references: [id])
+  winner       Shooter? @relation("ShootOffWinner", fields: [winnerId], references: [id])
+  participants ShootOffParticipant[]
+  rounds       ShootOffRound[]
+  
+  @@index([tournamentId])
+  @@index([status])
+}
+
+model ShootOffParticipant {
+  id          String   @id @default(cuid())
+  shootOffId  String
+  shooterId   String
+  tiedScore   Int      // Original score that caused the shoot-off
+  finalPlace  Int?     // Final placement after shoot-off (1, 2, 3, etc.)
+  eliminated  Boolean  @default(false)
+  eliminatedInRound Int? // Which round they were eliminated
+  createdAt   DateTime @default(now())
+  
+  shootOff  ShootOff @relation(fields: [shootOffId], references: [id], onDelete: Cascade)
+  shooter   Shooter  @relation(fields: [shooterId], references: [id], onDelete: Cascade)
+  scores    ShootOffScore[]
+  
+  @@unique([shootOffId, shooterId]) // Each shooter can only be in a shoot-off once
+  @@index([shootOffId])
+  @@index([shooterId])
+}
+
+model ShootOffRound {
+  id          String   @id @default(cuid())
+  shootOffId  String
+  roundNumber Int      // 1, 2, 3, etc.
+  targets     Int      // Number of targets in this round
+  station     String?  // Specific station if applicable (e.g., "Station 4")
+  difficulty  String?  // standard, challenging, extreme
+  notes       String?  // Additional notes about the round
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  
+  shootOff ShootOff @relation(fields: [shootOffId], references: [id], onDelete: Cascade)
+  scores   ShootOffScore[]
+  
+  @@unique([shootOffId, roundNumber])
+  @@index([shootOffId])
+}
+
+model ShootOffScore {
+  id            String   @id @default(cuid())
+  roundId       String
+  participantId String
+  targetsHit    Int      // Number of targets hit in this round
+  totalTargets  Int      // Total targets in this round
+  notes         String?  // Optional notes about performance
+  createdAt     DateTime @default(now())
+  
+  round       ShootOffRound        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  participant ShootOffParticipant  @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  
+  @@unique([roundId, participantId]) // One score per participant per round
+  @@index([roundId])
+  @@index([participantId])
+}
+

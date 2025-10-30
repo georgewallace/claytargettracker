@@ -14,7 +14,23 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id } = await params
-    const { name, location, startDate, endDate, description, status, disciplineConfigurations, disciplineIds } = await request.json()
+    const { 
+      name, 
+      location, 
+      startDate, 
+      endDate, 
+      description, 
+      status, 
+      disciplineConfigurations, 
+      disciplineIds,
+      // Shoot-off configuration
+      enableShootOffs,
+      shootOffTriggers,
+      shootOffFormat,
+      shootOffTargetsPerRound,
+      shootOffStartStation,
+      shootOffRequiresPerfect
+    } = await request.json()
     
     // Support both old (disciplineIds) and new (disciplineConfigurations) format
     const disciplineData = disciplineConfigurations || (disciplineIds ? disciplineIds.map((id: string) => ({ disciplineId: id })) : [])
@@ -122,12 +138,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         endDate: parseDate(endDate),
         description,
         status: status || 'upcoming',
+        // Shoot-off configuration
+        ...(enableShootOffs !== undefined && { enableShootOffs }),
+        ...(shootOffTriggers !== undefined && { shootOffTriggers }),
+        ...(shootOffFormat !== undefined && { shootOffFormat }),
+        ...(shootOffTargetsPerRound !== undefined && { shootOffTargetsPerRound }),
+        ...(shootOffStartStation !== undefined && { shootOffStartStation }),
+        ...(shootOffRequiresPerfect !== undefined && { shootOffRequiresPerfect }),
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,
-            rounds: config.rounds || null,
-            targets: config.targets || null,
-            stations: config.stations || null
+            rounds: config.rounds ?? null,
+            targets: config.targets ?? null,
+            stations: config.stations ?? null
           }))
         }
       },

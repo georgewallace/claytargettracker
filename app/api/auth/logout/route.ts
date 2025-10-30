@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { destroySession } from '@/lib/session'
+import { signOut } from '@/auth'
 
 
 export async function POST(request: NextRequest) {
   try {
-    await destroySession()
+    await signOut({ redirect: false })
     
     return NextResponse.json(
       { message: 'Logout successful' },

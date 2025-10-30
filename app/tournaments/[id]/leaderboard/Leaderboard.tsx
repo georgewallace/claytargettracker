@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ShootOffResults from '@/components/ShootOffResults'
 
 interface Tournament {
   id: string
   name: string
   status: string
+  createdById: string
   disciplines: any[]
   shoots: any[]
   timeSlots: any[]
+  shootOffs: any[]
   // HAA/HOA Configuration
   enableHOA: boolean
   enableHAA: boolean
@@ -17,12 +20,20 @@ interface Tournament {
   haaCoreDisciplines: string | null
   hoaExcludesHAA: boolean
   haaExcludesDivision: boolean
+  // Shoot-Off Configuration
+  enableShootOffs: boolean
+  shootOffTriggers: string | null
+  shootOffFormat: string
+  shootOffTargetsPerRound: number
+  shootOffStartStation: string | null
+  shootOffRequiresPerfect: boolean
 }
 
 interface ShooterScore {
   shooterId: string
   shooterName: string
   teamName: string | null
+  teamLogoUrl: string | null
   division: string | null
   gender: string | null
   disciplineScores: Record<string, number>
@@ -35,6 +46,7 @@ interface SquadScore {
   squadId: string
   squadName: string
   teamName: string | null
+  teamLogoUrl: string | null
   totalScore: number
   memberCount: number
   members: string[]
@@ -44,9 +56,10 @@ interface SquadScore {
 
 interface LeaderboardProps {
   tournament: Tournament
+  isAdmin?: boolean
 }
 
-export default function Leaderboard({ tournament }: LeaderboardProps) {
+export default function Leaderboard({ tournament, isAdmin = false }: LeaderboardProps) {
   const router = useRouter()
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [expandedShooter, setExpandedShooter] = useState<string | null>(null)
@@ -99,6 +112,7 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
         shooterId: shoot.shooterId,
         shooterName: shoot.shooter.user.name,
         teamName: shoot.shooter.team?.name || null,
+        teamLogoUrl: shoot.shooter.team?.logoUrl || null,
         division: shoot.shooter.division || null,
         gender: shoot.shooter.gender || null,
         disciplineScores: {},
@@ -144,6 +158,7 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
         squadId: squad.id,
         squadName: squad.name,
         teamName: squad.members[0]?.shooter.team?.name || null,
+        teamLogoUrl: squad.members[0]?.shooter.team?.logoUrl || null,
         totalScore: squadTotal,
         memberCount: squad.members.length,
         members: squad.members.map((m: any) => m.shooter.user.name),
@@ -259,6 +274,7 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
     ...haaMaleShooters.map(s => s.shooterId),
     ...haaFemaleShooters.map(s => s.shooterId)
   ])
+
 
   // Get medal emoji
   const getMedal = (index: number) => {
@@ -408,6 +424,15 @@ export default function Leaderboard({ tournament }: LeaderboardProps) {
           </button>
         </div>
       </div>
+
+      {/* Shoot-Off Results - Show completed shoot-offs */}
+      {tournament.shootOffs && tournament.shootOffs.length > 0 && (
+        <ShootOffResults
+          shootOffs={tournament.shootOffs}
+          tournamentId={tournament.id}
+          isAdmin={isAdmin}
+        />
+      )}
 
       {/* Podium View */}
       {activeView === 'podium' && (

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import Leaderboard from './Leaderboard'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
+import { getCurrentUser } from '@/lib/auth'
 
 // Force dynamic rendering (real-time leaderboard data)
 export const dynamic = 'force-dynamic'
@@ -71,6 +72,24 @@ export default async function LeaderboardPage({ params }: PageProps) {
             }
           }
         }
+      },
+      shootOffs: {
+        include: {
+          participants: {
+            include: {
+              shooter: {
+                include: {
+                  user: true
+                }
+              }
+            }
+          },
+          winner: {
+            include: {
+              user: true
+            }
+          }
+        }
       }
     }
   })
@@ -78,6 +97,9 @@ export default async function LeaderboardPage({ params }: PageProps) {
   if (!tournament) {
     notFound()
   }
+
+  // Get current user for admin check
+  const user = await getCurrentUser()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 py-8">
@@ -96,7 +118,10 @@ export default async function LeaderboardPage({ params }: PageProps) {
           <p className="text-2xl text-indigo-200">{tournament.name}</p>
         </div>
 
-        <Leaderboard tournament={tournament} />
+        <Leaderboard 
+          tournament={tournament} 
+          isAdmin={user?.role === 'admin' || tournament.createdById === user?.id}
+        />
       </div>
     </div>
   )

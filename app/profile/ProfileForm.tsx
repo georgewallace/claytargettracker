@@ -100,7 +100,7 @@ export default function ProfileForm({ shooter }: ProfileFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Profile Information</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Shooter Profile Information</h2>
       
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">

@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DemoModeNotice from "@/components/DemoModeNotice";
+import SessionProvider from "@/components/SessionProvider";
 import { getCurrentUser } from "@/lib/auth";
 
 const geistSans = Geist({
@@ -34,12 +35,14 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
         suppressHydrationWarning
       >
-        <Navbar user={user} />
-        <main className="flex-1">
-          {children}
-        </main>
-        <Footer />
-        <DemoModeNotice />
+        <SessionProvider>
+          <Navbar user={user} />
+          <main className="flex-1">
+            {children}
+          </main>
+          <Footer />
+          <DemoModeNotice />
+        </SessionProvider>
       </body>
     </html>
   );

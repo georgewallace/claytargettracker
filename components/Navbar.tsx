@@ -130,33 +130,45 @@ export default function Navbar({ user }: NavbarProps) {
                         </>
                       )}
                       {user.role === 'admin' && (
-                        <Link
-                          href="/admin/coaches"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
-                        >
-                          Manage Coaches
-                        </Link>
+                        <>
+                          <Link
+                            href="/admin"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                          >
+                            Admin Dashboard
+                          </Link>
+                          <Link
+                            href="/admin/coaches"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                          >
+                            Manage Coaches
+                          </Link>
+                        </>
                       )}
                     </div>
                   </div>
                 )}
               </div>
             )}
-
-            {/* My Profile Link */}
-            {user && user.role === 'shooter' && (
-              <Link
-                href="/profile"
-                className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
-              >
-                My Profile
-              </Link>
-            )}
           </div>
 
           <div className="flex items-center space-x-4">
             {user ? (
               <>
+                <div className="hidden md:flex items-center space-x-2">
+                  <Link
+                    href="/profile"
+                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
+                  >
+                    Profile
+                  </Link>
+                  <Link
+                    href="/help"
+                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
+                  >
+                    Help
+                  </Link>
+                </div>
                 <div className="text-sm text-gray-700 hidden md:block">
                   <span>Welcome, {user.name}</span>
                   {(user.role === 'coach' || user.role === 'admin') && (
@@ -270,27 +282,41 @@ export default function Navbar({ user }: NavbarProps) {
                   </>
                 )}
                 {user.role === 'admin' && (
-                  <Link
-                    href="/admin/coaches"
-                    className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
-                  >
-                    Manage Coaches
-                  </Link>
+                  <>
+                    <Link
+                      href="/admin"
+                      className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                    >
+                      Admin Dashboard
+                    </Link>
+                    <Link
+                      href="/admin/coaches"
+                      className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                    >
+                      Manage Coaches
+                    </Link>
+                  </>
                 )}
               </>
             )}
 
-            {/* My Profile */}
-            {user && user.role === 'shooter' && (
+            {/* User Menu Section */}
+            {user && (
               <>
                 <div className="px-3 py-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Profile
+                  Account
                 </div>
                 <Link
                   href="/profile"
                   className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
                 >
-                  My Profile
+                  Profile
+                </Link>
+                <Link
+                  href="/help"
+                  className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                >
+                  Help
                 </Link>
               </>
             )}

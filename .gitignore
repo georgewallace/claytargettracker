@@ -45,4 +45,10 @@ next-env.d.ts
 # database
 *.db
 *.db-journal
-prisma/migrations
+# prisma/migrations - MUST be tracked for staging/production deployments
+
+# uploads
+/public/uploads
+
+# private planning documents
+PRODUCTIZATION_ROADMAP.md

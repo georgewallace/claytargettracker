@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ShootOffSettings, { ShootOffConfig } from '@/components/ShootOffSettings'
 
 interface Discipline {
   id: string
@@ -18,6 +19,13 @@ interface Tournament {
   endDate: Date
   description: string | null
   status: string
+  // Shoot-off configuration
+  enableShootOffs: boolean
+  shootOffTriggers: string | null
+  shootOffFormat: string
+  shootOffTargetsPerRound: number
+  shootOffStartStation: string | null
+  shootOffRequiresPerfect: boolean
   disciplines: Array<{
     id: string
     disciplineId: string
@@ -67,10 +75,28 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
     // Initialize with existing values from tournament
     const configs: Record<string, DisciplineConfig> = {}
     tournament.disciplines.forEach(td => {
-      configs[td.disciplineId] = {
-        rounds: td.rounds || undefined,
-        targets: td.targets || undefined,
-        stations: td.stations || undefined
+      const disciplineInfo = allDisciplines.find(d => d.id === td.disciplineId)
+      // Use discipline-specific defaults if values are null
+      if (disciplineInfo?.name === 'trap' || disciplineInfo?.name === 'skeet') {
+        configs[td.disciplineId] = {
+          rounds: td.rounds ?? 1
+        }
+      } else if (disciplineInfo?.name === 'five_stand') {
+        configs[td.disciplineId] = {
+          targets: td.targets ?? 25
+        }
+      } else if (disciplineInfo?.name === 'sporting_clays') {
+        configs[td.disciplineId] = {
+          stations: td.stations ?? 10,
+          targets: td.targets ?? 100
+        }
+      } else {
+        // Fallback for unknown disciplines
+        configs[td.disciplineId] = {
+          rounds: td.rounds ?? undefined,
+          targets: td.targets ?? undefined,
+          stations: td.stations ?? undefined
+        }
       }
     })
     // Add defaults for new disciplines
@@ -86,6 +112,15 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
       }
     })
     return configs
+  })
+
+  const [shootOffConfig, setShootOffConfig] = useState<ShootOffConfig>({
+    enableShootOffs: tournament.enableShootOffs,
+    shootOffTriggers: tournament.shootOffTriggers ? JSON.parse(tournament.shootOffTriggers) : ['1st', '2nd', '3rd'],
+    shootOffFormat: tournament.shootOffFormat as ShootOffConfig['shootOffFormat'],
+    shootOffTargetsPerRound: tournament.shootOffTargetsPerRound,
+    shootOffStartStation: tournament.shootOffStartStation || '',
+    shootOffRequiresPerfect: tournament.shootOffRequiresPerfect
   })
   
   const [error, setError] = useState('')
@@ -108,17 +143,17 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
       const config = disciplineConfigs[disciplineId]
       
       if (discipline && config) {
-        if ((discipline.name === 'trap' || discipline.name === 'skeet') && !config.rounds) {
+        if ((discipline.name === 'trap' || discipline.name === 'skeet') && (config.rounds == null || config.rounds <= 0)) {
           setError(`Please specify number of rounds for ${discipline.displayName}`)
           setLoading(false)
           return
         }
-        if (discipline.name === 'five_stand' && !config.targets) {
+        if (discipline.name === 'five_stand' && (config.targets == null || config.targets <= 0)) {
           setError(`Please specify number of targets for ${discipline.displayName}`)
           setLoading(false)
           return
         }
-        if (discipline.name === 'sporting_clays' && (!config.targets || !config.stations)) {
+        if (discipline.name === 'sporting_clays' && ((config.targets == null || config.targets <= 0) || (config.stations == null || config.stations <= 0))) {
           setError(`Please specify number of targets and stations for ${discipline.displayName}`)
           setLoading(false)
           return
@@ -138,7 +173,14 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          disciplineConfigurations
+          disciplineConfigurations,
+          // Shoot-off configuration
+          enableShootOffs: shootOffConfig.enableShootOffs,
+          shootOffTriggers: JSON.stringify(shootOffConfig.shootOffTriggers),
+          shootOffFormat: shootOffConfig.shootOffFormat,
+          shootOffTargetsPerRound: shootOffConfig.shootOffTargetsPerRound,
+          shootOffStartStation: shootOffConfig.shootOffStartStation || null,
+          shootOffRequiresPerfect: shootOffConfig.shootOffRequiresPerfect
         })
       })
 
@@ -297,6 +339,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
         >
           <option value="upcoming">Upcoming</option>
           <option value="active">Active</option>
+          <option value="finalizing">Finalizing (for Shoot-Offs)</option>
           <option value="completed">Completed</option>
         </select>
       </div>
@@ -524,6 +567,12 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           placeholder="Add tournament details, rules, and any other information..."
         />
       </div>
+
+      {/* Shoot-Off Configuration */}
+      <ShootOffSettings
+        config={shootOffConfig}
+        onChange={setShootOffConfig}
+      />
 
       <div className="flex gap-4">
         <button

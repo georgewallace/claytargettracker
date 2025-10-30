@@ -6,7 +6,23 @@ import { requireAuth } from '@/lib/auth'
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
-    const { name, location, startDate, endDate, description, status, disciplineConfigurations, disciplineIds } = await request.json()
+    const { 
+      name, 
+      location, 
+      startDate, 
+      endDate, 
+      description, 
+      status, 
+      disciplineConfigurations, 
+      disciplineIds,
+      // Shoot-off configuration
+      enableShootOffs,
+      shootOffTriggers,
+      shootOffFormat,
+      shootOffTargetsPerRound,
+      shootOffStartStation,
+      shootOffRequiresPerfect
+    } = await request.json()
     
     // Validate input
     if (!name || !location || !startDate || !endDate) {
@@ -53,6 +69,13 @@ export async function POST(request: NextRequest) {
         description,
         status: status || 'upcoming',
         createdById: user.id,
+        // Shoot-off configuration
+        enableShootOffs: enableShootOffs !== undefined ? enableShootOffs : true,
+        shootOffTriggers: shootOffTriggers || null,
+        shootOffFormat: shootOffFormat || 'sudden_death',
+        shootOffTargetsPerRound: shootOffTargetsPerRound !== undefined ? shootOffTargetsPerRound : 2,
+        shootOffStartStation: shootOffStartStation || null,
+        shootOffRequiresPerfect: shootOffRequiresPerfect !== undefined ? shootOffRequiresPerfect : false,
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,

@@ -47,6 +47,14 @@ Login with: `admin@demo.com` / `demo` (or `coach@demo.com` or `shooter@demo.com`
 - Select all/clear functionality for quick registration
 - Real-time registration status
 
+### 📖 Help System
+- Comprehensive in-app help documentation
+- Searchable help topics
+- Role-based guidance (Shooter, Coach, Admin)
+- Step-by-step tutorials
+- Troubleshooting guides
+- Mobile-friendly help interface
+
 ### 📱 Modern UI/UX
 - Responsive design for all devices
 - Clean, intuitive interface
@@ -58,7 +66,7 @@ Login with: `admin@demo.com` / `demo` (or `coach@demo.com` or `shooter@demo.com`
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **Database**: SQLite (via Prisma ORM)
+- **Database**: SQLite (local) + PostgreSQL (staging/production) via Prisma ORM
 - **Authentication**: Custom session-based auth with bcrypt
 - **Date Handling**: date-fns
 - **Form Handling**: React Hook Form with Zod validation
@@ -83,24 +91,35 @@ cd claytargettracker
 npm install
 ```
 
-3. Set up the database:
+3. Set up environment variables:
 ```bash
-# The database is already initialized with migrations
-# To reset or recreate the database:
-DATABASE_URL="file:./dev.db" npx prisma migrate reset
+# Create .env.local file
+cp .env .env.local
+
+# .env.local should contain:
+# DATABASE_URL="file:./prisma/dev.db"
+# STAGING_DATABASE_URL="postgresql://..." (if deploying)
 ```
 
-4. Generate Prisma Client:
+4. Set up the database:
 ```bash
-DATABASE_URL="file:./dev.db" npx prisma generate
+# Initialize local SQLite database
+npm run db:push
 ```
 
 5. Run the development server:
 ```bash
-DATABASE_URL="file:./dev.db" npm run dev
+npm run dev
 ```
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### First-Time Setup
+
+Create an admin account to get started:
+1. Sign up at `/signup`
+2. Your first account is automatically granted admin role
+3. Create teams, tournaments, and manage shooters
 
 ## Database Schema
 
@@ -203,17 +222,48 @@ NEXTAUTH_URL="http://localhost:3000"
 
 ## Development
 
-### Running Migrations
+### Database Workflow
+
+This project uses a **dual-database approach**:
+- **SQLite** for local development (fast, no setup)
+- **PostgreSQL** for staging and production (robust, scalable)
+
+#### Local Development
 
 ```bash
-DATABASE_URL="file:./dev.db" npx prisma migrate dev
+# Push schema changes to local SQLite
+npm run db:push
+
+# Open Prisma Studio (database GUI)
+npm run db:studio
+
+# Start dev server
+npm run dev
 ```
 
-### Prisma Studio (Database GUI)
+#### Deploying to Staging
+
+**⚠️ IMPORTANT:** When deploying schema changes to staging:
 
 ```bash
-DATABASE_URL="file:./dev.db" npx prisma studio
+# 1. Create migration files
+npm run db:create:migration your_feature_name
+
+# 2. Apply to staging database
+npm run db:migrate:staging
+
+# 3. Commit migration files
+git add prisma/migrations/
+git commit -m "Add database migration: your_feature_name"
+
+# 4. Deploy to staging
+git push origin staging
 ```
+
+**📚 Full Documentation:**
+- **Complete guide:** [DATABASE_WORKFLOW.md](./DATABASE_WORKFLOW.md)
+- **Migration rules:** [database_migration.md](./database_migration.md)
+- **Deployment checklist:** [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)
 
 ### Build for Production
 
@@ -221,12 +271,39 @@ DATABASE_URL="file:./dev.db" npx prisma studio
 npm run build
 ```
 
+## Help & Documentation
+
+### Accessing Help
+
+- **In-App Help**: Click "Help" in the navigation bar
+- **Comprehensive Guide**: See [HELP.md](./HELP.md)
+- **Help System Documentation**: See [HELP_SYSTEM_README.md](./HELP_SYSTEM_README.md)
+
+### Updating Documentation
+
+To sync documentation from source files:
+
+```bash
+npm run help:sync
+```
+
+This consolidates all user-facing markdown files into `HELP.md`.
+
+### Documentation Files
+
+- **User Guides**: `HELP.md`, `QUICKSTART.md`, `FEATURES.md`
+- **Feature Guides**: `DISCIPLINES_GUIDE.md`, `SQUAD_MANAGEMENT_GUIDE.md`, `SCHEDULE_MANAGEMENT_GUIDE.md`
+- **Role-Specific**: `COACH_TEAM_MANAGEMENT.md`, `SCORE_ENTRY.md`, `TOURNAMENT_EDITING.md`
+- **Technical**: `HELP_SYSTEM_README.md`, deployment guides
+
 ## Future Enhancements
 
-- [ ] Admin dashboard for tournament management
+- [ ] Video tutorials in help system
+- [ ] Interactive onboarding wizard
+- [x] Admin dashboard for tournament management ✅
 - [ ] Email notifications for tournament updates
 - [ ] Export results to PDF/CSV
-- [ ] Photo uploads for shooters and teams
+- [x] Photo uploads for shooters and teams ✅
 - [ ] Advanced statistics and analytics
 - [ ] Mobile app
 - [ ] Payment integration for entry fees

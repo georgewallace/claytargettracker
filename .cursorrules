@@ -1,0 +1,62 @@
+# Cursor AI Workspace Rules
+
+## Database Migration Rules
+
+**CRITICAL: Always follow these rules when making database schema changes or deploying to staging.**
+
+### Before Deploying to Staging
+
+1. **Create Migration Files**
+   - If you've modified `prisma/schema-sqlite.prisma` or `prisma/schema-postgres.prisma`, you MUST create a migration
+   - Run: `npm run db:create:migration descriptive_name`
+   - Verify the migration was created in `prisma/migrations/`
+
+2. **Apply Migration to Staging**
+   - Run: `npm run db:migrate:staging`
+   - Verify output shows "All migrations have been successfully applied"
+   - Check for any error messages about drift or conflicts
+
+3. **Commit Migration Files**
+   - Always commit migration files: `git add prisma/migrations/`
+   - Include in commit message: "Add database migration: descriptive_name"
+
+4. **Keep Schemas in Sync**
+   - When editing Prisma schemas, edit BOTH:
+     - `prisma/schema-sqlite.prisma` (local development)
+     - `prisma/schema-postgres.prisma` (staging/production)
+   - Do NOT edit `prisma/schema.prisma` directly (auto-managed by scripts)
+
+### Local Development Workflow
+
+- Use `npm run db:push` for local development (SQLite)
+- This does NOT create migration files (by design)
+- Test all changes locally before creating migrations
+
+### Database Scripts
+
+- `npm run db:push` - Push to local SQLite (no migrations)
+- `npm run db:create:migration <name>` - Create PostgreSQL migration
+- `npm run db:migrate:staging` - Apply migrations to staging
+- `npm run db:studio` - Open Prisma Studio
+
+### Documentation
+
+For complete details, see:
+- `database_migration.md` - Full migration guide
+- `DATABASE_WORKFLOW.md` - Detailed workflow documentation
+
+### Error Handling
+
+If you encounter "Unknown argument" errors:
+1. The Prisma client is out of sync
+2. Run: `npm run db:create:migration your_change_name`
+3. Run: `npm run db:migrate:staging`
+
+If you encounter migration drift:
+1. Run: `bash scripts/db-resolve-staging.sh`
+2. Then create your new migration
+
+---
+
+**Remember:** Schema changes without migrations will cause staging deployment failures!
+
