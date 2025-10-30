@@ -6,6 +6,9 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
 
+// Check if running in serverless environment (AWS Amplify, Vercel, etc.)
+const isServerless = process.env.AWS_EXECUTION_ENV || process.env.VERCEL || process.env.NODE_ENV === 'production'
+
 interface RouteParams {
   params: Promise<{
     id: string
@@ -86,31 +89,38 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'teams')
-    console.log('[Team Logo Upload] Uploads directory:', uploadsDir)
-    
-    if (!existsSync(uploadsDir)) {
-      console.log('[Team Logo Upload] Creating uploads directory...')
-      await mkdir(uploadsDir, { recursive: true })
-    }
-
-    // Generate unique filename
-    const fileExtension = file.name.split('.').pop()
-    const fileName = `${id}-${Date.now()}.${fileExtension}`
-    const filePath = join(uploadsDir, fileName)
-    
-    console.log('[Team Logo Upload] Saving file to:', filePath)
-    
-    // Convert file to buffer and save
+    // Convert file to buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
     
-    console.log('[Team Logo Upload] File saved successfully')
-    
-    // Update team with logo URL
-    const logoUrl = `/uploads/teams/${fileName}`
+    let logoUrl: string
+
+    if (isServerless) {
+      // For serverless environments (AWS Amplify): store as base64 data URL
+      console.log('[Team Logo Upload] Using base64 data URL for serverless environment')
+      const base64 = buffer.toString('base64')
+      logoUrl = `data:${file.type};base64,${base64}`
+      console.log('[Team Logo Upload] Base64 encoding complete')
+    } else {
+      // For local development: save to filesystem
+      const uploadsDir = join(process.cwd(), 'public', 'uploads', 'teams')
+      console.log('[Team Logo Upload] Uploads directory:', uploadsDir)
+      
+      if (!existsSync(uploadsDir)) {
+        console.log('[Team Logo Upload] Creating uploads directory...')
+        await mkdir(uploadsDir, { recursive: true })
+      }
+
+      const fileExtension = file.name.split('.').pop()
+      const fileName = `${id}-${Date.now()}.${fileExtension}`
+      const filePath = join(uploadsDir, fileName)
+      
+      console.log('[Team Logo Upload] Saving file to:', filePath)
+      await writeFile(filePath, buffer)
+      console.log('[Team Logo Upload] File saved successfully')
+      
+      logoUrl = `/uploads/teams/${fileName}`
+    }
     const updatedTeam = await prisma.team.update({
       where: { id },
       data: {
