@@ -1,25 +1,46 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
-// Check if S3 is configured
-// Note: AWS Amplify doesn't allow env vars starting with "AWS_"
-// so we use S3_ prefix instead
-const isS3Configured = !!(
-  process.env.S3_ACCESS_KEY_ID &&
-  process.env.S3_SECRET_ACCESS_KEY &&
-  process.env.S3_BUCKET &&
-  process.env.S3_REGION
-)
+// Lazy-initialized S3 client (created on first use)
+// This ensures environment variables are loaded before checking them
+let s3Client: S3Client | null = null
+let s3Initialized = false
 
-// Initialize S3 client only if configured
-const s3Client = isS3Configured
-  ? new S3Client({
+/**
+ * Get or create S3 client
+ * Lazy initialization ensures env vars are available
+ */
+function getS3Client(): S3Client | null {
+  if (s3Initialized) {
+    return s3Client
+  }
+
+  // Check if S3 is configured (do this at runtime, not module load time)
+  // Note: AWS Amplify doesn't allow env vars starting with "AWS_"
+  // so we use S3_ prefix instead
+  const isConfigured = !!(
+    process.env.S3_ACCESS_KEY_ID &&
+    process.env.S3_SECRET_ACCESS_KEY &&
+    process.env.S3_BUCKET &&
+    process.env.S3_REGION
+  )
+
+  if (isConfigured) {
+    console.log('[S3] Initializing S3 client with region:', process.env.S3_REGION)
+    s3Client = new S3Client({
       region: process.env.S3_REGION!,
       credentials: {
         accessKeyId: process.env.S3_ACCESS_KEY_ID!,
         secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!
       }
     })
-  : null
+  } else {
+    console.log('[S3] S3 not configured - environment variables missing')
+    s3Client = null
+  }
+
+  s3Initialized = true
+  return s3Client
+}
 
 /**
  * Upload a file to S3
@@ -33,7 +54,9 @@ export async function uploadToS3(
   buffer: Buffer,
   contentType: string
 ): Promise<string> {
-  if (!s3Client) {
+  const client = getS3Client()
+  
+  if (!client) {
     throw new Error('S3 is not configured. Please set S3 environment variables.')
   }
 
@@ -49,7 +72,7 @@ export async function uploadToS3(
       // This avoids issues with "Block public ACLs" bucket settings
     })
 
-    await s3Client.send(command)
+    await client.send(command)
 
     // Return the public URL
     // Format: https://{bucket}.s3.{region}.amazonaws.com/{key}
@@ -69,8 +92,10 @@ export async function uploadToS3(
  * @param key - The S3 object key (path/filename)
  */
 export async function deleteFromS3(key: string): Promise<void> {
-  if (!s3Client) {
-    throw new Error('S3 is not configured. Please set AWS environment variables.')
+  const client = getS3Client()
+  
+  if (!client) {
+    throw new Error('S3 is not configured. Please set S3 environment variables.')
   }
 
   const command = new DeleteObjectCommand({
@@ -78,7 +103,7 @@ export async function deleteFromS3(key: string): Promise<void> {
     Key: key
   })
 
-  await s3Client.send(command)
+  await client.send(command)
 }
 
 /**
@@ -105,8 +130,10 @@ export function extractS3Key(url: string): string | null {
 
 /**
  * Check if S3 storage is available
+ * Uses lazy initialization to ensure env vars are loaded
  */
 export function isS3Available(): boolean {
-  return isS3Configured
+  const client = getS3Client()
+  return client !== null
 }
 
