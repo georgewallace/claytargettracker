@@ -1,13 +1,13 @@
-// SQLite schema for local development
-// This is your Prisma schema file for LOCAL DEVELOPMENT ONLY
-// Uses SQLite for fast local development without needing PostgreSQL
+// PostgreSQL schema for staging and production
+// This is your Prisma schema file for STAGING/PRODUCTION
+// Uses PostgreSQL for robust, scalable deployments
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
