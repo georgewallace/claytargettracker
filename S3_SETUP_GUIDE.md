@@ -139,12 +139,14 @@ AWS Amplify has a read-only filesystem (except `/tmp`), making it impossible to 
 4. **Click "Manage variables"**
 5. **Add these variables**:
 
+⚠️ **Note**: AWS Amplify doesn't allow variables starting with `AWS_`, so we use `S3_` prefix instead.
+
 | Variable | Value | Example |
 |----------|-------|---------|
-| `AWS_ACCESS_KEY_ID` | Your access key ID | `AKIAIOSFODNN7EXAMPLE` |
-| `AWS_SECRET_ACCESS_KEY` | Your secret access key | `wJalrXUt...EXAMPLEKEY` |
-| `AWS_S3_BUCKET` | Your bucket name | `claytargettracker-uploads` |
-| `AWS_REGION` | Your bucket region | `us-east-1` |
+| `S3_ACCESS_KEY_ID` | Your access key ID | `AKIAIOSFODNN7EXAMPLE` |
+| `S3_SECRET_ACCESS_KEY` | Your secret access key | `wJalrXUt...EXAMPLEKEY` |
+| `S3_BUCKET` | Your bucket name | `claytargettracker-uploads` |
+| `S3_REGION` | Your bucket region | `us-east-1` |
 
 6. **Click "Save"**
 
@@ -155,14 +157,16 @@ AWS Amplify has a read-only filesystem (except `/tmp`), making it impossible to 
 Create or update `.env.local`:
 
 ```bash
-# AWS S3 Configuration (for local testing)
-AWS_ACCESS_KEY_ID=your-access-key-id
-AWS_SECRET_ACCESS_KEY=your-secret-access-key
-AWS_S3_BUCKET=claytargettracker-uploads
-AWS_REGION=us-east-1
+# S3 Configuration (for local testing with S3)
+S3_ACCESS_KEY_ID=your-access-key-id
+S3_SECRET_ACCESS_KEY=your-secret-access-key
+S3_BUCKET=claytargettracker-uploads
+S3_REGION=us-east-1
 ```
 
 ⚠️ **Never commit `.env.local` to Git!** (already in `.gitignore`)
+
+**Note**: If these variables are NOT set locally, the app will use the local filesystem (`public/uploads/teams/`) instead, which is fine for development.
 
 ---
 
@@ -227,7 +231,7 @@ For a small to medium-sized shooting club:
 
 ### "S3 is not configured" Error
 - **Cause**: Environment variables not set
-- **Fix**: Check Step 6 - ensure all 4 variables are set in Amplify
+- **Fix**: Check Step 6 - ensure all 4 variables (`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET`, `S3_REGION`) are set in Amplify
 
 ### "Access Denied" Error
 - **Cause**: IAM policy is too restrictive
@@ -235,7 +239,7 @@ For a small to medium-sized shooting club:
 
 ### "Bucket does not exist" Error
 - **Cause**: Wrong bucket name or region
-- **Fix**: Double-check `AWS_S3_BUCKET` and `AWS_REGION` match your S3 console
+- **Fix**: Double-check `S3_BUCKET` and `S3_REGION` match your S3 console
 
 ### Logos Not Displaying
 - **Cause**: Bucket policy not configured for public read
