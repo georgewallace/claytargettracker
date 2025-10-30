@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { isUserCoachOfTeam } from '@/lib/teamHelpers'
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
-
-// Check if running in serverless environment (AWS Amplify, Vercel, etc.)
-const isServerless = process.env.AWS_EXECUTION_ENV || process.env.VERCEL || process.env.NODE_ENV === 'production'
+import { uploadToS3, deleteFromS3, extractS3Key, isS3Available } from '@/lib/s3'
 
 interface RouteParams {
   params: Promise<{
@@ -79,16 +77,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Validate file size - smaller limit for serverless (base64 encoding)
-    const maxSize = isServerless 
-      ? 500 * 1024 // 500KB for serverless (base64 adds ~33% overhead)
-      : 5 * 1024 * 1024 // 5MB for local filesystem
+    // Validate file size - 5MB for S3, same for local
+    const maxSize = 5 * 1024 * 1024 // 5MB
     
     if (file.size > maxSize) {
       console.log('[Team Logo Upload] File too large:', file.size)
-      const maxSizeMB = isServerless ? '500KB' : '5MB'
       return NextResponse.json(
-        { error: `File too large. Maximum size is ${maxSizeMB}` },
+        { error: 'File too large. Maximum size is 5MB' },
         { status: 400 }
       )
     }
@@ -99,16 +94,39 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     
     let logoUrl: string
 
-    if (isServerless) {
-      // For serverless environments (AWS Amplify): store as base64 data URL
-      console.log('[Team Logo Upload] Using base64 data URL for serverless environment')
-      const base64 = buffer.toString('base64')
-      logoUrl = `data:${file.type};base64,${base64}`
-      console.log('[Team Logo Upload] Base64 encoding complete')
+    // Delete old logo if it exists
+    if (team.logoUrl) {
+      try {
+        const s3Key = extractS3Key(team.logoUrl)
+        if (s3Key && isS3Available()) {
+          console.log('[Team Logo Upload] Deleting old S3 logo:', s3Key)
+          await deleteFromS3(s3Key)
+        } else if (team.logoUrl.startsWith('/uploads/')) {
+          // Delete from local filesystem
+          const oldFilePath = join(process.cwd(), 'public', team.logoUrl)
+          if (existsSync(oldFilePath)) {
+            console.log('[Team Logo Upload] Deleting old local logo:', oldFilePath)
+            await unlink(oldFilePath)
+          }
+        }
+      } catch (error) {
+        console.warn('[Team Logo Upload] Failed to delete old logo:', error)
+        // Continue with upload even if deletion fails
+      }
+    }
+
+    if (isS3Available()) {
+      // Use S3 for production/staging
+      console.log('[Team Logo Upload] Uploading to S3...')
+      const fileExtension = file.name.split('.').pop()
+      const s3Key = `team-logos/${id}-${Date.now()}.${fileExtension}`
+      
+      logoUrl = await uploadToS3(s3Key, buffer, file.type)
+      console.log('[Team Logo Upload] S3 upload complete:', logoUrl)
     } else {
-      // For local development: save to filesystem
+      // Use local filesystem for development
+      console.log('[Team Logo Upload] S3 not configured, using local filesystem')
       const uploadsDir = join(process.cwd(), 'public', 'uploads', 'teams')
-      console.log('[Team Logo Upload] Uploads directory:', uploadsDir)
       
       if (!existsSync(uploadsDir)) {
         console.log('[Team Logo Upload] Creating uploads directory...')
@@ -183,6 +201,27 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         { error: 'You do not have permission to delete this team logo' },
         { status: 403 }
       )
+    }
+
+    // Delete logo from S3 if applicable
+    if (team.logoUrl) {
+      try {
+        const s3Key = extractS3Key(team.logoUrl)
+        if (s3Key && isS3Available()) {
+          console.log('[Team Logo Delete] Deleting from S3:', s3Key)
+          await deleteFromS3(s3Key)
+        } else if (team.logoUrl.startsWith('/uploads/')) {
+          // Delete from local filesystem
+          const filePath = join(process.cwd(), 'public', team.logoUrl)
+          if (existsSync(filePath)) {
+            console.log('[Team Logo Delete] Deleting local file:', filePath)
+            await unlink(filePath)
+          }
+        }
+      } catch (error) {
+        console.warn('[Team Logo Delete] Failed to delete file:', error)
+        // Continue with database update even if file deletion fails
+      }
     }
 
     // Update team to remove logo
