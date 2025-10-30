@@ -79,12 +79,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+    // Validate file size - smaller limit for serverless (base64 encoding)
+    const maxSize = isServerless 
+      ? 500 * 1024 // 500KB for serverless (base64 adds ~33% overhead)
+      : 5 * 1024 * 1024 // 5MB for local filesystem
+    
     if (file.size > maxSize) {
       console.log('[Team Logo Upload] File too large:', file.size)
+      const maxSizeMB = isServerless ? '500KB' : '5MB'
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 5MB' },
+        { error: `File too large. Maximum size is ${maxSizeMB}` },
         { status: 400 }
       )
     }
