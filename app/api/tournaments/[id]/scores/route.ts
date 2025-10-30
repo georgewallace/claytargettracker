@@ -119,13 +119,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         continue // Skip invalid entries
       }
 
-      // Find or create Shoot record
+      // Find or create Shoot record (unique on tournamentId, shooterId, disciplineId)
       let shoot = await prisma.shoot.findFirst({
         where: {
           tournamentId,
           shooterId,
-          disciplineId,
-          date: new Date(date)
+          disciplineId
         }
       })
 
@@ -137,6 +136,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             disciplineId,
             date: new Date(date)
           }
+        })
+      } else {
+        // Update the date if it changed
+        shoot = await prisma.shoot.update({
+          where: { id: shoot.id },
+          data: { date: new Date(date) }
         })
       }
 
