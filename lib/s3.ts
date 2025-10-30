@@ -34,26 +34,34 @@ export async function uploadToS3(
   contentType: string
 ): Promise<string> {
   if (!s3Client) {
-    throw new Error('S3 is not configured. Please set AWS environment variables.')
+    throw new Error('S3 is not configured. Please set S3 environment variables.')
   }
 
   const bucket = process.env.S3_BUCKET!
 
-  const command = new PutObjectCommand({
-    Bucket: bucket,
-    Key: key,
-    Body: buffer,
-    ContentType: contentType,
-    // Make files publicly readable (or use signed URLs if you prefer)
-    ACL: 'public-read'
-  })
+  try {
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType
+      // NOTE: ACL removed - use bucket policy for public read access instead
+      // This avoids issues with "Block public ACLs" bucket settings
+    })
 
-  await s3Client.send(command)
+    await s3Client.send(command)
 
-  // Return the public URL
-  // Format: https://{bucket}.s3.{region}.amazonaws.com/{key}
-  const region = process.env.S3_REGION!
-  return `https://${bucket}.s3.${region}.amazonaws.com/${key}`
+    // Return the public URL
+    // Format: https://{bucket}.s3.{region}.amazonaws.com/{key}
+    const region = process.env.S3_REGION!
+    return `https://${bucket}.s3.${region}.amazonaws.com/${key}`
+  } catch (error) {
+    console.error('[S3 Upload] Error uploading to S3:', error)
+    console.error('[S3 Upload] Bucket:', bucket)
+    console.error('[S3 Upload] Key:', key)
+    console.error('[S3 Upload] Region:', process.env.S3_REGION)
+    throw error
+  }
 }
 
 /**

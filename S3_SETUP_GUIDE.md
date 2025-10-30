@@ -97,8 +97,7 @@ AWS Amplify has a read-only filesystem (except `/tmp`), making it impossible to 
       "Action": [
         "s3:PutObject",
         "s3:GetObject",
-        "s3:DeleteObject",
-        "s3:PutObjectAcl"
+        "s3:DeleteObject"
       ],
       "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
     }
@@ -234,8 +233,11 @@ For a small to medium-sized shooting club:
 - **Fix**: Check Step 6 - ensure all 4 variables (`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET`, `S3_REGION`) are set in Amplify
 
 ### "Access Denied" Error
-- **Cause**: IAM policy is too restrictive
-- **Fix**: Verify the policy in Step 4 includes `PutObject`, `GetObject`, `DeleteObject`, and `PutObjectAcl`
+- **Cause**: IAM policy is too restrictive or bucket blocks public ACLs
+- **Fix**: 
+  1. Verify the policy in Step 4 includes `PutObject`, `GetObject`, and `DeleteObject`
+  2. Ensure bucket policy (Step 2) allows public read access
+  3. Check that bucket doesn't block public access entirely
 
 ### "Bucket does not exist" Error
 - **Cause**: Wrong bucket name or region
