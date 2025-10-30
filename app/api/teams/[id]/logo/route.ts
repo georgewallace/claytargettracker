@@ -115,9 +115,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Debug: Check S3 configuration
+    console.log('[Team Logo Upload] S3 Configuration Check:')
+    console.log('  S3_ACCESS_KEY_ID:', process.env.S3_ACCESS_KEY_ID ? '✓ Set' : '✗ Missing')
+    console.log('  S3_SECRET_ACCESS_KEY:', process.env.S3_SECRET_ACCESS_KEY ? '✓ Set' : '✗ Missing')
+    console.log('  S3_BUCKET:', process.env.S3_BUCKET ? '✓ Set' : '✗ Missing')
+    console.log('  S3_REGION:', process.env.S3_REGION ? '✓ Set' : '✗ Missing')
+    console.log('  isS3Available():', isS3Available())
+
     if (isS3Available()) {
       // Use S3 for production/staging
-      console.log('[Team Logo Upload] Uploading to S3...')
+      console.log('[Team Logo Upload] ✅ Uploading to S3...')
       const fileExtension = file.name.split('.').pop()
       const s3Key = `team-logos/${id}-${Date.now()}.${fileExtension}`
       
@@ -125,7 +133,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       console.log('[Team Logo Upload] S3 upload complete:', logoUrl)
     } else {
       // Use local filesystem for development
-      console.log('[Team Logo Upload] S3 not configured, using local filesystem')
+      console.log('[Team Logo Upload] ⚠️ S3 not configured, using local filesystem (will fail on Amplify)')
       const uploadsDir = join(process.cwd(), 'public', 'uploads', 'teams')
       
       if (!existsSync(uploadsDir)) {
