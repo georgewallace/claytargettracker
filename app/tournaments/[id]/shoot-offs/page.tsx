@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import Link from 'next/link'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
+import TieAlert from '@/components/TieAlert'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -97,6 +98,119 @@ export default async function ShootOffsPage({ params }: PageProps) {
       </div>
     )
   }
+
+  // Fetch shooter scores for tie detection
+  interface ShooterScore {
+    shooterId: string
+    shooterName: string
+    teamName: string | null
+    totalScore: number
+    disciplineCount: number
+  }
+
+  const shoots = await prisma.shoot.findMany({
+    where: { tournamentId: id },
+    include: {
+      shooter: {
+        include: {
+          user: true,
+          team: true
+        }
+      },
+      scores: true
+    }
+  })
+
+  // Calculate total scores
+  const shooterScores = new Map<string, ShooterScore>()
+  shoots.forEach(shoot => {
+    const shooterId = shoot.shooter.id
+    const totalForShoot = shoot.scores.reduce((sum, score) => sum + score.targets, 0)
+    
+    if (!shooterScores.has(shooterId)) {
+      shooterScores.set(shooterId, {
+        shooterId,
+        shooterName: shoot.shooter.user.name,
+        teamName: shoot.shooter.team?.name || null,
+        totalScore: 0,
+        disciplineCount: 0
+      })
+    }
+    
+    const shooterData = shooterScores.get(shooterId)!
+    shooterData.totalScore += totalForShoot
+    shooterData.disciplineCount += 1
+  })
+
+  const allShooters = Array.from(shooterScores.values())
+
+  // Detect ties for shoot-offs
+  const detectTies = () => {
+    if (!tournament.enableShootOffs || !tournament.shootOffTriggers) {
+      return []
+    }
+
+    const triggers = JSON.parse(tournament.shootOffTriggers) as string[]
+    const ties: { position: number; shooters: ShooterScore[]; description: string }[] = []
+
+    // Sort all shooters by total score
+    const sortedShooters = [...allShooters]
+      .filter(s => s.disciplineCount > 0)
+      .sort((a, b) => b.totalScore - a.totalScore)
+
+    // Helper to check if a position trigger matches
+    const shouldCheckPosition = (pos: number): boolean => {
+      if (triggers.includes('1st') && pos === 1) return true
+      if (triggers.includes('2nd') && pos === 2) return true
+      if (triggers.includes('3rd') && pos === 3) return true
+      if (triggers.includes('top5') && pos <= 5) return true
+      if (triggers.includes('top10') && pos <= 10) return true
+      return false
+    }
+
+    // Group by score and find ties
+    const scoreGroups = new Map<number, ShooterScore[]>()
+    sortedShooters.forEach(shooter => {
+      const score = shooter.totalScore
+      if (!scoreGroups.has(score)) {
+        scoreGroups.set(score, [])
+      }
+      scoreGroups.get(score)!.push(shooter)
+    })
+
+    // Check each position for ties
+    let currentPosition = 1
+    Array.from(scoreGroups.entries())
+      .sort(([a], [b]) => b - a) // Sort by score descending
+      .forEach(([score, shooters]) => {
+        if (shooters.length > 1 && shouldCheckPosition(currentPosition)) {
+          // Check if shoot-off already exists for this tie
+          const existingShootOff = tournament.shootOffs.find(so => 
+            so.position === currentPosition && 
+            so.status !== 'cancelled' &&
+            // Check if participants match
+            so.participants.every((p: any) => shooters.some(s => s.shooterId === p.shooterId))
+          )
+
+          if (!existingShootOff) {
+            const positionName = currentPosition === 1 ? '1st Place' : 
+                                currentPosition === 2 ? '2nd Place' : 
+                                currentPosition === 3 ? '3rd Place' : 
+                                `${currentPosition}th Place`
+            ties.push({
+              position: currentPosition,
+              shooters,
+              description: `${positionName} - ${shooters.length} shooters tied at ${score} points`
+            })
+          }
+        }
+        currentPosition += shooters.length
+      })
+
+    return ties
+  }
+
+  const detectedTies = detectTies()
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -235,6 +349,15 @@ export default async function ShootOffsPage({ params }: PageProps) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Tie Alerts - Show detected ties requiring shoot-offs */}
+        {detectedTies.length > 0 && (
+          <TieAlert
+            ties={detectedTies}
+            tournamentId={tournament.id}
+            isAdmin={isAdmin}
+          />
         )}
 
         {/* Shoot-Offs List */}

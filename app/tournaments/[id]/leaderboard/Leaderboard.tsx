@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import TieAlert from '@/components/TieAlert'
 import ShootOffResults from '@/components/ShootOffResults'
 
 interface Tournament {
@@ -276,89 +275,6 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
     ...haaFemaleShooters.map(s => s.shooterId)
   ])
 
-  // Detect ties for shoot-offs
-  const detectTies = () => {
-    if (!tournament.enableShootOffs || !tournament.shootOffTriggers) {
-      return []
-    }
-
-    const triggers = JSON.parse(tournament.shootOffTriggers) as string[]
-    const ties: { position: number; shooters: ShooterScore[]; description: string }[] = []
-
-    // Sort all shooters by total score
-    const sortedShooters = [...allShooters]
-      .filter(s => s.disciplineCount > 0)
-      .sort((a, b) => b.totalScore - a.totalScore)
-
-    // Check for perfect score requirement
-    if (tournament.shootOffRequiresPerfect) {
-      const hasPerfectScore = sortedShooters.some(s => {
-        // Calculate max possible score for this shooter
-        const maxPossible = Object.keys(s.disciplineScores).length * 100 // Assuming 100 per discipline
-        return s.totalScore === maxPossible
-      })
-      if (!hasPerfectScore) {
-        return [] // No shoot-offs if no perfect scores
-      }
-    }
-
-    // Helper to check if a position trigger matches
-    const shouldCheckPosition = (pos: number): boolean => {
-      if (triggers.includes('1st') && pos === 1) return true
-      if (triggers.includes('2nd') && pos === 2) return true
-      if (triggers.includes('3rd') && pos === 3) return true
-      if (triggers.includes('top5') && pos <= 5) return true
-      if (triggers.includes('top10') && pos <= 10) return true
-      if (triggers.includes('perfect')) {
-        // Already checked above
-        return true
-      }
-      return false
-    }
-
-    // Group by score and find ties
-    const scoreGroups = new Map<number, ShooterScore[]>()
-    sortedShooters.forEach(shooter => {
-      const score = shooter.totalScore
-      if (!scoreGroups.has(score)) {
-        scoreGroups.set(score, [])
-      }
-      scoreGroups.get(score)!.push(shooter)
-    })
-
-    // Check each position for ties
-    let currentPosition = 1
-    Array.from(scoreGroups.entries())
-      .sort(([a], [b]) => b - a) // Sort by score descending
-      .forEach(([score, shooters]) => {
-        if (shooters.length > 1 && shouldCheckPosition(currentPosition)) {
-          // Check if shoot-off already exists for this tie
-          const existingShootOff = tournament.shootOffs.find(so => 
-            so.position === currentPosition && 
-            so.status !== 'cancelled' &&
-            // Check if participants match
-            so.participants.every((p: any) => shooters.some(s => s.shooterId === p.shooterId))
-          )
-
-          if (!existingShootOff) {
-            const positionName = currentPosition === 1 ? '1st Place' : 
-                                currentPosition === 2 ? '2nd Place' : 
-                                currentPosition === 3 ? '3rd Place' : 
-                                `${currentPosition}th Place`
-            ties.push({
-              position: currentPosition,
-              shooters,
-              description: `${positionName} - ${shooters.length} shooters tied at ${score} points`
-            })
-          }
-        }
-        currentPosition += shooters.length
-      })
-
-    return ties
-  }
-
-  const detectedTies = detectTies()
 
   // Get medal emoji
   const getMedal = (index: number) => {
@@ -508,15 +424,6 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
           </button>
         </div>
       </div>
-
-      {/* Tie Alerts - Show detected ties requiring shoot-offs */}
-      {detectedTies.length > 0 && (
-        <TieAlert
-          ties={detectedTies}
-          tournamentId={tournament.id}
-          isAdmin={isAdmin}
-        />
-      )}
 
       {/* Shoot-Off Results - Show completed shoot-offs */}
       {tournament.shootOffs && tournament.shootOffs.length > 0 && (
