@@ -11,6 +11,8 @@ frontend:
         - echo "=== Copying PostgreSQL schema for staging ==="
         - cp prisma/schema-postgres.prisma prisma/schema.prisma
         - cat prisma/schema.prisma | head -20
+        # Clean any cached Prisma client to force fresh generation
+        - rm -rf node_modules/.prisma node_modules/@prisma/client
         - npm ci
         # Verify Prisma client was generated with correct schema
         - echo "=== Verifying Prisma client generation ==="
