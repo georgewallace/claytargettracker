@@ -1,5 +1,5 @@
 {
-  "name": "claytargettracker",
+  "name": "coyess-tournaments",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -13,6 +13,8 @@
     "db:migrate:staging": "bash scripts/db-migrate-staging.sh",
     "db:create:migration": "bash scripts/db-create-migration.sh",
     "deploy:staging": "bash scripts/deploy-staging.sh",
+    "validate:staging": "bash scripts/validate-staging-deployment.sh",
+    "setup:hooks": "bash scripts/setup-git-hooks.sh",
     "db:studio": "npx prisma studio",
     "db:generate": "npx prisma generate",
     "db:seed": "tsx scripts/seed-test-data.ts",
