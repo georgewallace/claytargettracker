@@ -7,6 +7,9 @@ frontend:
         - nvm use 20
         - node --version
         - npm ci
+        # Use PostgreSQL schema for staging/production
+        - echo "=== Copying PostgreSQL schema ==="
+        - cp prisma/schema-postgres.prisma prisma/schema.prisma
         - npx prisma generate
         # Verify Prisma binaries were generated
         - echo "Checking for Prisma binaries..."
