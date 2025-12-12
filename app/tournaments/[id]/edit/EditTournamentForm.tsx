@@ -26,6 +26,9 @@ interface Tournament {
   shootOffTargetsPerRound: number
   shootOffStartStation: string | null
   shootOffRequiresPerfect: boolean
+  // Feature toggles
+  enableScores: boolean
+  enableLeaderboard: boolean
   disciplines: Array<{
     id: string
     disciplineId: string
