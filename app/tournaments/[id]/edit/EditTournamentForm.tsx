@@ -122,7 +122,10 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
     shootOffStartStation: tournament.shootOffStartStation || '',
     shootOffRequiresPerfect: tournament.shootOffRequiresPerfect
   })
-  
+
+  const [enableScores, setEnableScores] = useState(tournament.enableScores)
+  const [enableLeaderboard, setEnableLeaderboard] = useState(tournament.enableLeaderboard)
+
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -180,7 +183,10 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           shootOffFormat: shootOffConfig.shootOffFormat,
           shootOffTargetsPerRound: shootOffConfig.shootOffTargetsPerRound,
           shootOffStartStation: shootOffConfig.shootOffStartStation || null,
-          shootOffRequiresPerfect: shootOffConfig.shootOffRequiresPerfect
+          shootOffRequiresPerfect: shootOffConfig.shootOffRequiresPerfect,
+          // Feature toggles
+          enableScores,
+          enableLeaderboard
         })
       })
 
@@ -573,6 +579,39 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
         config={shootOffConfig}
         onChange={setShootOffConfig}
       />
+
+      {/* Feature Toggles Section */}
+      <div className="bg-gray-50 p-6 rounded-lg space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Feature Settings</h3>
+
+        {/* Score Entry Toggle */}
+        <label className="flex items-center space-x-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={enableScores}
+            onChange={(e) => setEnableScores(e.target.checked)}
+            className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+          />
+          <div>
+            <div className="text-sm font-medium text-gray-900">Enable Score Entry</div>
+            <div className="text-sm text-gray-500">Allow coaches to enter scores during the tournament</div>
+          </div>
+        </label>
+
+        {/* Leaderboard Toggle */}
+        <label className="flex items-center space-x-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={enableLeaderboard}
+            onChange={(e) => setEnableLeaderboard(e.target.checked)}
+            className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+          />
+          <div>
+            <div className="text-sm font-medium text-gray-900">Enable Leaderboard</div>
+            <div className="text-sm text-gray-500">Display public leaderboard and rankings</div>
+          </div>
+        </label>
+      </div>
 
       <div className="flex gap-4">
         <button

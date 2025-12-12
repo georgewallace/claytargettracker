@@ -12,6 +12,7 @@
     "db:push": "bash scripts/db-local-push.sh",
     "db:migrate:staging": "bash scripts/db-migrate-staging.sh",
     "db:create:migration": "bash scripts/db-create-migration.sh",
+    "deploy:staging": "bash scripts/deploy-staging.sh",
     "db:studio": "npx prisma studio",
     "db:generate": "npx prisma generate",
     "db:seed": "tsx scripts/seed-test-data.ts",

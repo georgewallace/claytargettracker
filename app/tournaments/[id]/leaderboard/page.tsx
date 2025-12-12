@@ -98,6 +98,11 @@ export default async function LeaderboardPage({ params }: PageProps) {
     notFound()
   }
 
+  // Check if leaderboard is enabled for this tournament
+  if (!tournament.enableLeaderboard) {
+    notFound()
+  }
+
   // Get current user for admin check
   const user = await getCurrentUser()
 

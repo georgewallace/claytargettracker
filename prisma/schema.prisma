@@ -1,6 +1,6 @@
-// PostgreSQL schema for staging and production
-// This is your Prisma schema file for STAGING/PRODUCTION
-// Uses PostgreSQL for robust, scalable deployments
+// SQLite schema for local development
+// This is your Prisma schema file for LOCAL DEVELOPMENT ONLY
+// Uses SQLite for fast local development without needing PostgreSQL
 
 generator client {
   provider = "prisma-client-js"
@@ -138,13 +138,17 @@ model Tournament {
   haaExcludesDivision Boolean @default(true)  // If true, HAA winners can't win 1st in their division
   
   // Shoot-Off Configuration
-  enableShootOffs          Boolean @default(true)  // Enable shoot-offs for this tournament
+  enableShootOffs          Boolean @default(false)  // Enable shoot-offs for this tournament
   shootOffTriggers         String? // JSON: when to trigger shoot-offs (e.g., ["podium", "top5", "perfect"])
   shootOffFormat           String  @default("sudden_death") // sudden_death, fixed_rounds, progressive
   shootOffTargetsPerRound  Int     @default(2) // Number of targets per round in shoot-off
   shootOffStartStation     String? // For discipline-specific shoot-offs (e.g., "station_4")
   shootOffRequiresPerfect  Boolean @default(false) // Only shoot off if at least one shooter has perfect score
-  
+
+  // Feature Toggles
+  enableScores        Boolean @default(false)  // Enable score entry
+  enableLeaderboard   Boolean @default(false)  // Enable leaderboard
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   

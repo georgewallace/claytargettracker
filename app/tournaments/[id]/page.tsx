@@ -6,6 +6,7 @@ import Link from 'next/link'
 import RegisterButton from './RegisterButton'
 import CoachRegistration from './CoachRegistration'
 import RemoveRegistrationButton from './RemoveRegistrationButton'
+import ExportRegistrationsButton from './ExportRegistrationsButton'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 import TeamLogo from '@/components/TeamLogo'
 
@@ -145,16 +146,18 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             
             {/* Action Buttons - Responsive Grid */}
             <div className="flex flex-wrap gap-2 sm:gap-3">
-              {/* Leaderboard button - visible to everyone */}
-              <Link
-                href={`/tournaments/${tournament.id}/leaderboard`}
-                className="bg-yellow-500 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition font-medium text-sm sm:text-base whitespace-nowrap"
-              >
-                🏆 Leaderboard
-              </Link>
-              
-              {/* Enter Scores button for coaches and admins */}
-              {user && (user.role === 'coach' || user.role === 'admin') && (
+              {/* Leaderboard button - visible to everyone when enabled */}
+              {tournament.enableLeaderboard && (
+                <Link
+                  href={`/tournaments/${tournament.id}/leaderboard`}
+                  className="bg-yellow-500 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition font-medium text-sm sm:text-base whitespace-nowrap"
+                >
+                  🏆 Leaderboard
+                </Link>
+              )}
+
+              {/* Enter Scores button for coaches and admins when enabled */}
+              {tournament.enableScores && user && (user.role === 'coach' || user.role === 'admin') && (
                 <Link
                   href={`/tournaments/${tournament.id}/scores`}
                   className="bg-purple-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
@@ -190,6 +193,10 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                       Shoot-Offs
                     </Link>
                   )}
+                  <ExportRegistrationsButton
+                    registrations={tournament.registrations}
+                    tournamentName={tournament.name}
+                  />
                   <Link
                     href={`/tournaments/${tournament.id}/edit`}
                     className="bg-gray-100 text-gray-700 px-4 sm:px-6 py-2 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition font-medium text-sm sm:text-base whitespace-nowrap"

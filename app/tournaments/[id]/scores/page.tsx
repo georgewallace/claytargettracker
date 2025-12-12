@@ -86,6 +86,11 @@ export default async function TournamentScoresPage({ params }: PageProps) {
     notFound()
   }
 
+  // Check if scores are enabled for this tournament
+  if (!tournament.enableScores) {
+    redirect(`/tournaments/${id}`)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">

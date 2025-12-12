@@ -14,14 +14,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id } = await params
-    const { 
-      name, 
-      location, 
-      startDate, 
-      endDate, 
-      description, 
-      status, 
-      disciplineConfigurations, 
+    const {
+      name,
+      location,
+      startDate,
+      endDate,
+      description,
+      status,
+      disciplineConfigurations,
       disciplineIds,
       // Shoot-off configuration
       enableShootOffs,
@@ -29,7 +29,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       shootOffFormat,
       shootOffTargetsPerRound,
       shootOffStartStation,
-      shootOffRequiresPerfect
+      shootOffRequiresPerfect,
+      // Feature toggles
+      enableScores,
+      enableLeaderboard
     } = await request.json()
     
     // Support both old (disciplineIds) and new (disciplineConfigurations) format
@@ -145,6 +148,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ...(shootOffTargetsPerRound !== undefined && { shootOffTargetsPerRound }),
         ...(shootOffStartStation !== undefined && { shootOffStartStation }),
         ...(shootOffRequiresPerfect !== undefined && { shootOffRequiresPerfect }),
+        // Feature toggles
+        ...(enableScores !== undefined && { enableScores }),
+        ...(enableLeaderboard !== undefined && { enableLeaderboard }),
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,
