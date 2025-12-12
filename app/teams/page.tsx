@@ -55,8 +55,32 @@ export default async function TeamsPage() {
     }
   }) : []
 
+  // Get coach's team if they are a coach
+  const coachTeam = user.role === 'coach' ? await prisma.teamCoach.findFirst({
+    where: {
+      userId: user.id
+    },
+    include: {
+      team: {
+        include: {
+          coaches: {
+            include: {
+              user: true
+            }
+          },
+          _count: {
+            select: {
+              shooters: true
+            }
+          }
+        }
+      }
+    }
+  }) : null
+
   const canCreateTeam = user.role === 'coach' || user.role === 'admin'
   const isShooter = !!user.shooter
+  const hasTeam = !!coachTeam
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -71,10 +95,43 @@ export default async function TeamsPage() {
         </div>
 
         {/* Team Creation (Coaches/Admins Only) */}
-        {canCreateTeam && (
+        {canCreateTeam && !hasTeam && (
           <div className="bg-white rounded-lg shadow-md p-8 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Create New Team</h2>
             <CreateTeamForm />
+          </div>
+        )}
+
+        {/* Manage Team (Coaches with team) */}
+        {canCreateTeam && hasTeam && coachTeam && (
+          <div className="bg-white rounded-lg shadow-md p-8 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Manage Team</h2>
+            <div className="flex items-center justify-between bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Your Team</h3>
+                <p className="text-indigo-600 text-2xl font-bold mt-1">
+                  {coachTeam.team.name}
+                </p>
+                <p className="text-sm text-gray-600 mt-2">
+                  {coachTeam.team._count.shooters} shooter{coachTeam.team._count.shooters !== 1 ? 's' : ''} •
+                  {' '}{coachTeam.team.coaches.length} coach{coachTeam.team.coaches.length !== 1 ? 'es' : ''}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <a
+                  href={`/teams/${coachTeam.team.id}`}
+                  className="px-6 py-2.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium text-center"
+                >
+                  Manage Team
+                </a>
+                <a
+                  href={`/teams/${coachTeam.team.id}/roster`}
+                  className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition font-medium text-center"
+                >
+                  View Roster
+                </a>
+              </div>
+            </div>
           </div>
         )}
 
