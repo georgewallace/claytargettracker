@@ -24,13 +24,15 @@ interface CoachRegistrationProps {
   allShooters: Shooter[]
   registeredShooterIds: string[]
   tournamentDisciplines: Discipline[]
+  userRole?: 'coach' | 'admin'
 }
 
-export default function CoachRegistration({ 
-  tournamentId, 
-  allShooters, 
+export default function CoachRegistration({
+  tournamentId,
+  allShooters,
   registeredShooterIds,
-  tournamentDisciplines
+  tournamentDisciplines,
+  userRole
 }: CoachRegistrationProps) {
   const router = useRouter()
   const [selectedShooterIds, setSelectedShooterIds] = useState<string[]>([])
@@ -129,10 +131,13 @@ export default function CoachRegistration({
   return (
     <div className="bg-white rounded-lg shadow-md p-8 mb-8">
       <h2 className="text-2xl font-bold text-gray-900 mb-4">
-        Coach Registration
+        {userRole === 'admin' ? 'Admin Registration' : 'Coach Registration'}
       </h2>
       <p className="text-gray-600 mb-6">
-        Select shooters to register for this tournament
+        {userRole === 'admin'
+          ? 'Register shooters without a team for this tournament'
+          : 'Register shooters from your team(s) for this tournament'
+        }
       </p>
 
       {error && (
@@ -205,7 +210,10 @@ export default function CoachRegistration({
         {/* Shooters List */}
         {availableShooters.length === 0 ? (
           <div className="text-center py-8 text-gray-600">
-            All shooters are already registered for this tournament.
+            {userRole === 'admin'
+              ? 'No unassigned shooters available. All shooters without a team are already registered.'
+              : 'No shooters available from your team(s). All your team members are already registered.'
+            }
           </div>
         ) : filteredShooters.length === 0 ? (
           <div className="text-center py-8 text-gray-600">

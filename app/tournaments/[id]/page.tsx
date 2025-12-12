@@ -88,18 +88,49 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  // Get all shooters for coach registration
-  const allShooters = await prisma.shooter.findMany({
-    include: {
-      user: true,
-      team: true
-    },
-    orderBy: {
-      user: {
-        name: 'asc'
+  // Get shooters for coach registration based on role
+  let allShooters: any[] = []
+
+  if (user?.role === 'coach') {
+    // Coaches can only register shooters from teams they coach
+    const coachedTeams = await prisma.teamCoach.findMany({
+      where: { userId: user.id },
+      select: { teamId: true }
+    })
+
+    const teamIds = coachedTeams.map(tc => tc.teamId)
+
+    allShooters = await prisma.shooter.findMany({
+      where: {
+        teamId: { in: teamIds }
+      },
+      include: {
+        user: true,
+        team: true
+      },
+      orderBy: {
+        user: {
+          name: 'asc'
+        }
       }
-    }
-  })
+    })
+  } else if (user?.role === 'admin') {
+    // Admins can only register shooters without a team
+    allShooters = await prisma.shooter.findMany({
+      where: {
+        teamId: null
+      },
+      include: {
+        user: true,
+        team: true
+      },
+      orderBy: {
+        user: {
+          name: 'asc'
+        }
+      }
+    })
+  }
 
   const registeredShooterIds = tournament.registrations.map(r => r.shooterId)
   const isCoach = user?.role === 'coach' || user?.role === 'admin'
@@ -124,11 +155,12 @@ export default async function TournamentDetailPage({ params }: PageProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Coach Registration */}
         {isCoach && tournament.status === 'upcoming' && (
-          <CoachRegistration 
+          <CoachRegistration
             tournamentId={tournament.id}
             allShooters={allShooters}
             registeredShooterIds={registeredShooterIds}
             tournamentDisciplines={tournament.disciplines.map(td => td.discipline)}
+            userRole={user?.role as 'coach' | 'admin'}
           />
         )}
 
