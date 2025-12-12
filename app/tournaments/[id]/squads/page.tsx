@@ -57,7 +57,7 @@ export default async function TournamentSquadsPage({ params }: PageProps) {
             include: {
               members: {
                 include: {
-                  shooter: {
+                  athlete: {
                     include: {
                       user: true,
                       team: true
@@ -78,7 +78,7 @@ export default async function TournamentSquadsPage({ params }: PageProps) {
       },
       registrations: {
         include: {
-          shooter: {
+          athlete: {
             include: {
               user: true,
               team: true

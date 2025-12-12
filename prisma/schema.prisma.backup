@@ -16,11 +16,11 @@ model User {
   email     String   @unique
   name      String
   password  String
-  role      String   @default("athlete") // athlete, coach, admin
+  role      String   @default("shooter") // shooter, coach, admin
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  athlete            Athlete?
+  shooter            Shooter?
   createdTournaments Tournament[]
   coachedTeams       TeamCoach[] // Many-to-many relationship for coaches
 }
@@ -33,7 +33,7 @@ model Team {
   updatedAt DateTime @updatedAt
   
   coaches      TeamCoach[] // Many-to-many relationship for coaches
-  athletes     Athlete[]
+  shooters     Shooter[]
   joinRequests TeamJoinRequest[]
 }
 
@@ -56,22 +56,22 @@ model TeamCoach {
 model TeamJoinRequest {
   id        String   @id @default(cuid())
   teamId    String
-  athleteId String
+  shooterId String
   status    String   @default("pending") // pending, approved, rejected
-  message   String?  // Optional message from athlete
+  message   String?  // Optional message from shooter
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  shooter Shooter @relation(fields: [shooterId], references: [id], onDelete: Cascade)
   
-  @@unique([teamId, athleteId]) // One request per athlete per team
+  @@unique([teamId, shooterId]) // One request per shooter per team
   @@index([teamId])
-  @@index([athleteId])
+  @@index([shooterId])
   @@index([status])
 }
 
-model Athlete {
+model Shooter {
   id                String   @id @default(cuid())
   userId            String   @unique
   teamId            String?
@@ -97,25 +97,25 @@ model Athlete {
   shoots              Shoot[]
   squadMembers        SquadMember[]
   teamJoinRequests    TeamJoinRequest[]
-  averages            AthleteAverage[]
+  averages            ShooterAverage[]
   shootOffWins        ShootOff[] @relation("ShootOffWinner")
   shootOffParticipations ShootOffParticipant[]
 }
 
-model AthleteAverage {
+model ShooterAverage {
   id           String   @id @default(cuid())
-  athleteId    String
+  shooterId    String
   disciplineId String
   average      Float    // Current average score
   isManual     Boolean  @default(false) // True if manually set, false if auto-calculated
   lastUpdated  DateTime @default(now()) @updatedAt
   createdAt    DateTime @default(now())
   
-  athlete    Athlete              @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  shooter    Shooter              @relation(fields: [shooterId], references: [id], onDelete: Cascade)
   discipline TournamentDiscipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
   
-  @@unique([athleteId, disciplineId]) // One average per athlete per discipline
-  @@index([athleteId])
+  @@unique([shooterId, disciplineId]) // One average per shooter per discipline
+  @@index([shooterId])
   @@index([disciplineId])
 }
 
@@ -167,7 +167,7 @@ model TimeSlot {
   date         DateTime // Which day of the tournament
   startTime    String   // Format: "HH:MM" (24-hour)
   endTime      String   // Format: "HH:MM" (24-hour)
-  squadCapacity Int     @default(5) // Number of athletes per squad
+  squadCapacity Int     @default(5) // Number of shooters per squad
   fieldNumber  String?  // For skeet/trap - e.g., "Field 1", "Field 2"
   stationNumber String? // For sporting clays - e.g., "Station 1", "Station 2"
   notes        String?
@@ -187,7 +187,7 @@ model Squad {
   timeSlotId String
   name       String   // e.g., "Squad A", "Squad 1"
   capacity   Int      @default(5)
-  teamOnly   Boolean  @default(false) // If true, only athletes from the same team can join
+  teamOnly   Boolean  @default(false) // If true, only shooters from the same team can join
   notes      String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -201,17 +201,17 @@ model Squad {
 model SquadMember {
   id         String   @id @default(cuid())
   squadId    String
-  athleteId  String
+  shooterId  String
   position   Int?     // Optional position in squad (1-5 typically)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   
   squad   Squad   @relation(fields: [squadId], references: [id], onDelete: Cascade)
-  athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  shooter Shooter @relation(fields: [shooterId], references: [id], onDelete: Cascade)
   
-  @@unique([squadId, athleteId]) // An athlete can only be in a squad once
+  @@unique([squadId, shooterId]) // A shooter can only be in a squad once
   @@index([squadId])
-  @@index([athleteId])
+  @@index([shooterId])
 }
 
 model Discipline {
@@ -239,7 +239,7 @@ model TournamentDiscipline {
   
   tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   discipline      Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
-  shooterAverages AthleteAverage[]
+  shooterAverages ShooterAverage[]
   
   @@unique([tournamentId, disciplineId])
 }
@@ -247,15 +247,15 @@ model TournamentDiscipline {
 model Registration {
   id           String   @id @default(cuid())
   tournamentId String
-  athleteId    String
+  shooterId    String
   status       String   @default("registered") // registered, checked_in, withdrawn
   createdAt    DateTime @default(now())
   
   tournament  Tournament                 @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  athlete     Athlete                    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  shooter     Shooter                    @relation(fields: [shooterId], references: [id], onDelete: Cascade)
   disciplines RegistrationDiscipline[]
   
-  @@unique([tournamentId, athleteId])
+  @@unique([tournamentId, shooterId])
 }
 
 model RegistrationDiscipline {
@@ -273,7 +273,7 @@ model RegistrationDiscipline {
 model Shoot {
   id           String   @id @default(cuid())
   tournamentId String
-  athleteId    String
+  shooterId    String
   disciplineId String
   date         DateTime @default(now())
   notes        String?
@@ -281,11 +281,11 @@ model Shoot {
   updatedAt    DateTime @updatedAt
   
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  athlete    Athlete    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  shooter    Shooter    @relation(fields: [shooterId], references: [id], onDelete: Cascade)
   discipline Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
   scores     Score[]
   
-  @@unique([tournamentId, athleteId, disciplineId])
+  @@unique([tournamentId, shooterId, disciplineId])
 }
 
 model Score {
@@ -318,7 +318,7 @@ model ShootOff {
   
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   discipline   Discipline? @relation(fields: [disciplineId], references: [id])
-  winner       Athlete? @relation("ShootOffWinner", fields: [winnerId], references: [id])
+  winner       Shooter? @relation("ShootOffWinner", fields: [winnerId], references: [id])
   participants ShootOffParticipant[]
   rounds       ShootOffRound[]
   
@@ -329,7 +329,7 @@ model ShootOff {
 model ShootOffParticipant {
   id          String   @id @default(cuid())
   shootOffId  String
-  athleteId   String
+  shooterId   String
   tiedScore   Int      // Original score that caused the shoot-off
   finalPlace  Int?     // Final placement after shoot-off (1, 2, 3, etc.)
   eliminated  Boolean  @default(false)
@@ -337,12 +337,12 @@ model ShootOffParticipant {
   createdAt   DateTime @default(now())
   
   shootOff  ShootOff @relation(fields: [shootOffId], references: [id], onDelete: Cascade)
-  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  shooter   Shooter  @relation(fields: [shooterId], references: [id], onDelete: Cascade)
   scores    ShootOffScore[]
   
-  @@unique([shootOffId, athleteId]) // Each athlete can only be in a shoot-off once
+  @@unique([shootOffId, shooterId]) // Each shooter can only be in a shoot-off once
   @@index([shootOffId])
-  @@index([athleteId])
+  @@index([shooterId])
 }
 
 model ShootOffRound {

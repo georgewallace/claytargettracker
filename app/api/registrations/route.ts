@@ -6,10 +6,10 @@ import { requireAuth } from '@/lib/auth'
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
-    const { tournamentId, shooterId, disciplineIds } = await request.json()
+    const { tournamentId, athleteId, disciplineIds } = await request.json()
     
     // Validate input
-    if (!tournamentId || !shooterId) {
+    if (!tournamentId || !athleteId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Verify the shooter belongs to the current user
-    if (!user.shooter || user.shooter.id !== shooterId) {
+    if (!user.athlete || user.athlete.id !== athleteId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -34,9 +34,9 @@ export async function POST(request: NextRequest) {
     // Check if already registered
     const existing = await prisma.registration.findUnique({
       where: {
-        tournamentId_shooterId: {
+        tournamentId_athleteId: {
           tournamentId,
-          shooterId
+          athleteId
         }
       }
     })
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const registration = await prisma.registration.create({
       data: {
         tournamentId,
-        shooterId,
+        athleteId,
         disciplines: {
           create: disciplineIds.map((disciplineId: string) => ({
             disciplineId,

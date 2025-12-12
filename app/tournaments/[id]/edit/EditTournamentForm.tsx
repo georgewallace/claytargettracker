@@ -399,7 +399,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                         )}
                         {hasRegistrations && (
                           <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                            {registrationCount} {registrationCount === 1 ? 'shooter' : 'shooters'}
+                            {registrationCount} {registrationCount === 1 ? 'athlete' : 'athletes'}
                           </span>
                         )}
                       </div>
@@ -409,7 +409,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                     )}
                     {cannotUncheck && (
                       <div className="text-xs text-orange-600 mt-1 font-medium">
-                        ⚠️ Cannot remove - shooters registered
+                        ⚠️ Cannot remove - athletes registered
                       </div>
                     )}
                   </div>

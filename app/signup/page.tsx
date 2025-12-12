@@ -10,7 +10,7 @@ export default function SignupPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState('shooter')
+  const [role, setRole] = useState('athlete')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -126,13 +126,13 @@ export default function SignupPage() {
               onChange={(e) => setRole(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="shooter">Shooter</option>
+              <option value="athlete">Athlete</option>
               <option value="coach">Coach</option>
             </select>
             <p className="mt-1 text-sm text-gray-500">
-              {role === 'coach' 
-                ? 'Coaches can register multiple shooters for tournaments'
-                : 'Shooters can register themselves and enter their own scores'
+              {role === 'coach'
+                ? 'Coaches can register multiple athletes for tournaments'
+                : 'Athletes can register themselves and enter their own scores'
               }
             </p>
           </div>

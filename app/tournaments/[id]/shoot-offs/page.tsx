@@ -42,7 +42,7 @@ export default async function ShootOffsPage({ params }: PageProps) {
         include: {
           participants: {
             include: {
-              shooter: {
+              athlete: {
                 include: {
                   user: true,
                   team: true
@@ -99,10 +99,10 @@ export default async function ShootOffsPage({ params }: PageProps) {
     )
   }
 
-  // Fetch shooter scores for tie detection
-  interface ShooterScore {
-    shooterId: string
-    shooterName: string
+  // Fetch athlete scores for tie detection
+  interface athletescore {
+    athleteId: string
+    athleteName: string
     teamName: string | null
     totalScore: number
     disciplineCount: number
@@ -111,7 +111,7 @@ export default async function ShootOffsPage({ params }: PageProps) {
   const shoots = await prisma.shoot.findMany({
     where: { tournamentId: id },
     include: {
-      shooter: {
+      athlete: {
         include: {
           user: true,
           team: true
@@ -122,27 +122,27 @@ export default async function ShootOffsPage({ params }: PageProps) {
   })
 
   // Calculate total scores
-  const shooterScores = new Map<string, ShooterScore>()
+  const athletescores = new Map<string, athletescore>()
   shoots.forEach(shoot => {
-    const shooterId = shoot.shooter.id
+    const athleteId = shoot.athlete.id
     const totalForShoot = shoot.scores.reduce((sum, score) => sum + score.targets, 0)
     
-    if (!shooterScores.has(shooterId)) {
-      shooterScores.set(shooterId, {
-        shooterId,
-        shooterName: shoot.shooter.user.name,
-        teamName: shoot.shooter.team?.name || null,
+    if (!athletescores.has(athleteId)) {
+      athletescores.set(athleteId, {
+        athleteId,
+        athleteName: shoot.athlete.user.name,
+        teamName: shoot.athlete.team?.name || null,
         totalScore: 0,
         disciplineCount: 0
       })
     }
     
-    const shooterData = shooterScores.get(shooterId)!
-    shooterData.totalScore += totalForShoot
-    shooterData.disciplineCount += 1
+    const athleteData = athletescores.get(athleteId)!
+    athleteData.totalScore += totalForShoot
+    athleteData.disciplineCount += 1
   })
 
-  const allShooters = Array.from(shooterScores.values())
+  const allathletes = Array.from(athletescores.values())
 
   // Detect ties for shoot-offs
   const detectTies = () => {
@@ -151,10 +151,10 @@ export default async function ShootOffsPage({ params }: PageProps) {
     }
 
     const triggers = JSON.parse(tournament.shootOffTriggers) as string[]
-    const ties: { position: number; shooters: ShooterScore[]; description: string }[] = []
+    const ties: { position: number; athletes: athletescore[]; description: string }[] = []
 
-    // Sort all shooters by total score
-    const sortedShooters = [...allShooters]
+    // Sort all athletes by total score
+    const sortedathletes = [...allathletes]
       .filter(s => s.disciplineCount > 0)
       .sort((a, b) => b.totalScore - a.totalScore)
 
@@ -169,27 +169,27 @@ export default async function ShootOffsPage({ params }: PageProps) {
     }
 
     // Group by score and find ties
-    const scoreGroups = new Map<number, ShooterScore[]>()
-    sortedShooters.forEach(shooter => {
-      const score = shooter.totalScore
+    const scoreGroups = new Map<number, athletescore[]>()
+    sortedathletes.forEach(athlete => {
+      const score = athlete.totalScore
       if (!scoreGroups.has(score)) {
         scoreGroups.set(score, [])
       }
-      scoreGroups.get(score)!.push(shooter)
+      scoreGroups.get(score)!.push(athlete)
     })
 
     // Check each position for ties
     let currentPosition = 1
     Array.from(scoreGroups.entries())
       .sort(([a], [b]) => b - a) // Sort by score descending
-      .forEach(([score, shooters]) => {
-        if (shooters.length > 1 && shouldCheckPosition(currentPosition)) {
+      .forEach(([score, athletes]) => {
+        if (athletes.length > 1 && shouldCheckPosition(currentPosition)) {
           // Check if shoot-off already exists for this tie
           const existingShootOff = tournament.shootOffs.find(so => 
             so.position === currentPosition && 
             so.status !== 'cancelled' &&
             // Check if participants match
-            so.participants.every((p: any) => shooters.some(s => s.shooterId === p.shooterId))
+            so.participants.every((p: any) => athletes.some(s => s.athleteId === p.athleteId))
           )
 
           if (!existingShootOff) {
@@ -199,12 +199,12 @@ export default async function ShootOffsPage({ params }: PageProps) {
                                 `${currentPosition}th Place`
             ties.push({
               position: currentPosition,
-              shooters,
-              description: `${positionName} - ${shooters.length} shooters tied at ${score} points`
+              athletes,
+              description: `${positionName} - ${athletes.length} athletes tied at ${score} points`
             })
           }
         }
-        currentPosition += shooters.length
+        currentPosition += athletes.length
       })
 
     return ties
@@ -458,11 +458,11 @@ export default async function ShootOffsPage({ params }: PageProps) {
                           <div className="flex items-center justify-between">
                             <div>
                               <div className="font-semibold text-gray-900">
-                                {participant.shooter.user.name}
+                                {participant.athlete.user.name}
                                 {participant.id === shootOff.winnerId && ' 🏆'}
                               </div>
                               <div className="text-xs text-gray-600">
-                                {participant.shooter.team?.name || 'Independent'}
+                                {participant.athlete.team?.name || 'Independent'}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
                                 Tied at: {participant.tiedScore} pts

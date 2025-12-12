@@ -2,7 +2,7 @@
  * Utility functions for squad management
  */
 
-export interface ShooterForSquadding {
+export interface AthleteForSquadding {
   id: string
   division: string | null
   grade: string | null
@@ -21,7 +21,7 @@ export interface SquadWithMembers {
   name: string
   capacity: number
   members: Array<{
-    shooterId: string
+    athleteId: string
   }>
 }
 
@@ -79,15 +79,15 @@ export function chunk<T>(array: T[], size: number): T[][] {
 }
 
 /**
- * Check if shooter is already assigned to any squad in time slots
+ * Check if athlete is already assigned to any squad in time slots
  */
-export function isShooterAssigned(
-  shooterId: string,
+export function isAthleteAssigned(
+  athleteId: string,
   timeSlots: TimeSlotForSquadding[]
 ): boolean {
-  return timeSlots.some(slot => 
-    slot.squads.some(squad => 
-      squad.members.some(member => member.shooterId === shooterId)
+  return timeSlots.some(slot =>
+    slot.squads.some(squad =>
+      squad.members.some(member => member.athleteId === athleteId)
     )
   )
 }
@@ -125,7 +125,7 @@ export interface SquadClassification {
  * Open Squad: Mixed teams or divisions
  */
 export function classifySquad(members: Array<{
-  shooter: {
+  athlete: {
     teamId: string | null
     division: string | null
     team?: { name: string } | null
@@ -136,16 +136,16 @@ export function classifySquad(members: Array<{
   }
 
   // Get unique teams and divisions
-  const teams = new Set(members.map(m => m.shooter.teamId).filter(Boolean))
-  const divisions = new Set(members.map(m => m.shooter.division).filter(Boolean))
+  const teams = new Set(members.map(m => m.athlete.teamId).filter(Boolean))
+  const divisions = new Set(members.map(m => m.athlete.division).filter(Boolean))
 
   // Division squad: all from same team AND same division
   if (teams.size === 1 && divisions.size === 1) {
     const firstMember = members[0]
     return {
       type: 'division',
-      team: firstMember.shooter.team?.name || null,
-      division: firstMember.shooter.division || null
+      team: firstMember.athlete.team?.name || null,
+      division: firstMember.athlete.division || null
     }
   }
 
@@ -173,89 +173,89 @@ export function formatSquadClassification(classification: SquadClassification): 
 }
 
 /**
- * Auto-assign shooters to squads based on divisions and teams
+ * Auto-assign athletes to squads based on divisions and teams
  * Tries to keep same division together, and same team together within divisions
  */
 export function generateSquadAssignments(
-  shooters: ShooterForSquadding[],
+  athletes: AthleteForSquadding[],
   timeSlots: TimeSlotForSquadding[]
 ): {
   assignments: Array<{
     timeSlotId: string
     squadName: string
-    shooterIds: string[]
+    athleteIds: string[]
   }>
   summary: string[]
 } {
   const assignments: Array<{
     timeSlotId: string
     squadName: string
-    shooterIds: string[]
+    athleteIds: string[]
   }> = []
-  
+
   const summary: string[] = []
-  
-  // Filter out shooters already assigned
-  const unassigned = shooters.filter(s => !isShooterAssigned(s.id, timeSlots))
-  
+
+  // Filter out athletes already assigned
+  const unassigned = athletes.filter(s => !isAthleteAssigned(s.id, timeSlots))
+
   if (unassigned.length === 0) {
-    summary.push('All shooters are already assigned to squads')
+    summary.push('All athletes are already assigned to squads')
     return { assignments, summary }
   }
-  
+
   // Group by division
   const divisions = ['Novice', 'Intermediate', 'Junior Varsity', 'Senior', 'College-Trade School']
-  
+
   for (const division of divisions) {
-    const divisionShooters = unassigned.filter(s => s.division === division)
-    
-    if (divisionShooters.length === 0) continue
-    
+    const divisionAthletes = unassigned.filter(s => s.division === division)
+
+    if (divisionAthletes.length === 0) continue
+
     // Group by team within division
-    const byTeam = new Map<string, ShooterForSquadding[]>()
-    divisionShooters.forEach(shooter => {
-      const teamKey = shooter.team?.id || 'no-team'
+    const byTeam = new Map<string, AthleteForSquadding[]>()
+    divisionAthletes.forEach(athlete => {
+      const teamKey = athlete.team?.id || 'no-team'
       const group = byTeam.get(teamKey) || []
-      group.push(shooter)
+      group.push(athlete)
       byTeam.set(teamKey, group)
     })
-    
+
     // Create squads for each team
-    for (const [teamKey, teamShooters] of byTeam) {
-      const teamName = teamShooters[0].team?.name || 'Independent'
-      
+    for (const [teamKey, teamAthletes] of byTeam) {
+      const teamName = teamAthletes[0].team?.name || 'Independent'
+
       // Get available time slots with capacity
       const availableSlots = timeSlots.filter(slot => {
-        const totalCapacity = slot.squads.reduce((sum, squad) => 
+        const totalCapacity = slot.squads.reduce((sum, squad) =>
           sum + getSquadAvailableCapacity(squad), 0
         )
         return totalCapacity > 0
       })
-      
+
       if (availableSlots.length === 0) {
         summary.push(`⚠️ No available capacity for ${division} - ${teamName}`)
         continue
       }
-      
-      // Distribute shooters across available slots
-      const slotsPerShooter = availableSlots.length
-      const shootersPerSlot = Math.ceil(teamShooters.length / slotsPerShooter)
-      const squadChunks = chunk(teamShooters, shootersPerSlot)
-      
-      squadChunks.forEach((shooterGroup, index) => {
+
+      // Distribute athletes across available slots
+      const slotsPerAthlete = availableSlots.length
+      const athletesPerSlot = Math.ceil(teamAthletes.length / slotsPerAthlete)
+      const squadChunks = chunk(teamAthletes, athletesPerSlot)
+
+      squadChunks.forEach((athleteGroup, index) => {
         const slot = availableSlots[index % availableSlots.length]
-        
+
         assignments.push({
           timeSlotId: slot.id,
           squadName: `${division} - ${teamName}${squadChunks.length > 1 ? ` ${index + 1}` : ''}`,
-          shooterIds: shooterGroup.map(s => s.id)
+          athleteIds: athleteGroup.map(s => s.id)
         })
       })
-      
-      summary.push(`✓ Assigned ${teamShooters.length} ${division} shooters from ${teamName}`)
+
+      summary.push(`✓ Assigned ${teamAthletes.length} ${division} athletes from ${teamName}`)
     }
   }
-  
+
   return { assignments, summary }
 }
 

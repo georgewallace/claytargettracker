@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Get the coach user to verify they are a coach
     const coachUser = await prisma.user.findUnique({
       where: { id: coachUserId },
-      include: { shooter: true }
+      include: { athlete: true }
     })
     
     if (!coachUser) {
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
     
     // RULE: Coaches cannot be shooters
-    if (coachUser.shooter) {
+    if (coachUser.athlete) {
       return NextResponse.json(
         { error: 'Coaches cannot be shooters on a team. This user is already a shooter.' },
         { status: 400 }
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
             user: true
           }
         },
-        shooters: {
+        athletes: {
           include: {
             user: true
           }

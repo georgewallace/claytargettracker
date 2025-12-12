@@ -25,7 +25,7 @@ export async function getCurrentUser() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      shooter: {
+      athlete: {
         include: {
           team: true
         }

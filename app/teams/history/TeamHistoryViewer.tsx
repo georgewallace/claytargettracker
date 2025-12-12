@@ -39,7 +39,7 @@ interface DisciplineStat {
   trend: 'improving' | 'declining' | 'stable'
 }
 
-interface Shooter {
+interface athlete {
   id: string
   name: string
   email: string
@@ -51,32 +51,32 @@ interface Shooter {
 
 interface TeamHistoryViewerProps {
   teamName: string
-  shooters: Shooter[]
+  athletes: athlete[]
 }
 
-export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryViewerProps) {
-  const [selectedShooterId, setSelectedShooterId] = useState<string>('all')
+export default function TeamHistoryViewer({ teamName, athletes }: TeamHistoryViewerProps) {
+  const [selectedathleteId, setSelectedathleteId] = useState<string>('all')
   const [selectedDiscipline, setSelectedDiscipline] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<string>('all') // 30, 90, 180, all
 
-  // Get filtered shooter(s)
-  const filteredShooters = useMemo(() => {
-    if (selectedShooterId === 'all') return shooters
-    return shooters.filter(s => s.id === selectedShooterId)
-  }, [selectedShooterId, shooters])
+  // Get filtered athlete(s)
+  const filteredathletes = useMemo(() => {
+    if (selectedathleteId === 'all') return athletes
+    return athletes.filter(s => s.id === selectedathleteId)
+  }, [selectedathleteId, athletes])
 
   // Get all unique disciplines
   const allDisciplines = useMemo(() => {
     const disciplineMap = new Map()
-    shooters.forEach(shooter => {
-      shooter.stats.forEach(stat => {
+    athletes.forEach(athlete => {
+      athlete.stats.forEach(stat => {
         if (!disciplineMap.has(stat.discipline.id)) {
           disciplineMap.set(stat.discipline.id, stat.discipline)
         }
       })
     })
     return Array.from(disciplineMap.values())
-  }, [shooters])
+  }, [athletes])
 
   // Prepare chart data with averages - restructured to have unique dates
   const chartData = useMemo(() => {
@@ -87,15 +87,15 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
     const cutoffDate = timeRange === 'all' ? null : 
       new Date(now.getTime() - parseInt(timeRange) * 24 * 60 * 60 * 1000)
 
-    // Collect all shooter data points grouped by date (for filtered view)
+    // Collect all athlete data points grouped by date (for filtered view)
     const shootsByDateAndDiscipline: Record<string, Record<string, any[]>> = {}
     
-    // Collect ALL shooter data points grouped by date (for team average)
+    // Collect ALL athlete data points grouped by date (for team average)
     const allShootsByDateAndDiscipline: Record<string, Record<string, any[]>> = {}
 
-    // Process filtered shooters for display
-    filteredShooters.forEach(shooter => {
-      shooter.stats.forEach(stat => {
+    // Process filtered athletes for display
+    filteredathletes.forEach(athlete => {
+      athlete.stats.forEach(stat => {
         if (selectedDiscipline !== 'all' && stat.discipline.id !== selectedDiscipline) return
 
         if (!shootsByDateAndDiscipline[stat.discipline.id]) {
@@ -115,8 +115,8 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
           }
 
           shootsByDateAndDiscipline[stat.discipline.id][dateKey].push({
-            shooterId: shooter.id,
-            shooterName: shooter.name,
+            athleteId: athlete.id,
+            athleteName: athlete.name,
             percentage: shoot.percentage,
             tournamentName: shoot.tournamentName,
             score: shoot.score,
@@ -126,9 +126,9 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
       })
     })
 
-    // Process ALL shooters for team average calculation
-    shooters.forEach(shooter => {
-      shooter.stats.forEach(stat => {
+    // Process ALL athletes for team average calculation
+    athletes.forEach(athlete => {
+      athlete.stats.forEach(stat => {
         if (selectedDiscipline !== 'all' && stat.discipline.id !== selectedDiscipline) return
 
         if (!allShootsByDateAndDiscipline[stat.discipline.id]) {
@@ -148,8 +148,8 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
           }
 
           allShootsByDateAndDiscipline[stat.discipline.id][dateKey].push({
-            shooterId: shooter.id,
-            shooterName: shooter.name,
+            athleteId: athlete.id,
+            athleteName: athlete.name,
             percentage: shoot.percentage,
             tournamentName: shoot.tournamentName,
             score: shoot.score,
@@ -170,12 +170,12 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
       dataByDiscipline[disciplineId] = dates.map(dateKey => {
         const shootsOnDate = shootsByDateAndDiscipline[disciplineId][dateKey]
         
-        // Calculate team average for this date using ALL shooters, not just filtered ones
+        // Calculate team average for this date using ALL athletes, not just filtered ones
         const allShootsOnDate = allShootsByDateAndDiscipline[disciplineId]?.[dateKey] || []
         const totalPercentage = allShootsOnDate.reduce((sum, s) => sum + s.percentage, 0)
         const teamAverage = allShootsOnDate.length > 0 ? totalPercentage / allShootsOnDate.length : 0
 
-        // Create data point with all shooters' scores as properties
+        // Create data point with all athletes' scores as properties
         const dataPoint: any = {
           date: dateKey,
           dateObj: shootsOnDate[0].dateObj,
@@ -183,11 +183,11 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
           tournamentName: shootsOnDate[0].tournamentName
         }
 
-        // Add each shooter's percentage as a separate property
+        // Add each athlete's percentage as a separate property
         shootsOnDate.forEach(shoot => {
-          dataPoint[`shooter_${shoot.shooterId}`] = shoot.percentage
-          dataPoint[`shooterName_${shoot.shooterId}`] = shoot.shooterName
-          dataPoint[`score_${shoot.shooterId}`] = shoot.score
+          dataPoint[`athlete_${shoot.athleteId}`] = shoot.percentage
+          dataPoint[`athleteName_${shoot.athleteId}`] = shoot.athleteName
+          dataPoint[`score_${shoot.athleteId}`] = shoot.score
         })
 
         return dataPoint
@@ -195,29 +195,29 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
     })
 
     return dataByDiscipline
-  }, [filteredShooters, shooters, selectedDiscipline, timeRange])
+  }, [filteredathletes, athletes, selectedDiscipline, timeRange])
 
   // Calculate overall team statistics
   const teamStats = useMemo(() => {
     let totalShoots = 0
-    let totalShootersWithHistory = 0
+    let totalathletesWithHistory = 0
 
-    filteredShooters.forEach(shooter => {
-      if (shooter.shoots.length > 0) {
-        totalShootersWithHistory++
-        totalShoots += shooter.shoots.length
+    filteredathletes.forEach(athlete => {
+      if (athlete.shoots.length > 0) {
+        totalathletesWithHistory++
+        totalShoots += athlete.shoots.length
       }
     })
 
     return {
-      totalShooters: filteredShooters.length,
-      totalShootersWithHistory,
+      totalathletes: filteredathletes.length,
+      totalathletesWithHistory,
       totalShoots,
-      avgShootsPerShooter: totalShootersWithHistory > 0 
-        ? (totalShoots / totalShootersWithHistory).toFixed(1)
+      avgShootsPerathlete: totalathletesWithHistory > 0 
+        ? (totalShoots / totalathletesWithHistory).toFixed(1)
         : '0'
     }
-  }, [filteredShooters])
+  }, [filteredathletes])
 
   const getTrendColor = (trend: string) => {
     if (trend === 'improving') return 'text-green-600 bg-green-50'
@@ -241,20 +241,20 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
         {/* Team Overview Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
           <div className="bg-indigo-50 rounded-lg p-4">
-            <div className="text-sm text-indigo-600 font-medium">Total Shooters</div>
-            <div className="text-2xl font-bold text-indigo-900">{teamStats.totalShooters}</div>
+            <div className="text-sm text-indigo-600 font-medium">Total athletes</div>
+            <div className="text-2xl font-bold text-indigo-900">{teamStats.totalathletes}</div>
           </div>
           <div className="bg-green-50 rounded-lg p-4">
             <div className="text-sm text-green-600 font-medium">With History</div>
-            <div className="text-2xl font-bold text-green-900">{teamStats.totalShootersWithHistory}</div>
+            <div className="text-2xl font-bold text-green-900">{teamStats.totalathletesWithHistory}</div>
           </div>
           <div className="bg-blue-50 rounded-lg p-4">
             <div className="text-sm text-blue-600 font-medium">Total Shoots</div>
             <div className="text-2xl font-bold text-blue-900">{teamStats.totalShoots}</div>
           </div>
           <div className="bg-purple-50 rounded-lg p-4">
-            <div className="text-sm text-purple-600 font-medium">Avg per Shooter</div>
-            <div className="text-2xl font-bold text-purple-900">{teamStats.avgShootsPerShooter}</div>
+            <div className="text-sm text-purple-600 font-medium">Avg per athlete</div>
+            <div className="text-2xl font-bold text-purple-900">{teamStats.avgShootsPerathlete}</div>
           </div>
         </div>
       </div>
@@ -263,20 +263,20 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Filters</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Shooter Filter */}
+          {/* Athlete Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Shooter
+              athlete
             </label>
             <select
-              value={selectedShooterId}
-              onChange={(e) => setSelectedShooterId(e.target.value)}
+              value={selectedathleteId}
+              onChange={(e) => setSelectedathleteId(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             >
-              <option value="all">All Shooters</option>
-              {shooters.map(shooter => (
-                <option key={shooter.id} value={shooter.id}>
-                  {shooter.name} {shooter.shoots.length > 0 ? `(${shooter.shoots.length} shoots)` : '(no history)'}
+              <option value="all">All athletes</option>
+              {athletes.map(athlete => (
+                <option key={athlete.id} value={athlete.id}>
+                  {athlete.name} {athlete.shoots.length > 0 ? `(${athlete.shoots.length} shoots)` : '(no history)'}
                 </option>
               ))}
             </select>
@@ -327,16 +327,16 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
         const discipline = allDisciplines.find(d => d.id === disciplineId)
         if (!discipline) return null
 
-        // Get unique shooters in this data by checking shooter_ properties
-        const shooterIds = new Set<string>()
+        // Get unique athletes in this data by checking athlete_ properties
+        const athleteIds = new Set<string>()
         data.forEach(point => {
           Object.keys(point).forEach(key => {
-            if (key.startsWith('shooter_')) {
-              shooterIds.add(key.replace('shooter_', ''))
+            if (key.startsWith('athlete_')) {
+              athleteIds.add(key.replace('athlete_', ''))
             }
           })
         })
-        const shootersInChart = Array.from(shooterIds)
+        const athletesInChart = Array.from(athleteIds)
         const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
         return (
@@ -369,14 +369,14 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
                         <div className="bg-white p-4 border border-gray-300 rounded-lg shadow-lg max-w-xs">
                           <p className="text-sm font-semibold text-gray-900">{data.date}</p>
                           <p className="text-xs text-gray-600 mb-2">{data.tournamentName}</p>
-                          {payload.filter(p => p.dataKey.startsWith('shooter_')).map((entry: any) => {
-                            const shooterId = entry.dataKey.replace('shooter_', '')
-                            const shooterName = data[`shooterName_${shooterId}`]
-                            const score = data[`score_${shooterId}`]
+                          {payload.filter(p => p.dataKey.startsWith('athlete_')).map((entry: any) => {
+                            const athleteId = entry.dataKey.replace('athlete_', '')
+                            const athleteName = data[`athleteName_${athleteId}`]
+                            const score = data[`score_${athleteId}`]
                             return (
-                              <div key={shooterId} className="mt-1">
+                              <div key={athleteId} className="mt-1">
                                 <span style={{ color: entry.color }} className="font-medium">
-                                  {shooterName}:
+                                  {athleteName}:
                                 </span>
                                 <span className="ml-2 font-bold">{entry.value.toFixed(1)}%</span>
                                 <span className="ml-1 text-xs text-gray-500">({score})</span>
@@ -395,15 +395,15 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
                   }}
                 />
                 <Legend />
-                {shootersInChart.map((shooterId, index) => {
-                  const shooter = filteredShooters.find(s => s.id === shooterId)
+                {athletesInChart.map((athleteId, index) => {
+                  const athlete = filteredathletes.find(s => s.id === athleteId)
                   
                   return (
                     <Line
-                      key={shooterId}
+                      key={athleteId}
                       type="monotone"
-                      dataKey={`shooter_${shooterId}`}
-                      name={shooter?.name || 'Unknown'}
+                      dataKey={`athlete_${athleteId}`}
+                      name={athlete?.name || 'Unknown'}
                       stroke={colors[index % colors.length]}
                       strokeWidth={2}
                       dot={{ r: 4 }}
@@ -429,36 +429,36 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
         )
       })}
 
-      {/* Shooter Statistics */}
-      {filteredShooters.map(shooter => (
-        <div key={shooter.id} className="bg-white rounded-lg shadow-md p-6 mb-8">
+      {/* Athlete Statistics */}
+      {filteredathletes.map(athlete => (
+        <div key={athlete.id} className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{shooter.name}</h2>
-              <p className="text-sm text-gray-600">{shooter.email}</p>
-              {(shooter.grade || shooter.division) && (
+              <h2 className="text-2xl font-bold text-gray-900">{athlete.name}</h2>
+              <p className="text-sm text-gray-600">{athlete.email}</p>
+              {(athlete.grade || athlete.division) && (
                 <p className="text-sm text-gray-600 mt-1">
-                  {shooter.grade && <span>Grade: {shooter.grade}</span>}
-                  {shooter.grade && shooter.division && <span> • </span>}
-                  {shooter.division && <span className="font-medium text-indigo-600">{shooter.division}</span>}
+                  {athlete.grade && <span>Grade: {athlete.grade}</span>}
+                  {athlete.grade && athlete.division && <span> • </span>}
+                  {athlete.division && <span className="font-medium text-indigo-600">{athlete.division}</span>}
                 </p>
               )}
             </div>
             <Link
-              href={`/shooters/${shooter.id}`}
+              href={`/athletes/${athlete.id}`}
               className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
             >
               View Profile →
             </Link>
           </div>
 
-          {shooter.stats.length === 0 ? (
+          {athlete.stats.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No shooting history yet.</p>
           ) : (
             <>
               {/* Discipline Stats */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {shooter.stats
+                {athlete.stats
                   .filter(stat => selectedDiscipline === 'all' || stat.discipline.id === selectedDiscipline)
                   .map(stat => (
                     <div key={stat.discipline.id} className="border border-gray-200 rounded-lg p-4">
@@ -503,7 +503,7 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {shooter.shoots
+                      {athlete.shoots
                         .filter(shoot => selectedDiscipline === 'all' || shoot.discipline.id === selectedDiscipline)
                         .slice()
                         .reverse()
@@ -547,9 +547,9 @@ export default function TeamHistoryViewer({ teamName, shooters }: TeamHistoryVie
         </div>
       ))}
 
-      {filteredShooters.length === 0 && (
+      {filteredathletes.length === 0 && (
         <div className="bg-white rounded-lg shadow-md p-12 text-center">
-          <p className="text-gray-500 text-lg">No shooters found matching your filters.</p>
+          <p className="text-gray-500 text-lg">No athletes found matching your filters.</p>
         </div>
       )}
     </div>

@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const { teamId, message } = await request.json()
 
     // Must be a shooter to join a team
-    if (!user.shooter) {
+    if (!user.athlete) {
       return NextResponse.json(
         { error: 'Only shooters can join teams' },
         { status: 403 }
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if shooter is already on a team
-    if (user.shooter.teamId) {
+    if (user.athlete.teamId) {
       return NextResponse.json(
         { error: 'You are already on a team' },
         { status: 400 }
@@ -37,9 +37,9 @@ export async function POST(request: NextRequest) {
     // Check for existing request
     const existing = await prisma.teamJoinRequest.findUnique({
       where: {
-        teamId_shooterId: {
+        teamId_athleteId: {
           teamId,
-          shooterId: user.shooter.id
+          athleteId: user.athlete.id
         }
       }
     })
@@ -55,13 +55,13 @@ export async function POST(request: NextRequest) {
     const joinRequest = await prisma.teamJoinRequest.create({
       data: {
         teamId,
-        shooterId: user.shooter.id,
+        athleteId: user.athlete.id,
         message,
         status: 'pending'
       },
       include: {
         team: true,
-        shooter: {
+        athlete: {
           include: {
             user: true
           }

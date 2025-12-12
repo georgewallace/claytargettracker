@@ -101,7 +101,7 @@ export default function TimeSlotSection({ timeSlot, tournamentId, onUpdate }: Ti
             </p>
           ) : (
             <p className="text-gray-500 text-sm">
-              No squads yet • Drop a shooter here to create a squad
+              No squads yet • Drop an athlete here to create a squad
             </p>
           )}
         </div>

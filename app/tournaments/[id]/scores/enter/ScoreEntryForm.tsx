@@ -22,12 +22,12 @@ interface Shoot {
 
 interface ScoreEntryFormProps {
   tournamentId: string
-  shooterId: string
+  athleteId: string
   disciplines: Discipline[]
   existingShoots: Shoot[]
 }
 
-export default function ScoreEntryForm({ tournamentId, shooterId, disciplines, existingShoots }: ScoreEntryFormProps) {
+export default function ScoreEntryForm({ tournamentId, athleteId, disciplines, existingShoots }: ScoreEntryFormProps) {
   const router = useRouter()
   const [selectedDiscipline, setSelectedDiscipline] = useState<string>(disciplines[0]?.id || '')
   const [stations, setStations] = useState<Array<{ station: number; targets: number; totalTargets: number }>>([
@@ -99,7 +99,7 @@ export default function ScoreEntryForm({ tournamentId, shooterId, disciplines, e
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tournamentId,
-          shooterId,
+          athleteId,
           disciplineId: selectedDiscipline,
           scores: stations
         })

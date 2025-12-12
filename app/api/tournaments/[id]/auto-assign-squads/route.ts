@@ -58,13 +58,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     
     // Only apply shooter filter if there are conditions
     if (Object.keys(shooterFilter).length > 0) {
-      whereClause.shooter = shooterFilter
+      whereClause.athlete = shooterFilter
     }
     
     const registrations = await prisma.registration.findMany({
       where: whereClause,
       include: {
-        shooter: {
+        athlete: {
           include: {
             user: true,
             team: true
@@ -160,8 +160,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const unassignedReasons: Record<string, { shooterName: string, teamName: string, reason: string }[]> = {}
 
     // Helper function to check if assigning a shooter to a time slot would create a time conflict
-    const hasTimeConflict = (shooterId: string, targetTimeSlot: any, existingAssignments: any[]): boolean => {
-      const shooterAssignments = existingAssignments.filter(a => a.shooterId === shooterId)
+    const hasTimeConflict = (athleteId: string, targetTimeSlot: any, existingAssignments: any[]): boolean => {
+      const shooterAssignments = existingAssignments.filter(a => a.athleteId === athleteId)
       
       for (const assignment of shooterAssignments) {
         const assignedSlot = timeSlots.find(ts => ts.id === assignment.timeSlotId)
@@ -192,15 +192,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Helper to check if shooter is already assigned (from DB or temp assignments)
-    const isShooterAssigned = async (shooterId: string, disciplineId: string): Promise<boolean> => {
-      if (assignments.find(a => a.shooterId === shooterId && a.disciplineId === disciplineId)) {
+    const isShooterAssigned = async (athleteId: string, disciplineId: string): Promise<boolean> => {
+      if (assignments.find(a => a.athleteId === athleteId && a.disciplineId === disciplineId)) {
         return true
       }
       
       if (!options.deleteExistingSquads) {
         const existingMember = await prisma.squadMember.findFirst({
           where: {
-            shooterId,
+            athleteId,
             squad: {
               timeSlot: {
                 disciplineId,
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Group shooters by discipline, then by team/division based on options
     interface ShooterGroup {
       key: string
-      shooters: any[]
+      athletes: any[]
       teamId: string | null
       division: string | null
     }
@@ -238,28 +238,28 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
         
         // Skip if already assigned
-        if (await isShooterAssigned(reg.shooter.id, disciplineId)) {
+        if (await isShooterAssigned(reg.athlete.id, disciplineId)) {
           continue
         }
         
         // Find the appropriate group for this shooter
         let groupKey = 'default'
         if (options.keepTeamsTogether && options.keepDivisionsTogether) {
-          groupKey = `${reg.shooter.teamId || 'noteam'}_${reg.shooter.division || 'nodiv'}`
+          groupKey = `${reg.athlete.teamId || 'noteam'}_${reg.athlete.division || 'nodiv'}`
         } else if (options.keepTeamsTogether) {
-          groupKey = reg.shooter.teamId || 'noteam'
+          groupKey = reg.athlete.teamId || 'noteam'
         } else if (options.keepDivisionsTogether) {
-          groupKey = reg.shooter.division || 'nodiv'
+          groupKey = reg.athlete.division || 'nodiv'
         }
         
         // Find or create the group
         let group = shooterGroups[disciplineId].find(g => g.key === groupKey)
         if (!group) {
-          group = { key: groupKey, shooters: [], teamId: reg.shooter.teamId, division: reg.shooter.division }
+          group = { key: groupKey, athletes: [], teamId: reg.athlete.teamId, division: reg.athlete.division }
           shooterGroups[disciplineId].push(group)
         }
         
-        group.shooters.push(reg.shooter)
+        group.athletes.push(reg.athlete)
       }
     }
 
@@ -302,8 +302,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             const timeSlot = disciplineTimeSlots[tsIndex]
             
             // Check if all shooters in group can be assigned to this time slot (no time conflicts)
-            const allCanAssign = group.shooters.every((shooter: any) => 
-              !hasTimeConflict(shooter.id, timeSlot, assignments)
+            const allCanAssign = group.athletes.every((athlete: any) =>
+              !hasTimeConflict(athlete.id, timeSlot, assignments)
             )
             
             if (!allCanAssign) {
@@ -323,7 +323,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               if (existingSquads.length > 0) {
                 // Check if we can add to the existing squad
                 const existingSquad = existingSquads[0]
-                if (existingSquad.members.length + group.shooters.length > squadCapacity) {
+                if (existingSquad.members.length + group.athletes.length > squadCapacity) {
                   failureReason = `Squad at this time slot is full (${existingSquad.members.length}/${squadCapacity})`
                   continue // This time slot can't fit the group
                 }
@@ -339,7 +339,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               const fieldSquads = existingSquads.filter(s => s.name.includes(fieldNumber || ''))
               if (fieldSquads.length > 0) {
                 const fieldSquad = fieldSquads[0]
-                if (fieldSquad.members.length + group.shooters.length > squadCapacity || fieldSquad.members.length >= squadCapacity) {
+                if (fieldSquad.members.length + group.athletes.length > squadCapacity || fieldSquad.members.length >= squadCapacity) {
                   failureReason = `${fieldNumber} squad is full (${fieldSquad.members.length}/${squadCapacity})`
                   continue
                 }
@@ -349,18 +349,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             // Find or create appropriate squad
             // Must check: 1) Has capacity, 2) If teamOnly, must match team, 3) Discipline rules
             let targetSquad = existingSquads.find(s => {
-              const hasCapacity = s.members.length + group.shooters.length <= squadCapacity
+              const hasCapacity = s.members.length + group.athletes.length <= squadCapacity
               if (!hasCapacity) {
-                failureReason = `No squads with enough capacity (need ${group.shooters.length} spots)`
+                failureReason = `No squads with enough capacity (need ${group.athletes.length} spots)`
                 return false
               }
               
               // If squad is team-only, check if all shooters in group are from the same team
               if (s.teamOnly && s.members.length > 0) {
                 // Get the team ID of the first member in the squad
-                const squadTeamId = s.members[0]?.shooter?.teamId
+                const squadTeamId = s.members[0]?.athlete?.teamId
                 // Check if all shooters in the group match this team
-                const allMatch = group.shooters.every((shooter: any) => shooter.teamId === squadTeamId)
+                const allMatch = group.athletes.every((athlete: any) => athlete.teamId === squadTeamId)
                 if (!allMatch) {
                   failureReason = 'All available squads are team-only for different teams'
                 }
@@ -404,17 +404,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             }
 
             // Assign all shooters in the group to this squad
-            for (const shooter of group.shooters) {
+            for (const shooter of group.athletes) {
               await prisma.squadMember.create({
                 data: {
                   squadId: targetSquad.id,
-                  shooterId: shooter.id,
+                  athleteId: shooter.id,
                   position: targetSquad.members.length + 1
                 }
               })
 
               assignments.push({
-                shooterId: shooter.id,
+                athleteId: shooter.id,
                 disciplineId,
                 squadId: targetSquad.id,
                 timeSlotId: timeSlot.id
@@ -436,7 +436,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             if (!unassignedReasons[disciplineName]) {
               unassignedReasons[disciplineName] = []
             }
-            for (const shooter of group.shooters) {
+            for (const shooter of group.athletes) {
               unassignedReasons[disciplineName].push({
                 shooterName: shooter.user.name,
                 teamName: shooter.team?.name || 'No Team',
@@ -447,7 +447,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           
           // If group couldn't be assigned as a unit and we're not strict, assign individually
           if (!groupAssigned && !options.keepTeamsTogether && !options.keepDivisionsTogether) {
-            for (const shooter of group.shooters) {
+            for (const shooter of group.athletes) {
               // Try to assign this individual shooter
               for (let tsIndex = 0; tsIndex < disciplineTimeSlots.length; tsIndex++) {
                 const timeSlot = disciplineTimeSlots[tsIndex]
@@ -481,13 +481,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 await prisma.squadMember.create({
                   data: {
                     squadId: targetSquad.id,
-                    shooterId: shooter.id,
+                    athleteId: shooter.id,
                     position: targetSquad.members.length + 1
                   }
                 })
 
                 assignments.push({
-                  shooterId: shooter.id,
+                  athleteId: shooter.id,
                   disciplineId,
                   squadId: targetSquad.id,
                   timeSlotId: timeSlot.id
@@ -500,7 +500,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           }
         } else {
           // Not keeping teams/divisions together, assign individually
-          for (const shooter of group.shooters) {
+          for (const shooter of group.athletes) {
             for (let tsIndex = 0; tsIndex < disciplineTimeSlots.length; tsIndex++) {
               const timeSlot = disciplineTimeSlots[tsIndex]
               
@@ -533,13 +533,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               await prisma.squadMember.create({
                 data: {
                   squadId: targetSquad.id,
-                  shooterId: shooter.id,
+                  athleteId: shooter.id,
                   position: targetSquad.members.length + 1
                 }
               })
 
               assignments.push({
-                shooterId: shooter.id,
+                athleteId: shooter.id,
                 disciplineId,
                 squadId: targetSquad.id,
                 timeSlotId: timeSlot.id

@@ -7,14 +7,14 @@ export async function GET() {
   try {
     const teams = await prisma.team.findMany({
       include: {
-        shooters: {
+        athletes: {
           include: {
             user: true
           }
         },
         _count: {
           select: {
-            shooters: true
+            athletes: true
           }
         }
       },

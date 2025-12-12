@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { gradeOptions, monthOptions, getYearOptions, calculateDivision } from '@/lib/divisions'
 
-interface Shooter {
+interface Athlete {
   id: string
   birthMonth: number | null
   birthYear: number | null
@@ -22,27 +22,27 @@ interface Shooter {
   } | null
 }
 
-interface EditShooterFormProps {
-  shooter: Shooter
+interface EditAthleteFormProps {
+  athlete: Athlete
 }
 
-export default function EditShooterForm({ shooter }: EditShooterFormProps) {
+export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
   const router = useRouter()
   const yearOptions = getYearOptions()
   
   const [formData, setFormData] = useState({
-    birthMonth: shooter.birthMonth?.toString() || '',
-    birthYear: shooter.birthYear?.toString() || '',
-    nscaClass: shooter.nscaClass || '',
-    ataClass: shooter.ataClass || '',
-    grade: shooter.grade || ''
+    birthMonth: athlete.birthMonth?.toString() || '',
+    birthYear: athlete.birthYear?.toString() || '',
+    nscaClass: athlete.nscaClass || '',
+    ataClass: athlete.ataClass || '',
+    grade: athlete.grade || ''
   })
   
-  const [calculatedDivision, setCalculatedDivision] = useState<string | null>(shooter.division)
+  const [calculatedDivision, setCalculatedDivision] = useState<string | null>(athlete.division)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [profilePicture, setProfilePicture] = useState<File | null>(null)
-  const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(shooter.profilePictureUrl)
+  const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(athlete.profilePictureUrl)
   const [uploadingPicture, setUploadingPicture] = useState(false)
 
   // Recalculate division when grade changes
@@ -57,7 +57,7 @@ export default function EditShooterForm({ shooter }: EditShooterFormProps) {
     setLoading(true)
 
     try {
-      const response = await fetch(`/api/shooters/${shooter.id}`, {
+      const response = await fetch(`/api/athletes/${athlete.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -66,7 +66,7 @@ export default function EditShooterForm({ shooter }: EditShooterFormProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Failed to update shooter details')
+        setError(data.error || 'Failed to update athlete details')
         return
       }
 
@@ -125,7 +125,7 @@ export default function EditShooterForm({ shooter }: EditShooterFormProps) {
       const formData = new FormData()
       formData.append('file', profilePicture)
 
-      const response = await fetch(`/api/shooters/${shooter.id}/profile-picture`, {
+      const response = await fetch(`/api/athletes/${athlete.id}/profile-picture`, {
         method: 'POST',
         body: formData
       })
@@ -154,7 +154,7 @@ export default function EditShooterForm({ shooter }: EditShooterFormProps) {
     setError('')
 
     try {
-      const response = await fetch(`/api/shooters/${shooter.id}/profile-picture`, {
+      const response = await fetch(`/api/athletes/${athlete.id}/profile-picture`, {
         method: 'DELETE'
       })
 
@@ -200,7 +200,7 @@ export default function EditShooterForm({ shooter }: EditShooterFormProps) {
                   alt="Profile preview"
                   className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
                 />
-                {profilePicturePreview === shooter.profilePictureUrl && (
+                {profilePicturePreview === athlete.profilePictureUrl && (
                   <button
                     type="button"
                     onClick={handleRemovePicture}
@@ -260,14 +260,14 @@ export default function EditShooterForm({ shooter }: EditShooterFormProps) {
       </div>
 
       {/* Gender (Read-only for coaches) */}
-      {shooter.gender && (
+      {athlete.gender && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm font-medium text-gray-900">Gender</div>
-              <div className="text-xs text-gray-600 mt-1">Only the shooter can change this</div>
+              <div className="text-xs text-gray-600 mt-1">Only the athlete can change this</div>
             </div>
-            <div className="text-lg font-semibold text-gray-700">{shooter.gender}</div>
+            <div className="text-lg font-semibold text-gray-700">{athlete.gender}</div>
           </div>
         </div>
       )}

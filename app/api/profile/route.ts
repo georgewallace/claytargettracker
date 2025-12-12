@@ -14,7 +14,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Get shooter profile
-    const shooter = await prisma.shooter.findUnique({
+    const shooter = await prisma.athlete.findUnique({
       where: { userId: user.id }
     })
 
@@ -62,7 +62,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update shooter profile
-    const updatedShooter = await prisma.shooter.update({
+    const updatedShooter = await prisma.athlete.update({
       where: { id: shooter.id },
       data: {
         gender,
@@ -85,7 +85,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Profile updated successfully',
-      shooter: updatedShooter
+      athlete: updatedShooter
     })
   } catch (error) {
     console.error('Error updating profile:', error)

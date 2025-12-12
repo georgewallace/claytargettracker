@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
         role: userRole,
         // Only create shooter profile for shooter role
         ...(userRole === 'shooter' && {
-          shooter: {
+          athlete: {
             create: {}
           }
         })

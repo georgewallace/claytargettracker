@@ -47,7 +47,7 @@ export default async function Home() {
           </div>
 
           {/* Tournament List */}
-          <TournamentList tournaments={tournamentsWithStatus} isShooter={false} />
+          <TournamentList tournaments={tournamentsWithStatus} isathlete={false} />
         </div>
       </div>
     )
@@ -62,9 +62,9 @@ export default async function Home() {
           discipline: true
         }
       },
-      registrations: user?.shooter ? {
+      registrations: user?.athlete ? {
         where: {
-          shooterId: user.shooter.id
+          athleteId: user.athlete.id
         },
         select: {
           id: true
@@ -82,7 +82,7 @@ export default async function Home() {
   // Add registration status to each tournament
   const tournamentsWithStatus = tournaments.map((tournament: any) => ({
     ...tournament,
-    isRegistered: user?.shooter && Array.isArray(tournament.registrations) 
+    isRegistered: user?.athlete && Array.isArray(tournament.registrations) 
       ? tournament.registrations.length > 0 
       : false
   }))
@@ -131,7 +131,7 @@ export default async function Home() {
         ) : (
           <TournamentList 
             tournaments={tournamentsWithStatus} 
-            isShooter={!!user?.shooter}
+            isathlete={!!user?.athlete}
           />
         )}
       </div>

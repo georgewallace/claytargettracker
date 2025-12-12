@@ -73,7 +73,7 @@ export default async function RoundScoreEntryPage({ params }: PageProps) {
               eliminated: false
             },
             include: {
-              shooter: {
+              athlete: {
                 include: {
                   user: true,
                   team: true
@@ -81,7 +81,7 @@ export default async function RoundScoreEntryPage({ params }: PageProps) {
               }
             },
             orderBy: {
-              shooter: {
+              athlete: {
                 user: {
                   name: 'asc'
                 }
@@ -94,7 +94,7 @@ export default async function RoundScoreEntryPage({ params }: PageProps) {
         include: {
           participant: {
             include: {
-              shooter: {
+              athlete: {
                 include: {
                   user: true
                 }
@@ -158,7 +158,7 @@ export default async function RoundScoreEntryPage({ params }: PageProps) {
           <ul className="space-y-2 text-blue-800 text-sm">
             <li className="flex items-start">
               <span className="mr-2">•</span>
-              <span>Enter the number of targets hit by each shooter in this round</span>
+              <span>Enter the number of targets hit by each athlete in this round</span>
             </li>
             <li className="flex items-start">
               <span className="mr-2">•</span>
@@ -170,7 +170,7 @@ export default async function RoundScoreEntryPage({ params }: PageProps) {
             </li>
             <li className="flex items-start">
               <span className="mr-2">•</span>
-              <span>After submitting, shooters with the lowest score(s) may be eliminated</span>
+              <span>After submitting, athletes with the lowest score(s) may be eliminated</span>
             </li>
           </ul>
         </div>

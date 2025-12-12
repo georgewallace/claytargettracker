@@ -240,11 +240,11 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="font-bold text-lg text-gray-900">
-                      {participant.shooter.user.name}
+                      {participant.athlete.user.name}
                       {participant.id === shootOff.winnerId && ' 🏆'}
                     </div>
                     <div className="text-sm text-gray-600">
-                      {participant.shooter.team?.name || 'Independent'}
+                      {participant.athlete.team?.name || 'Independent'}
                     </div>
                   </div>
                   {participant.finalPlace && (
@@ -324,7 +324,7 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
                     <thead className="bg-gray-100">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Shooter
+                          athlete
                         </th>
                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Targets Hit
@@ -348,10 +348,10 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
                             <tr key={score.id} className={idx === 0 && round.scores.length > 1 ? 'bg-green-50' : ''}>
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="font-medium text-gray-900">
-                                  {score.participant.shooter.user.name}
+                                  {score.participant.athlete.user.name}
                                 </div>
                                 <div className="text-sm text-gray-500">
-                                  {score.participant.shooter.team?.name || 'Independent'}
+                                  {score.participant.athlete.team?.name || 'Independent'}
                                 </div>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-center">
@@ -420,7 +420,7 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
           </h3>
           <p className="text-yellow-800 mb-4">
             Only one participant remains! You can now declare{' '}
-            <strong>{activeParticipants[0].shooter.user.name}</strong> as the winner.
+            <strong>{activeParticipants[0].athlete.user.name}</strong> as the winner.
           </p>
           <a
             href={`/tournaments/${tournament.id}/shoot-offs/${shootOff.id}/declare-winner`}

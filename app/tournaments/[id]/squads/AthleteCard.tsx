@@ -2,13 +2,13 @@
 
 import { getDivisionColor } from '@/lib/squadUtils'
 
-interface ShooterCardProps {
-  shooter: any
+interface athleteCardProps {
+  athlete: any
   isDragging?: boolean
   onRemove?: () => void
 }
 
-export default function ShooterCard({ shooter, isDragging, onRemove }: ShooterCardProps) {
+export default function athleteCard({ athlete, isDragging, onRemove }: athleteCardProps) {
   return (
     <div
       className={`p-3 bg-white border-2 rounded-md transition cursor-grab active:cursor-grabbing ${
@@ -20,19 +20,19 @@ export default function ShooterCard({ shooter, isDragging, onRemove }: ShooterCa
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm text-gray-900 truncate">
-            {shooter.user.name}
+            {athlete.user.name}
           </div>
           
-          {shooter.team && (
+          {athlete.team && (
             <div className="text-xs text-gray-500 truncate mt-0.5">
-              {shooter.team.name}
+              {athlete.team.name}
             </div>
           )}
           
-          {shooter.division && (
+          {athlete.division && (
             <div className="mt-1">
-              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getDivisionColor(shooter.division)}`}>
-                {shooter.division}
+              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getDivisionColor(athlete.division)}`}>
+                {athlete.division}
               </span>
             </div>
           )}

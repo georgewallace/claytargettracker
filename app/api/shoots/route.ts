@@ -6,10 +6,10 @@ import { requireAuth } from '@/lib/auth'
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
-    const { tournamentId, shooterId, disciplineId, scores } = await request.json()
+    const { tournamentId, athleteId, disciplineId, scores } = await request.json()
     
     // Validate input
-    if (!tournamentId || !shooterId || !disciplineId || !scores) {
+    if (!tournamentId || !athleteId || !disciplineId || !scores) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Verify the shooter belongs to the current user or user is admin
-    if (!user.shooter || (user.shooter.id !== shooterId && user.role !== 'admin')) {
+    if (!user.athlete || (user.athlete.id !== athleteId && user.role !== 'admin')) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
     // Check if shooter is registered for the tournament
     const registration = await prisma.registration.findUnique({
       where: {
-        tournamentId_shooterId: {
+        tournamentId_athleteId: {
           tournamentId,
-          shooterId
+          athleteId
         }
       },
       include: {
@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
     // Find or create the shoot
     let shoot = await prisma.shoot.findUnique({
       where: {
-        tournamentId_shooterId_disciplineId: {
+        tournamentId_athleteId_disciplineId: {
           tournamentId,
-          shooterId,
+          athleteId,
           disciplineId
         }
       },
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       shoot = await prisma.shoot.create({
         data: {
           tournamentId,
-          shooterId,
+          athleteId,
           disciplineId,
           scores: {
             create: scores.map((score: { station: number; targets: number; totalTargets: number }) => ({

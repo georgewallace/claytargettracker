@@ -29,9 +29,9 @@ interface Tournament {
   shootOffRequiresPerfect: boolean
 }
 
-interface ShooterScore {
-  shooterId: string
-  shooterName: string
+interface athletescore {
+  athleteId: string
+  athleteName: string
   teamName: string | null
   teamLogoUrl: string | null
   division: string | null
@@ -62,7 +62,7 @@ interface LeaderboardProps {
 export default function Leaderboard({ tournament, isAdmin = false }: LeaderboardProps) {
   const router = useRouter()
   const [autoRefresh, setAutoRefresh] = useState(true)
-  const [expandedShooter, setExpandedShooter] = useState<string | null>(null)
+  const [expandedathlete, setExpandedathlete] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [zoom, setZoom] = useState(100)
   
@@ -103,18 +103,18 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
   }, [])
 
   // Calculate individual scores
-  const shooterScores: Record<string, ShooterScore> = {}
+  const athletescores: Record<string, athletescore> = {}
   
   tournament.shoots.forEach(shoot => {
-    const key = shoot.shooterId
-    if (!shooterScores[key]) {
-      shooterScores[key] = {
-        shooterId: shoot.shooterId,
-        shooterName: shoot.shooter.user.name,
-        teamName: shoot.shooter.team?.name || null,
-        teamLogoUrl: shoot.shooter.team?.logoUrl || null,
-        division: shoot.shooter.division || null,
-        gender: shoot.shooter.gender || null,
+    const key = shoot.athleteId
+    if (!athletescores[key]) {
+      athletescores[key] = {
+        athleteId: shoot.athleteId,
+        athleteName: shoot.athlete.user.name,
+        teamName: shoot.athlete.team?.name || null,
+        teamLogoUrl: shoot.athlete.team?.logoUrl || null,
+        division: shoot.athlete.division || null,
+        gender: shoot.athlete.gender || null,
         disciplineScores: {},
         totalScore: 0,
         disciplineCount: 0,
@@ -123,18 +123,18 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
     }
 
     const disciplineTotal = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
-    shooterScores[key].disciplineScores[shoot.disciplineId] = disciplineTotal
-    shooterScores[key].totalScore += disciplineTotal
-    shooterScores[key].disciplineCount++
+    athletescores[key].disciplineScores[shoot.disciplineId] = disciplineTotal
+    athletescores[key].totalScore += disciplineTotal
+    athletescores[key].disciplineCount++
     
     // Track the most recent update
     const shootUpdated = new Date(shoot.updatedAt)
-    if (!shooterScores[key].lastUpdated || shootUpdated > shooterScores[key].lastUpdated!) {
-      shooterScores[key].lastUpdated = shootUpdated
+    if (!athletescores[key].lastUpdated || shootUpdated > athletescores[key].lastUpdated!) {
+      athletescores[key].lastUpdated = shootUpdated
     }
   })
 
-  const allShooters = Object.values(shooterScores)
+  const allathletes = Object.values(athletescores)
 
   // Calculate squad scores with completion status
   const squadScores: SquadScore[] = []
@@ -145,9 +145,9 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
       let membersWithScores = 0
       
       squad.members.forEach((member: any) => {
-        const shooterScore = shooterScores[member.shooter.id]
-        if (shooterScore && shooterScore.totalScore > 0) {
-          squadTotal += shooterScore.totalScore
+        const athletescore = athletescores[member.athlete.id]
+        if (athletescore && athletescore.totalScore > 0) {
+          squadTotal += athletescore.totalScore
           membersWithScores++
         }
       })
@@ -157,11 +157,11 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
       squadScores.push({
         squadId: squad.id,
         squadName: squad.name,
-        teamName: squad.members[0]?.shooter.team?.name || null,
-        teamLogoUrl: squad.members[0]?.shooter.team?.logoUrl || null,
+        teamName: squad.members[0]?.athlete.team?.name || null,
+        teamLogoUrl: squad.members[0]?.athlete.team?.logoUrl || null,
         totalScore: squadTotal,
         memberCount: squad.members.length,
-        members: squad.members.map((m: any) => m.shooter.user.name),
+        members: squad.members.map((m: any) => m.athlete.user.name),
         isComplete,
         completionPercentage: squad.members.length > 0 ? Math.round((membersWithScores / squad.members.length) * 100) : 0
       })
@@ -169,7 +169,7 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
   })
 
   // Top 3 Overall Individuals
-  const top3Overall = [...allShooters]
+  const top3Overall = [...allathletes]
     .sort((a, b) => b.totalScore - a.totalScore)
     .slice(0, 3)
 
@@ -198,25 +198,25 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
 
   // HOA (High Over All) - All disciplines combined
   // Calculate HOA separately by gender if configured
-  let hoaShooters: ShooterScore[] = []
-  let hoaMaleShooters: ShooterScore[] = []
-  let hoaFemaleShooters: ShooterScore[] = []
+  let hoaathletes: athletescore[] = []
+  let hoaMaleathletes: athletescore[] = []
+  let hoaFemaleathletes: athletescore[] = []
   
   if (tournament.enableHOA) {
     if (tournament.hoaSeparateGender) {
       // Separate HOA for males and females
-      hoaMaleShooters = [...allShooters]
+      hoaMaleathletes = [...allathletes]
         .filter(s => s.disciplineCount > 0 && s.gender === 'male')
         .sort((a, b) => b.totalScore - a.totalScore)
         .slice(0, 3)
       
-      hoaFemaleShooters = [...allShooters]
+      hoaFemaleathletes = [...allathletes]
         .filter(s => s.disciplineCount > 0 && s.gender === 'female')
         .sort((a, b) => b.totalScore - a.totalScore)
         .slice(0, 3)
     } else {
       // Combined HOA
-      hoaShooters = [...allShooters]
+      hoaathletes = [...allathletes]
         .filter(s => s.disciplineCount > 0)
         .sort((a, b) => b.totalScore - a.totalScore)
         .slice(0, 3)
@@ -225,54 +225,54 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
 
   // Collect all HOA winners for exclusion
   const hoaWinnerIds = new Set([
-    ...hoaShooters.map(s => s.shooterId),
-    ...hoaMaleShooters.map(s => s.shooterId),
-    ...hoaFemaleShooters.map(s => s.shooterId)
+    ...hoaathletes.map(s => s.athleteId),
+    ...hoaMaleathletes.map(s => s.athleteId),
+    ...hoaFemaleathletes.map(s => s.athleteId)
   ])
 
   // HAA (High All-Around) - Specific core disciplines
-  // Only includes shooters who have shot in multiple core disciplines
-  let haaShooters: any[] = []
-  let haaMaleShooters: any[] = []
-  let haaFemaleShooters: any[] = []
+  // Only includes athletes who have shot in multiple core disciplines
+  let haaathletes: any[] = []
+  let haaMaleathletes: any[] = []
+  let haaFemaleathletes: any[] = []
   
   if (tournament.enableHAA) {
-    const calculateHAA = (shooters: ShooterScore[]) => {
-      return shooters
-        .map(shooter => {
-          const coreDisciplineScores = Object.entries(shooter.disciplineScores)
+    const calculateHAA = (athletes: athletescore[]) => {
+      return athletes
+        .map(athlete => {
+          const coreDisciplineScores = Object.entries(athlete.disciplineScores)
             .filter(([disciplineId]) => coreDisciplines.includes(disciplineId))
           
           const haaTotal = coreDisciplineScores.reduce((sum, [, score]) => sum + score, 0)
           const haaDisciplineCount = coreDisciplineScores.length
 
           return {
-            ...shooter,
+            ...athlete,
             haaTotal,
             haaDisciplineCount
           }
         })
         .filter(s => s.haaDisciplineCount >= 2) // Must shoot at least 2 core disciplines
-        .filter(s => !tournament.hoaExcludesHAA || !hoaWinnerIds.has(s.shooterId)) // Exclude HOA winners if configured
+        .filter(s => !tournament.hoaExcludesHAA || !hoaWinnerIds.has(s.athleteId)) // Exclude HOA winners if configured
         .sort((a, b) => b.haaTotal - a.haaTotal)
         .slice(0, 3)
     }
 
     if (tournament.hoaSeparateGender) {
       // Separate HAA for males and females
-      haaMaleShooters = calculateHAA(allShooters.filter(s => s.gender === 'male'))
-      haaFemaleShooters = calculateHAA(allShooters.filter(s => s.gender === 'female'))
+      haaMaleathletes = calculateHAA(allathletes.filter(s => s.gender === 'male'))
+      haaFemaleathletes = calculateHAA(allathletes.filter(s => s.gender === 'female'))
     } else {
       // Combined HAA
-      haaShooters = calculateHAA(allShooters)
+      haaathletes = calculateHAA(allathletes)
     }
   }
 
   // Collect all HAA winners for exclusion from division leaderboards
   const haaWinnerIds = new Set([
-    ...haaShooters.map(s => s.shooterId),
-    ...haaMaleShooters.map(s => s.shooterId),
-    ...haaFemaleShooters.map(s => s.shooterId)
+    ...haaathletes.map(s => s.athleteId),
+    ...haaMaleathletes.map(s => s.athleteId),
+    ...haaFemaleathletes.map(s => s.athleteId)
   ])
 
 
@@ -290,9 +290,9 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
     return discipline?.discipline.displayName || 'Unknown'
   }
 
-  // Toggle shooter details
-  const toggleShooter = (shooterId: string) => {
-    setExpandedShooter(expandedShooter === shooterId ? null : shooterId)
+  // Toggle athlete details
+  const toggleathlete = (athleteId: string) => {
+    setExpandedathlete(expandedathlete === athleteId ? null : athleteId)
   }
 
   // Check if a score was recently updated (within last 2 minutes)
@@ -305,37 +305,37 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
 
   // Get unique divisions (filter out null/undefined)
   const divisions = Array.from(
-    new Set(allShooters.map(s => s.division).filter((d): d is string => Boolean(d)))
+    new Set(allathletes.map(s => s.division).filter((d): d is string => Boolean(d)))
   ).sort()
   
-  // Group shooters by discipline AND division
-  const shootersByDisciplineAndDivision: Record<string, Record<string, ShooterScore[]>> = {}
+  // Group athletes by discipline AND division
+  const athletesByDisciplineAndDivision: Record<string, Record<string, athletescore[]>> = {}
   
   tournament.disciplines.forEach(td => {
     const disciplineId = td.disciplineId
-    shootersByDisciplineAndDivision[disciplineId] = {}
+    athletesByDisciplineAndDivision[disciplineId] = {}
     
     divisions.forEach(division => {
-      let shootersInDisciplineAndDivision = allShooters.filter(
+      let athletesInDisciplineAndDivision = allathletes.filter(
         s => s.division === division && s.disciplineScores[disciplineId] !== undefined
       )
       
       // Exclude HAA winners from division leaderboards if configured
       if (tournament.haaExcludesDivision && tournament.enableHAA) {
-        shootersInDisciplineAndDivision = shootersInDisciplineAndDivision.filter(
-          s => !haaWinnerIds.has(s.shooterId)
+        athletesInDisciplineAndDivision = athletesInDisciplineAndDivision.filter(
+          s => !haaWinnerIds.has(s.athleteId)
         )
       }
       
-      shootersInDisciplineAndDivision.sort((a, b) => {
+      athletesInDisciplineAndDivision.sort((a, b) => {
         // Sort by score for this specific discipline
         const aScore = a.disciplineScores[disciplineId] || 0
         const bScore = b.disciplineScores[disciplineId] || 0
         return bScore - aScore
       })
       
-      if (shootersInDisciplineAndDivision.length > 0) {
-        shootersByDisciplineAndDivision[disciplineId][division] = shootersInDisciplineAndDivision
+      if (athletesInDisciplineAndDivision.length > 0) {
+        athletesByDisciplineAndDivision[disciplineId][division] = athletesInDisciplineAndDivision
       }
     })
   })
@@ -445,30 +445,30 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
               </h2>
               <p className="text-white/90 text-xs mb-4">All Disciplines Combined</p>
               
-              {hoaShooters.length > 0 ? (
+              {hoaathletes.length > 0 ? (
                 <div className="space-y-2">
-                  {hoaShooters.map((shooter, idx) => (
+                  {hoaathletes.map((athlete, idx) => (
                     <div
-                      key={shooter.shooterId}
+                      key={athlete.athleteId}
                       className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-3xl">{getMedal(idx)}</span>
                         <div>
                           <div className="text-lg font-bold text-white">
-                            {shooter.shooterName}
+                            {athlete.athleteName}
                           </div>
                           <div className="text-xs text-white/80">
-                            {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                            {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-white">
-                          {shooter.totalScore}
+                          {athlete.totalScore}
                         </div>
                         <div className="text-xs text-white/80">
-                          {shooter.disciplineCount} disc{shooter.disciplineCount !== 1 ? 's' : ''}
+                          {athlete.disciplineCount} disc{athlete.disciplineCount !== 1 ? 's' : ''}
                         </div>
                       </div>
                     </div>
@@ -490,30 +490,30 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
               </h2>
               <p className="text-white/90 text-xs mb-4">All Disciplines Combined</p>
               
-              {hoaMaleShooters.length > 0 ? (
+              {hoaMaleathletes.length > 0 ? (
                 <div className="space-y-2">
-                  {hoaMaleShooters.map((shooter, idx) => (
+                  {hoaMaleathletes.map((athlete, idx) => (
                     <div
-                      key={shooter.shooterId}
+                      key={athlete.athleteId}
                       className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-3xl">{getMedal(idx)}</span>
                         <div>
                           <div className="text-lg font-bold text-white">
-                            {shooter.shooterName}
+                            {athlete.athleteName}
                           </div>
                           <div className="text-xs text-white/80">
-                            {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                            {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-white">
-                          {shooter.totalScore}
+                          {athlete.totalScore}
                         </div>
                         <div className="text-xs text-white/80">
-                          {shooter.disciplineCount} disc{shooter.disciplineCount !== 1 ? 's' : ''}
+                          {athlete.disciplineCount} disc{athlete.disciplineCount !== 1 ? 's' : ''}
                         </div>
                       </div>
                     </div>
@@ -535,30 +535,30 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
               </h2>
               <p className="text-white/90 text-xs mb-4">All Disciplines Combined</p>
               
-              {hoaFemaleShooters.length > 0 ? (
+              {hoaFemaleathletes.length > 0 ? (
                 <div className="space-y-2">
-                  {hoaFemaleShooters.map((shooter, idx) => (
+                  {hoaFemaleathletes.map((athlete, idx) => (
                     <div
-                      key={shooter.shooterId}
+                      key={athlete.athleteId}
                       className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-3xl">{getMedal(idx)}</span>
                         <div>
                           <div className="text-lg font-bold text-white">
-                            {shooter.shooterName}
+                            {athlete.athleteName}
                           </div>
                           <div className="text-xs text-white/80">
-                            {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                            {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-white">
-                          {shooter.totalScore}
+                          {athlete.totalScore}
                         </div>
                         <div className="text-xs text-white/80">
-                          {shooter.disciplineCount} disc{shooter.disciplineCount !== 1 ? 's' : ''}
+                          {athlete.disciplineCount} disc{athlete.disciplineCount !== 1 ? 's' : ''}
                         </div>
                       </div>
                     </div>
@@ -585,30 +585,30 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
             </h2>
             <p className="text-white/90 text-xs mb-4">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
             
-            {haaShooters.length > 0 ? (
+            {haaathletes.length > 0 ? (
               <div className="space-y-2">
-                {haaShooters.map((shooter, idx) => (
+                {haaathletes.map((athlete, idx) => (
                   <div
-                    key={shooter.shooterId}
+                    key={athlete.athleteId}
                     className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-3xl">{getMedal(idx)}</span>
                       <div>
                         <div className="text-lg font-bold text-white">
-                          {shooter.shooterName}
+                          {athlete.athleteName}
                         </div>
                         <div className="text-xs text-white/80">
-                          {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                          {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-white">
-                        {shooter.haaTotal}
+                        {athlete.haaTotal}
                       </div>
                       <div className="text-xs text-white/80">
-                        {shooter.haaDisciplineCount} core
+                        {athlete.haaDisciplineCount} core
                       </div>
                     </div>
                   </div>
@@ -635,30 +635,30 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
             </h2>
             <p className="text-white/90 text-xs mb-4">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
             
-            {haaMaleShooters.length > 0 ? (
+            {haaMaleathletes.length > 0 ? (
               <div className="space-y-2">
-                {haaMaleShooters.map((shooter, idx) => (
+                {haaMaleathletes.map((athlete, idx) => (
                   <div
-                    key={shooter.shooterId}
+                    key={athlete.athleteId}
                     className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-3xl">{getMedal(idx)}</span>
                       <div>
                         <div className="text-lg font-bold text-white">
-                          {shooter.shooterName}
+                          {athlete.athleteName}
                         </div>
                         <div className="text-xs text-white/80">
-                          {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                          {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-white">
-                        {shooter.haaTotal}
+                        {athlete.haaTotal}
                       </div>
                       <div className="text-xs text-white/80">
-                        {shooter.haaDisciplineCount} core
+                        {athlete.haaDisciplineCount} core
                       </div>
                     </div>
                   </div>
@@ -685,30 +685,30 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
             </h2>
             <p className="text-white/90 text-xs mb-4">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
             
-            {haaFemaleShooters.length > 0 ? (
+            {haaFemaleathletes.length > 0 ? (
               <div className="space-y-2">
-                {haaFemaleShooters.map((shooter, idx) => (
+                {haaFemaleathletes.map((athlete, idx) => (
                   <div
-                    key={shooter.shooterId}
+                    key={athlete.athleteId}
                     className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-3xl">{getMedal(idx)}</span>
                       <div>
                         <div className="text-lg font-bold text-white">
-                          {shooter.shooterName}
+                          {athlete.athleteName}
                         </div>
                         <div className="text-xs text-white/80">
-                          {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                          {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-white">
-                        {shooter.haaTotal}
+                        {athlete.haaTotal}
                       </div>
                       <div className="text-xs text-white/80">
-                        {shooter.haaDisciplineCount} core
+                        {athlete.haaDisciplineCount} core
                       </div>
                     </div>
                   </div>
@@ -731,28 +731,28 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
           
           {top3Overall.length > 0 ? (
             <div className="space-y-2">
-              {top3Overall.map((shooter, idx) => (
+              {top3Overall.map((athlete, idx) => (
                 <div
-                  key={shooter.shooterId}
+                  key={athlete.athleteId}
                   className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-3xl">{getMedal(idx)}</span>
                     <div>
                       <div className="text-lg font-bold text-white">
-                        {shooter.shooterName}
+                        {athlete.athleteName}
                       </div>
                       <div className="text-xs text-white/80">
-                        {shooter.teamName || 'Independent'} • {shooter.division || 'No Division'}
+                        {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-white">
-                      {shooter.totalScore}
+                      {athlete.totalScore}
                     </div>
                     <div className="text-xs text-white/80">
-                      {shooter.disciplineCount} disc{shooter.disciplineCount !== 1 ? 's' : ''}
+                      {athlete.disciplineCount} disc{athlete.disciplineCount !== 1 ? 's' : ''}
                     </div>
                   </div>
                 </div>
@@ -793,7 +793,7 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
                         )}
                       </div>
                       <div className="text-xs text-white/80 truncate">
-                        {squad.teamName || 'Mixed'} • {squad.memberCount} shooters
+                        {squad.teamName || 'Mixed'} • {squad.memberCount} athletes
                       </div>
                     </div>
                   </div>
@@ -820,7 +820,7 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
           {tournament.disciplines.map(td => {
             const disciplineId = td.disciplineId
             const discipline = td.discipline
-            const disciplineDivisions = shootersByDisciplineAndDivision[disciplineId]
+            const disciplineDivisions = athletesByDisciplineAndDivision[disciplineId]
             
             if (!disciplineDivisions || Object.keys(disciplineDivisions).length === 0) {
               return null
@@ -838,12 +838,12 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
                 
                 {/* Division Tables Grid - More columns to fit on one screen */}
                 <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                  {Object.entries(disciplineDivisions).map(([division, shooters]) => (
+                  {Object.entries(disciplineDivisions).map(([division, athletes]) => (
                     <div key={`${disciplineId}-${division}`} className="bg-stone-900/40 backdrop-blur rounded-lg overflow-hidden">
                       <div className="bg-gradient-to-r from-stone-800 to-stone-900 p-2 border-b border-orange-400/20">
                         <h3 className="text-sm font-bold text-white">{division}</h3>
                         <p className="text-white/70 text-xs">
-                          {shooters.length} shooter{shooters.length !== 1 ? 's' : ''}
+                          {athletes.length} athlete{athletes.length !== 1 ? 's' : ''}
                         </p>
                       </div>
                       <div className="overflow-x-auto">
@@ -856,27 +856,27 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-white/5">
-                            {shooters.map((shooter, idx) => {
-                              const isRecent = isRecentlyUpdated(shooter.lastUpdated)
+                            {athletes.map((athlete, idx) => {
+                              const isRecent = isRecentlyUpdated(athlete.lastUpdated)
                               return (
                                 <tr 
-                                  key={shooter.shooterId} 
+                                  key={athlete.athleteId} 
                                   className={`transition ${
                                     isRecent 
                                       ? 'bg-green-500/20 animate-pulse' 
                                       : 'hover:bg-white/5'
                                   }`}
-                                  title={shooter.teamName || 'Independent'}
+                                  title={athlete.teamName || 'Independent'}
                                 >
                                   <td className="px-2 py-1 text-white/60">
                                     {idx < 3 ? getMedal(idx) : `${idx + 1}`}
                                   </td>
-                                  <td className="px-2 py-1 font-medium text-white text-xs truncate max-w-[120px]" title={shooter.shooterName}>
-                                    {shooter.shooterName}
+                                  <td className="px-2 py-1 font-medium text-white text-xs truncate max-w-[120px]" title={athlete.athleteName}>
+                                    {athlete.athleteName}
                                     {isRecent && <span className="ml-1 text-green-400">✨</span>}
                                   </td>
                                   <td className="px-2 py-1 text-right font-bold text-white bg-orange-900/10">
-                                    {shooter.disciplineScores[disciplineId]}
+                                    {athlete.disciplineScores[disciplineId]}
                                   </td>
                                 </tr>
                               )
@@ -891,7 +891,7 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
             )
           })}
           
-          {Object.keys(shootersByDisciplineAndDivision).length === 0 && (
+          {Object.keys(athletesByDisciplineAndDivision).length === 0 && (
             <div className="bg-stone-900/40 backdrop-blur rounded-lg p-8 text-center">
               <p className="text-white/70 text-sm">No scores recorded yet</p>
             </div>
@@ -938,7 +938,7 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
                             {squad.members.join(', ')}
                           </div>
                           <div className="text-white/50 text-xs mt-0.5">
-                            {squad.memberCount} shooter{squad.memberCount !== 1 ? 's' : ''}
+                            {squad.memberCount} athlete{squad.memberCount !== 1 ? 's' : ''}
                           </div>
                         </td>
                         <td className="px-3 py-2 text-center">
@@ -981,7 +981,7 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
         <h3 className="text-xl font-bold text-white mb-4">📖 Legend & Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-white/90 text-sm">
           <div>
-            <span className="font-semibold text-yellow-300">HOA (High Over All):</span> Combines scores from ALL disciplines and events in the tournament. The shooter with the highest total across every event wins HOA.
+            <span className="font-semibold text-yellow-300">HOA (High Over All):</span> Combines scores from ALL disciplines and events in the tournament. The athlete with the highest total across every event wins HOA.
           </div>
           <div>
             <span className="font-semibold text-purple-300">HAA (High All-Around):</span> Combines scores from core disciplines only (Trap, Skeet, Sporting Clays). Requires participation in at least 2 core disciplines. HOA winners are excluded from HAA in their division.

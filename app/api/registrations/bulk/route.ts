@@ -6,10 +6,10 @@ import { requireAuth } from '@/lib/auth'
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
-    const { tournamentId, shooterIds, disciplineIds } = await request.json()
+    const { tournamentId, athleteIds, disciplineIds } = await request.json()
     
     // Validate input
-    if (!tournamentId || !shooterIds || !Array.isArray(shooterIds) || shooterIds.length === 0) {
+    if (!tournamentId || !athleteIds || !Array.isArray(athleteIds) || athleteIds.length === 0) {
       return NextResponse.json(
         { error: 'Missing required fields or invalid shooter list' },
         { status: 400 }
@@ -35,26 +35,26 @@ export async function POST(request: NextRequest) {
     const existingRegistrations = await prisma.registration.findMany({
       where: {
         tournamentId,
-        shooterId: {
-          in: shooterIds
+        athleteId: {
+          in: athleteIds
         }
       },
       select: {
-        shooterId: true
+        athleteId: true
       }
     })
     
-    const existingShooterIds = existingRegistrations.map((r: { shooterId: string }) => r.shooterId)
-    const newShooterIds = shooterIds.filter((id: string) => !existingShooterIds.includes(id))
+    const existingShooterIds = existingRegistrations.map((r: { athleteId: string }) => r.athleteId)
+    const newShooterIds = athleteIds.filter((id: string) => !existingShooterIds.includes(id))
     
     // Create registrations for shooters who aren't already registered with disciplines
     let successCount = 0
-    for (const shooterId of newShooterIds) {
+    for (const athleteId of newShooterIds) {
       try {
         await prisma.registration.create({
           data: {
             tournamentId,
-            shooterId,
+            athleteId,
             disciplines: {
               create: disciplineIds.map((disciplineId: string) => ({
                 disciplineId,
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
         successCount++
       } catch (error) {
         // Skip if already exists (race condition)
-        console.log(`Skipped shooter ${shooterId} - already registered`)
+        console.log(`Skipped shooter ${athleteId} - already registered`)
       }
     }
     
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       message: `Successfully registered ${successCount} shooter(s)`,
       registered: successCount,
       alreadyRegistered: existingShooterIds.length,
-      total: shooterIds.length
+      total: athleteIds.length
     }, { status: 201 })
   } catch (error) {
     console.error('Bulk registration error:', error)

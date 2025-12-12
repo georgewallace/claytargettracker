@@ -124,13 +124,13 @@ export default function ScoreEntryForm({ round, tournament, participants }: Scor
             className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition"
           >
             <div className="flex items-center justify-between gap-4">
-              {/* Shooter Info */}
+              {/* Athlete Info */}
               <div className="flex-1">
                 <div className="font-semibold text-lg text-gray-900">
-                  {participant.shooter.user.name}
+                  {participant.athlete.user.name}
                 </div>
                 <div className="text-sm text-gray-600">
-                  {participant.shooter.team?.name || 'Independent'}
+                  {participant.athlete.team?.name || 'Independent'}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
                   Tied Score: {participant.tiedScore} pts
@@ -214,7 +214,7 @@ export default function ScoreEntryForm({ round, tournament, participants }: Scor
       {/* Warning */}
       <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
         <p className="text-sm text-yellow-800">
-          <strong>Note:</strong> After submitting, the round will be marked as complete and shooters with the lowest score(s) may be eliminated based on the shoot-off format.
+          <strong>Note:</strong> After submitting, the round will be marked as complete and athletes with the lowest score(s) may be eliminated based on the shoot-off format.
         </p>
       </div>
     </form>

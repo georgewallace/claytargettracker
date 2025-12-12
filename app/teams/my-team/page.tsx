@@ -26,7 +26,7 @@ export default async function MyTeamPage() {
   const teamWithDetails = team ? await prisma.team.findUnique({
     where: { id: team.id },
     include: {
-      shooters: {
+      athletes: {
         include: {
           user: true,
           team: true
@@ -63,8 +63,8 @@ export default async function MyTeamPage() {
     )
   }
 
-  // Get only shooters without a team
-  const availableShooters = await prisma.shooter.findMany({
+  // Get only athletes without a team
+  const availableathletes = await prisma.athlete.findMany({
     where: {
       teamId: null
     },
@@ -86,7 +86,7 @@ export default async function MyTeamPage() {
       status: 'pending'
     },
     include: {
-      shooter: {
+      athlete: {
         include: {
           user: true
         }
@@ -105,7 +105,7 @@ export default async function MyTeamPage() {
             Manage Team: {teamWithDetails.name}
           </h1>
           <p className="text-gray-600">
-            Add or remove shooters from your team roster
+            Add or remove athletes from your team roster
           </p>
         </div>
 
@@ -114,7 +114,7 @@ export default async function MyTeamPage() {
 
         <CoachTeamManager 
           team={teamWithDetails}
-          availableShooters={availableShooters}
+          availableathletes={availableathletes}
           joinRequests={joinRequests}
         />
       </div>

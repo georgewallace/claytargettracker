@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useDroppable, useDraggable } from '@dnd-kit/core'
 import { getSquadAvailableCapacity, classifySquad, getSquadTypeBadge, formatSquadClassification } from '@/lib/squadUtils'
-import ShooterCard from './ShooterCard'
+import AthleteCard from './AthleteCard'
 
 interface SquadCardProps {
   squad: any
@@ -20,7 +20,7 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
   const [newName, setNewName] = useState(squad.name)
   const [renamingError, setRenamingError] = useState('')
   const [showRemoveModal, setShowRemoveModal] = useState(false)
-  const [shooterToRemove, setShooterToRemove] = useState<any>(null)
+  const [athleteToRemove, setathleteToRemove] = useState<any>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -37,35 +37,35 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
   // Classify the squad
   const classification = classifySquad(squad.members)
 
-  const handleRemoveClick = (shooter: any) => {
-    setShooterToRemove(shooter)
+  const handleRemoveClick = (athlete: any) => {
+    setathleteToRemove(athlete)
     setShowRemoveModal(true)
   }
 
   const handleCancelRemove = () => {
     setShowRemoveModal(false)
-    setShooterToRemove(null)
+    setathleteToRemove(null)
   }
 
   const handleConfirmRemove = async () => {
-    if (!shooterToRemove) return
+    if (!athleteToRemove) return
 
-    setRemoving(shooterToRemove.id)
+    setRemoving(athleteToRemove.id)
 
     try {
       const response = await fetch(`/api/squads/${squad.id}/members`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shooterId: shooterToRemove.id })
+        body: JSON.stringify({ athleteId: athleteToRemove.id })
       })
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to remove shooter')
+        throw new Error(data.error || 'Failed to remove athlete')
       }
 
       setShowRemoveModal(false)
-      setShooterToRemove(null)
+      setathleteToRemove(null)
       onUpdate()
     } catch (err: any) {
       alert(err.message || 'An error occurred')
@@ -302,7 +302,7 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
               onChange={handleToggleTeamOnly}
               disabled={updatingTeamOnly}
               className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 disabled:opacity-50"
-              title="When enabled, only shooters from the same team can be added"
+              title="When enabled, only athletes from the same team can be added"
             />
           </label>
         </div>
@@ -313,12 +313,12 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
         {squad.members.length > 0 ? (
           squad.members.map((member: any) => (
             <div key={member.id} className="flex-shrink-0 w-[180px]">
-              <ShooterCard
-                shooter={member.shooter}
+              <AthleteCard
+                athlete={member.athlete}
                 onRemove={
-                  removing === member.shooterId
+                  removing === member.athleteId
                     ? undefined
-                    : () => handleRemoveClick(member.shooter)
+                    : () => handleRemoveClick(member.athlete)
                 }
               />
             </div>
@@ -326,9 +326,9 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
         ) : (
           <div className="flex-1 text-center py-6 text-gray-400 text-sm">
             {isOver ? (
-              <span className="text-indigo-600 font-medium">Drop shooter here</span>
+              <span className="text-indigo-600 font-medium">Drop athlete here</span>
             ) : (
-              'Drop shooters here'
+              'Drop athletes here'
             )}
           </div>
         )}
@@ -348,14 +348,14 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
         )}
       </div>
 
-      {/* Remove Shooter Modal */}
-      {showRemoveModal && shooterToRemove && (
+      {/* Remove Athlete Modal */}
+      {showRemoveModal && athleteToRemove && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-gray-900">
-                  Remove Shooter
+                  Remove athlete
                 </h3>
                 <button
                   onClick={handleCancelRemove}
@@ -370,27 +370,27 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
 
               <div className="mb-6">
                 <p className="text-gray-700 mb-4">
-                  Are you sure you want to remove this shooter from the squad?
+                  Are you sure you want to remove this athlete from the squad?
                 </p>
                 <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
                   <div className="text-sm">
                     <div className="font-semibold text-gray-900 mb-1">
-                      {shooterToRemove.user?.name}
+                      {athleteToRemove.user?.name}
                     </div>
-                    {shooterToRemove.team && (
+                    {athleteToRemove.team && (
                       <div className="text-gray-600">
-                        {shooterToRemove.team.name}
+                        {athleteToRemove.team.name}
                       </div>
                     )}
-                    {shooterToRemove.division && (
+                    {athleteToRemove.division && (
                       <div className="text-gray-600 mt-1">
-                        {shooterToRemove.division}
+                        {athleteToRemove.division}
                       </div>
                     )}
                   </div>
                 </div>
                 <p className="text-sm text-gray-500 mt-3">
-                  The shooter will be moved back to the unassigned list.
+                  The athlete will be moved back to the unassigned list.
                 </p>
               </div>
 
@@ -407,7 +407,7 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
                   disabled={removing !== null}
                   className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
-                  {removing !== null ? 'Removing...' : 'Remove Shooter'}
+                  {removing !== null ? 'Removing...' : 'Remove athlete'}
                 </button>
               </div>
             </div>
@@ -445,7 +445,7 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
                       {squad.name}
                     </div>
                     <div className="text-gray-600">
-                      {squad.members.length} shooter{squad.members.length !== 1 ? 's' : ''} in squad
+                      {squad.members.length} athlete{squad.members.length !== 1 ? 's' : ''} in squad
                     </div>
                   </div>
                 </div>
@@ -455,7 +455,7 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
                       <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
-                      <span>Warning: All {squad.members.length} shooter{squad.members.length !== 1 ? 's' : ''} will be unassigned and moved back to the unassigned list.</span>
+                      <span>Warning: All {squad.members.length} athlete{squad.members.length !== 1 ? 's' : ''} will be unassigned and moved back to the unassigned list.</span>
                     </p>
                   </div>
                 ) : (

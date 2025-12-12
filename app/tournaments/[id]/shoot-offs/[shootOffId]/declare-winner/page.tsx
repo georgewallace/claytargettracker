@@ -67,7 +67,7 @@ export default async function DeclareWinnerPage({ params }: PageProps) {
     include: {
       participants: {
         include: {
-          shooter: {
+          athlete: {
             include: {
               user: true,
               team: true
@@ -81,7 +81,7 @@ export default async function DeclareWinnerPage({ params }: PageProps) {
         },
         orderBy: [
           { eliminated: 'asc' },
-          { shooter: { user: { name: 'asc' } } }
+          { athlete: { user: { name: 'asc' } } }
         ]
       },
       rounds: {
@@ -181,11 +181,11 @@ export default async function DeclareWinnerPage({ params }: PageProps) {
           <div className="text-6xl mb-4">🏆</div>
           <h2 className="text-3xl font-bold text-white mb-2">Winner!</h2>
           <div className="text-4xl font-bold text-white mb-4">
-            {winner.shooter.user.name}
+            {winner.athlete.user.name}
           </div>
-          {winner.shooter.team && (
+          {winner.athlete.team && (
             <p className="text-white text-lg mb-2">
-              {winner.shooter.team.name}
+              {winner.athlete.team.name}
             </p>
           )}
           <p className="text-white text-sm">
@@ -246,10 +246,10 @@ export default async function DeclareWinnerPage({ params }: PageProps) {
                       </div>
                       <div>
                         <div className="font-bold text-lg text-gray-900">
-                          {participant.shooter.user.name}
+                          {participant.athlete.user.name}
                         </div>
                         <div className="text-sm text-gray-600">
-                          {participant.shooter.team?.name || 'Independent'}
+                          {participant.athlete.team?.name || 'Independent'}
                         </div>
                       </div>
                     </div>

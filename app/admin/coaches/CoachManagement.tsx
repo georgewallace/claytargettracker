@@ -8,7 +8,7 @@ interface Coach {
   name: string
   email: string
   role: string
-  shooter: any | null
+  athlete: any | null
   coachedTeams: Array<{
     team: {
       id: string
@@ -27,7 +27,7 @@ interface Team {
     }
   }>
   _count: {
-    shooters: number
+    athletes: number
   }
 }
 
@@ -126,7 +126,7 @@ export default function CoachManagement({ coaches, teams }: Props) {
         <div className="divide-y divide-gray-200">
           {coaches.map((coach) => {
             const currentTeam = coach.coachedTeams[0]?.team
-            const isShooter = !!coach.shooter
+            const isathlete = !!coach.athlete
 
             return (
               <div key={coach.id} className="p-6 hover:bg-gray-50">
@@ -143,9 +143,9 @@ export default function CoachManagement({ coaches, teams }: Props) {
                       }`}>
                         {coach.role}
                       </span>
-                      {isShooter && (
+                      {isathlete && (
                         <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-                          ⚠️ Also a Shooter
+                          ⚠️ Also a athlete
                         </span>
                       )}
                     </div>
@@ -169,14 +169,14 @@ export default function CoachManagement({ coaches, teams }: Props) {
                       </div>
                     )}
                     
-                    {isShooter && (
+                    {isathlete && (
                       <p className="text-xs text-yellow-700 mt-2">
-                        ⚠️ Warning: This user is also a shooter. Coaches cannot be shooters on teams.
+                        ⚠️ Warning: This user is also a athlete. Coaches cannot be athletes on teams.
                       </p>
                     )}
                   </div>
 
-                  {!currentTeam && !isShooter && (
+                  {!currentTeam && !isathlete && (
                     <div className="ml-4">
                       <label htmlFor={`team-${coach.id}`} className="sr-only">
                         Assign to team
@@ -225,7 +225,7 @@ export default function CoachManagement({ coaches, teams }: Props) {
                 {team.name}
               </h3>
               <p className="text-sm text-gray-600 mb-3">
-                {team._count.shooters} {team._count.shooters === 1 ? 'shooter' : 'shooters'}
+                {team._count.athletes} {team._count.athletes === 1 ? 'athlete' : 'athletes'}
               </p>
               
               {team.coaches.length > 0 ? (

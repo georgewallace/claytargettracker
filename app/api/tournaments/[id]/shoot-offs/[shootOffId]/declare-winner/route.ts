@@ -50,7 +50,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         participants: {
           include: {
             scores: true,
-            shooter: true
+            athlete: true
           }
         }
       }
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const sortedParticipants = shootOff.participants
       .map(p => ({
         id: p.id,
-        shooterId: p.shooterId,
+        athleteId: p.athleteId,
         eliminated: p.eliminated,
         totalScore: p.scores.reduce((sum, s) => sum + s.targetsHit, 0)
       }))
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       prisma.shootOff.update({
         where: { id: shootOffId },
         data: {
-          winnerId: winner.shooterId, // Use shooter ID, not participant ID
+          winnerId: winner.athleteId, // Use shooter ID, not participant ID
           status: 'completed',
           completedAt: new Date()
         }
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         },
         participants: {
           include: {
-            shooter: {
+            athlete: {
               include: {
                 user: true,
                 team: true

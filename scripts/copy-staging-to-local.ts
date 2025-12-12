@@ -30,6 +30,13 @@ const stagingPrisma = new PrismaClient({
   }
 })
 
+// Connect to local
+const localPrisma = new PrismaClient({
+  datasources: {
+    db: { url: localUrl }
+  }
+})
+
 async function main() {
   console.log('🚀 Copying ALL data from staging to local...\n')
 
@@ -82,17 +89,17 @@ async function main() {
     }
     console.log(`✅ Copied ${stagingCoaches.length} team coaches\n`)
 
-    // 5. Copy Shooters
-    console.log('🎯 Step 5: Copying Shooters...')
-    const stagingShooters = await stagingPrisma.shooter.findMany()
-    for (const shooter of stagingShooters) {
-      await localPrisma.shooter.upsert({
-        where: { id: shooter.id },
-        update: shooter,
-        create: shooter
+    // 5. Copy Athletes
+    console.log('🎯 Step 5: Copying Athletes...')
+    const stagingAthletes = await stagingPrisma.athlete.findMany()
+    for (const athlete of stagingAthletes) {
+      await localPrisma.athlete.upsert({
+        where: { id: athlete.id },
+        update: athlete,
+        create: athlete
       })
     }
-    console.log(`✅ Copied ${stagingShooters.length} shooters\n`)
+    console.log(`✅ Copied ${stagingAthletes.length} athletes\n`)
 
     // 6. Copy Tournaments
     console.log('🏅 Step 6: Copying Tournaments...')
@@ -220,17 +227,17 @@ async function main() {
     }
     console.log(`✅ Copied ${stagingShoots.length} shoots\n`)
 
-    // 13. Copy Shooter Averages
-    console.log('📊 Step 13: Copying Shooter Averages...')
-    const stagingAverages = await stagingPrisma.shooterAverage.findMany()
+    // 13. Copy Athlete Averages
+    console.log('📊 Step 13: Copying Athlete Averages...')
+    const stagingAverages = await stagingPrisma.athleteAverage.findMany()
     for (const avg of stagingAverages) {
-      await localPrisma.shooterAverage.upsert({
+      await localPrisma.athleteAverage.upsert({
         where: { id: avg.id },
         update: avg,
         create: avg
       })
     }
-    console.log(`✅ Copied ${stagingAverages.length} shooter averages\n`)
+    console.log(`✅ Copied ${stagingAverages.length} athlete averages\n`)
 
     // 14. Copy Team Join Requests
     console.log('📨 Step 14: Copying Team Join Requests...')
@@ -250,14 +257,14 @@ async function main() {
     console.log(`   - ${stagingUsers.length} users`)
     console.log(`   - ${stagingTeams.length} teams`)
     console.log(`   - ${stagingCoaches.length} team coaches`)
-    console.log(`   - ${stagingShooters.length} shooters`)
+    console.log(`   - ${stagingAthletes.length} athletes`)
     console.log(`   - ${stagingTournaments.length} tournaments`)
     console.log(`   - ${stagingTimeSlots.length} time slots`)
     console.log(`   - ${stagingSquads.length} squads`)
     console.log(`   - ${stagingSquadMembers.length} squad members`)
     console.log(`   - ${stagingRegistrations.length} registrations`)
     console.log(`   - ${stagingShoots.length} shoots`)
-    console.log(`   - ${stagingAverages.length} shooter averages`)
+    console.log(`   - ${stagingAverages.length} athlete averages`)
     console.log(`   - ${stagingRequests.length} team join requests`)
 
   } catch (error) {

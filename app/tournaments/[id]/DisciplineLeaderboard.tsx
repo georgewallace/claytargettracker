@@ -8,7 +8,7 @@ interface Discipline {
 }
 
 interface LeaderboardEntry {
-  shooter: {
+  athlete: {
     user: {
       name: string
     }
@@ -28,17 +28,17 @@ interface LeaderboardEntry {
 
 interface DisciplineLeaderboardProps {
   disciplines: Discipline[]
-  shooterScores: Record<string, LeaderboardEntry>
+  athletescores: Record<string, LeaderboardEntry>
 }
 
-export default function DisciplineLeaderboard({ disciplines, shooterScores }: DisciplineLeaderboardProps) {
+export default function DisciplineLeaderboard({ disciplines, athletescores }: DisciplineLeaderboardProps) {
   const [selectedDiscipline, setSelectedDiscipline] = useState<string | 'all'>(
     disciplines.length > 0 ? disciplines[0].id : 'all'
   )
 
   // Filter and sort leaderboard data by discipline
   const getLeaderboardData = () => {
-    const entries = Object.values(shooterScores)
+    const entries = Object.values(athletescores)
     
     const filtered = selectedDiscipline === 'all'
       ? entries
@@ -98,7 +98,7 @@ export default function DisciplineLeaderboard({ disciplines, shooterScores }: Di
                   Rank
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Shooter
+                  athlete
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Team
@@ -120,7 +120,7 @@ export default function DisciplineLeaderboard({ disciplines, shooterScores }: Di
               {leaderboardData.map((entry, index) => {
                 const percentage = (entry.totalTargets / entry.totalPossible * 100).toFixed(1)
                 return (
-                  <tr key={`${entry.shooter.user.name}-${entry.discipline.id}`} className={index < 3 ? 'bg-yellow-50' : ''}>
+                  <tr key={`${entry.athlete.user.name}-${entry.discipline.id}`} className={index < 3 ? 'bg-yellow-50' : ''}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <span className="text-lg font-bold text-gray-900">
@@ -133,12 +133,12 @@ export default function DisciplineLeaderboard({ disciplines, shooterScores }: Di
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {entry.shooter.user.name}
+                        {entry.athlete.user.name}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        {entry.shooter.team?.name || 'Independent'}
+                        {entry.athlete.team?.name || 'Independent'}
                       </div>
                     </td>
                     {selectedDiscipline === 'all' && (

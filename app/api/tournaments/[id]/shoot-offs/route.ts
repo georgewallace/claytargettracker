@@ -12,10 +12,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id: tournamentId } = await params
-    const { position, shooterIds, disciplineId } = await request.json()
+    const { position, athleteIds, disciplineId } = await request.json()
 
     // Validate input
-    if (!position || !Array.isArray(shooterIds) || shooterIds.length < 2) {
+    if (!position || !Array.isArray(athleteIds) || athleteIds.length < 2) {
       return NextResponse.json(
         { error: 'Invalid shoot-off data. Must include position and at least 2 shooters' },
         { status: 400 }
@@ -44,9 +44,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get shooter scores to determine tied score
-    const shooters = await prisma.shooter.findMany({
+    const shooters = await prisma.athlete.findMany({
       where: {
-        id: { in: shooterIds }
+        id: { in: athleteIds }
       },
       include: {
         shoots: {
@@ -97,8 +97,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         format: tournament.shootOffFormat,
         description: `${positionName} Shoot-Off - ${shooters.length} shooters tied at ${tiedScore} points`,
         participants: {
-          create: shooterIds.map(shooterId => ({
-            shooterId,
+          create: athleteIds.map(athleteId => ({
+            athleteId,
             tiedScore
           }))
         }
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       include: {
         participants: {
           include: {
-            shooter: {
+            athlete: {
               include: {
                 user: true
               }
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       include: {
         participants: {
           include: {
-            shooter: {
+            athlete: {
               include: {
                 user: true,
                 team: true

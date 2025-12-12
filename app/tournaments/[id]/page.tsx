@@ -56,7 +56,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
       },
       registrations: {
         include: {
-          shooter: {
+          athlete: {
             include: {
               user: true,
               team: true
@@ -71,7 +71,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
       },
       shoots: {
         include: {
-          shooter: {
+          athlete: {
             include: {
               user: true,
               team: true
@@ -88,11 +88,11 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  // Get shooters for coach registration based on role
-  let allShooters: any[] = []
+  // Get athletes for coach registration based on role
+  let allathletes: any[] = []
 
   if (user?.role === 'coach') {
-    // Coaches can only register shooters from teams they coach
+    // Coaches can only register athletes from teams they coach
     const coachedTeams = await prisma.teamCoach.findMany({
       where: { userId: user.id },
       select: { teamId: true }
@@ -100,7 +100,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
 
     const teamIds = coachedTeams.map(tc => tc.teamId)
 
-    allShooters = await prisma.shooter.findMany({
+    allathletes = await prisma.athlete.findMany({
       where: {
         teamId: { in: teamIds }
       },
@@ -115,8 +115,8 @@ export default async function TournamentDetailPage({ params }: PageProps) {
       }
     })
   } else if (user?.role === 'admin') {
-    // Admins can register any shooter
-    allShooters = await prisma.shooter.findMany({
+    // Admins can register any athlete
+    allathletes = await prisma.athlete.findMany({
       include: {
         user: true,
         team: true
@@ -129,12 +129,12 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     })
   }
 
-  const registeredShooterIds = tournament.registrations.map(r => r.shooterId)
+  const registeredathleteIds = tournament.registrations.map(r => r.athleteId)
   const isCoach = user?.role === 'coach' || user?.role === 'admin'
 
   // Check if current user is registered
-  const isRegistered = user?.shooter && tournament.registrations.some(
-    reg => reg.shooterId === user.shooter?.id
+  const isRegistered = user?.athlete && tournament.registrations.some(
+    reg => reg.athleteId === user.athlete?.id
   )
 
   const getStatusBadge = (status: string) => {
@@ -154,8 +154,8 @@ export default async function TournamentDetailPage({ params }: PageProps) {
         {isCoach && tournament.status === 'upcoming' && (
           <CoachRegistration
             tournamentId={tournament.id}
-            allShooters={allShooters}
-            registeredShooterIds={registeredShooterIds}
+            allathletes={allathletes}
+            registeredathleteIds={registeredathleteIds}
             tournamentDisciplines={tournament.disciplines.map(td => td.discipline)}
             userRole={user?.role as 'coach' | 'admin'}
           />
@@ -235,11 +235,11 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                 </>
               )}
               
-              {/* Register button for shooters */}
-              {user && user.shooter && !isRegistered && tournament.status === 'upcoming' && (
+              {/* Register button for athletes */}
+              {user && user.athlete && !isRegistered && tournament.status === 'upcoming' && (
                 <RegisterButton 
                   tournamentId={tournament.id} 
-                  shooterId={user.shooter.id}
+                  athleteId={user.athlete.id}
                   tournamentDisciplines={tournament.disciplines.map(td => td.discipline)}
                 />
               )}
@@ -261,7 +261,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
               </div>
               <div className="flex items-center text-gray-700">
                 <span className="font-semibold mr-2">👥 Registered:</span>
-                {tournament.registrations.length} shooters
+                {tournament.registrations.length} athletes
               </div>
               <div className="flex items-center text-gray-700">
                 <span className="font-semibold mr-2">👤 Organizer:</span>
@@ -278,14 +278,14 @@ export default async function TournamentDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Registered Shooters */}
+        {/* Registered athletes */}
         <div className="bg-white rounded-lg shadow-md p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Registered Shooters ({tournament.registrations.length})
+            Registered athletes ({tournament.registrations.length})
           </h2>
           
           {tournament.registrations.length === 0 ? (
-            <p className="text-gray-600">No shooters registered yet.</p>
+            <p className="text-gray-600">No athletes registered yet.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tournament.registrations.map((registration) => (
@@ -295,39 +295,39 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
-                      {registration.shooter.team && (
+                      {registration.athlete.team && (
                         <TeamLogo 
-                          logoUrl={registration.shooter.team.logoUrl}
-                          teamName={registration.shooter.team.name}
+                          logoUrl={registration.athlete.team.logoUrl}
+                          teamName={registration.athlete.team.name}
                           size="sm"
                         />
                       )}
                       <div className="font-semibold text-gray-900">
-                        {registration.shooter.user.name}
+                        {registration.athlete.user.name}
                       </div>
                     </div>
                     {/* Remove button for coaches/admins */}
                     {isCoach && (
                       <RemoveRegistrationButton 
                         registrationId={registration.id}
-                        shooterName={registration.shooter.user.name}
+                        athleteName={registration.athlete.user.name}
                         isCompact={true}
                       />
                     )}
                   </div>
                   
                   <div className="space-y-1">
-                    {registration.shooter.team && (
+                    {registration.athlete.team && (
                       <div className="text-sm text-gray-600">
-                        Team: {registration.shooter.team.name}
+                        Team: {registration.athlete.team.name}
                       </div>
                     )}
-                    {(registration.shooter.grade || registration.shooter.division) && (
+                    {(registration.athlete.grade || registration.athlete.division) && (
                       <div className="text-sm text-gray-600">
-                        {registration.shooter.grade && <span>Grade: {registration.shooter.grade}</span>}
-                        {registration.shooter.grade && registration.shooter.division && <span> • </span>}
-                        {registration.shooter.division && (
-                          <span className="font-medium text-indigo-600">{registration.shooter.division}</span>
+                        {registration.athlete.grade && <span>Grade: {registration.athlete.grade}</span>}
+                        {registration.athlete.grade && registration.athlete.division && <span> • </span>}
+                        {registration.athlete.division && (
+                          <span className="font-medium text-indigo-600">{registration.athlete.division}</span>
                         )}
                       </div>
                     )}

@@ -39,7 +39,7 @@ interface DisciplineStat {
   trend: 'improving' | 'declining' | 'stable'
 }
 
-interface Shooter {
+interface athlete {
   id: string
   name: string
   email: string
@@ -59,14 +59,14 @@ interface Shooter {
   stats: DisciplineStat[]
 }
 
-interface ShooterProfileViewProps {
-  shooter: Shooter
+interface athleteProfileViewProps {
+  athlete: athlete
   divisionAverages: Record<string, Record<string, number>>
   canEdit: boolean
   isOwnProfile: boolean
 }
 
-export default function ShooterProfileView({ shooter, divisionAverages, canEdit, isOwnProfile }: ShooterProfileViewProps) {
+export default function athleteProfileView({ athlete, divisionAverages, canEdit, isOwnProfile }: athleteProfileViewProps) {
   const [selectedDiscipline, setSelectedDiscipline] = useState<string>('all')
   const [selectedTournament, setSelectedTournament] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<string>('all')
@@ -74,18 +74,18 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
   // Get all unique disciplines
   const allDisciplines = useMemo(() => {
     const disciplineMap = new Map()
-    shooter.stats.forEach(stat => {
+    athlete.stats.forEach(stat => {
       if (!disciplineMap.has(stat.discipline.id)) {
         disciplineMap.set(stat.discipline.id, stat.discipline)
       }
     })
     return Array.from(disciplineMap.values())
-  }, [shooter.stats])
+  }, [athlete.stats])
 
   // Get all unique tournaments
   const allTournaments = useMemo(() => {
     const tournamentMap = new Map()
-    shooter.shoots.forEach(shoot => {
+    athlete.shoots.forEach(shoot => {
       if (!tournamentMap.has(shoot.tournamentId)) {
         tournamentMap.set(shoot.tournamentId, {
           id: shoot.tournamentId,
@@ -94,7 +94,7 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
       }
     })
     return Array.from(tournamentMap.values())
-  }, [shooter.shoots])
+  }, [athlete.shoots])
 
   // Prepare chart data with time filter
   const chartData = useMemo(() => {
@@ -105,7 +105,7 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
     const cutoffDate = timeRange === 'all' ? null : 
       new Date(now.getTime() - parseInt(timeRange) * 24 * 60 * 60 * 1000)
 
-    shooter.stats.forEach(stat => {
+    athlete.stats.forEach(stat => {
       if (selectedDiscipline !== 'all' && stat.discipline.id !== selectedDiscipline) return
 
       if (!dataByDiscipline[stat.discipline.id]) {
@@ -118,8 +118,8 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
         // Apply time filter
         if (cutoffDate && shootDate < cutoffDate) return
 
-        // Find the matching shoot in the shooter's actual shoots to get tournamentId
-        const actualShoot = shooter.shoots.find(s => 
+        // Find the matching shoot in the athlete's actual shoots to get tournamentId
+        const actualShoot = athlete.shoots.find(s => 
           format(new Date(s.date), 'MMM d, yyyy') === format(shootDate, 'MMM d, yyyy') &&
           s.discipline.id === stat.discipline.id
         )
@@ -147,7 +147,7 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
     })
 
     return dataByDiscipline
-  }, [shooter.stats, shooter.shoots, divisionAverages, selectedDiscipline, timeRange])
+  }, [athlete.stats, athlete.shoots, divisionAverages, selectedDiscipline, timeRange])
 
   const getTrendColor = (trend: string) => {
     if (trend === 'improving') return 'text-green-600 bg-green-50'
@@ -168,16 +168,16 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
         <div className="flex items-start gap-6 mb-6">
           {/* Profile Picture */}
           <div className="flex-shrink-0">
-            {shooter.profilePictureUrl ? (
+            {athlete.profilePictureUrl ? (
               <img
-                src={shooter.profilePictureUrl}
-                alt={shooter.name}
+                src={athlete.profilePictureUrl}
+                alt={athlete.name}
                 className="w-32 h-32 rounded-full object-cover border-4 border-indigo-100"
               />
             ) : (
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center border-4 border-indigo-100">
                 <span className="text-white text-4xl font-bold">
-                  {shooter.name.charAt(0).toUpperCase()}
+                  {athlete.name.charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
@@ -187,14 +187,14 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">{shooter.name}</h1>
-                <p className="text-gray-600">{shooter.email}</p>
-                {shooter.team && (
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">{athlete.name}</h1>
+                <p className="text-gray-600">{athlete.email}</p>
+                {athlete.team && (
                   <p className="text-gray-600 mt-2">
-                    Team: <Link href={`/teams`} className="text-indigo-600 hover:text-indigo-700 font-medium">{shooter.team.name}</Link>
-                    {shooter.team.coaches.length > 0 && (
+                    Team: <Link href={`/teams`} className="text-indigo-600 hover:text-indigo-700 font-medium">{athlete.team.name}</Link>
+                    {athlete.team.coaches.length > 0 && (
                       <span className="text-gray-500 text-sm ml-2">
-                        • Coach: {shooter.team.coaches.map(c => c.user.name).join(', ')}
+                        • Coach: {athlete.team.coaches.map(c => c.user.name).join(', ')}
                       </span>
                     )}
                   </p>
@@ -202,7 +202,7 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
               </div>
               {canEdit && (
                 <Link
-                  href={`/shooters/${shooter.id}/edit`}
+                  href={`/athletes/${athlete.id}/edit`}
                   className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition text-sm font-medium whitespace-nowrap"
                 >
                   Edit Profile
@@ -212,28 +212,28 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
           </div>
         </div>
 
-        {/* Shooter Info */}
+        {/* Athlete profile information */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
           <div className="bg-indigo-50 rounded-lg p-4">
             <div className="text-sm text-indigo-600 font-medium">Grade</div>
-            <div className="text-2xl font-bold text-indigo-900">{shooter.grade || 'Not Set'}</div>
+            <div className="text-2xl font-bold text-indigo-900">{athlete.grade || 'Not Set'}</div>
           </div>
           <div className="bg-purple-50 rounded-lg p-4">
             <div className="text-sm text-purple-600 font-medium">Division</div>
-            <div className="text-2xl font-bold text-purple-900">{shooter.division || 'Not Set'}</div>
+            <div className="text-2xl font-bold text-purple-900">{athlete.division || 'Not Set'}</div>
           </div>
           <div className="bg-blue-50 rounded-lg p-4">
             <div className="text-sm text-blue-600 font-medium">Total Shoots</div>
-            <div className="text-2xl font-bold text-blue-900">{shooter.shoots.length}</div>
+            <div className="text-2xl font-bold text-blue-900">{athlete.shoots.length}</div>
           </div>
           <div className="bg-green-50 rounded-lg p-4">
             <div className="text-sm text-green-600 font-medium">Disciplines</div>
-            <div className="text-2xl font-bold text-green-900">{shooter.stats.length}</div>
+            <div className="text-2xl font-bold text-green-900">{athlete.stats.length}</div>
           </div>
         </div>
       </div>
 
-      {shooter.shoots.length === 0 ? (
+      {athlete.shoots.length === 0 ? (
         <div className="bg-white rounded-lg shadow-md p-12 text-center">
           <p className="text-gray-500 text-lg mb-4">No shooting history yet.</p>
           <Link 
@@ -349,9 +349,9 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
                               <p className="text-sm text-gray-600">{data.tournamentName}</p>
                               <p className="text-lg font-bold text-indigo-600">{data.percentage.toFixed(1)}%</p>
                               <p className="text-sm text-gray-500">{data.score}</p>
-                              {data.divisionAverage && shooter.division && (
+                              {data.divisionAverage && athlete.division && (
                                 <p className="text-sm text-orange-600 mt-2 font-medium">
-                                  {shooter.division} Avg: {data.divisionAverage.toFixed(1)}%
+                                  {athlete.division} Avg: {data.divisionAverage.toFixed(1)}%
                                 </p>
                               )}
                             </div>
@@ -364,18 +364,18 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
                     <Line
                       type="monotone"
                       dataKey="percentage"
-                      name={`${shooter.name}'s Score`}
+                      name={`${athlete.name}'s Score`}
                       stroke="#6366f1"
                       strokeWidth={3}
                       dot={{ r: 5 }}
                       activeDot={{ r: 7 }}
                     />
                     {/* Division Average Line */}
-                    {shooter.division && (
+                    {athlete.division && (
                       <Line
                         type="monotone"
                         dataKey="divisionAverage"
-                        name={`${shooter.division} Average`}
+                        name={`${athlete.division} Average`}
                         stroke="#f97316"
                         strokeWidth={3}
                         strokeDasharray="5 5"
@@ -393,11 +393,11 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Statistics by Discipline</h2>
             
-            {shooter.stats.length === 0 ? (
+            {athlete.stats.length === 0 ? (
               <p className="text-gray-500 text-center py-8">No statistics available yet.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {shooter.stats
+                {athlete.stats
                   .filter(stat => selectedDiscipline === 'all' || stat.discipline.id === selectedDiscipline)
                   .map(stat => (
                     <div key={stat.discipline.id} className="border border-gray-200 rounded-lg p-4">
@@ -444,7 +444,7 @@ export default function ShooterProfileView({ shooter, divisionAverages, canEdit,
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {shooter.shoots
+                  {athlete.shoots
                     .filter(shoot => 
                       (selectedDiscipline === 'all' || shoot.discipline.id === selectedDiscipline) &&
                       (selectedTournament === 'all' || shoot.tournamentId === selectedTournament)

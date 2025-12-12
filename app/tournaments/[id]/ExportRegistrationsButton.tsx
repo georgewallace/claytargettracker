@@ -12,7 +12,7 @@ interface Team {
   name: string
 }
 
-interface Shooter {
+interface athlete {
   user: User
   team: Team | null
   grade: string | null
@@ -29,7 +29,7 @@ interface RegistrationDiscipline {
 }
 
 interface Registration {
-  shooter: Shooter
+  athlete: athlete
   disciplines: RegistrationDiscipline[]
   createdAt: Date
   status: string
@@ -44,27 +44,27 @@ interface ExportRegistrationsButtonProps {
 const CSV_FIELDS = [
   {
     header: 'Name',
-    getValue: (reg: Registration) => reg.shooter.user.name
+    getValue: (reg: Registration) => reg.athlete.user.name
   },
   {
     header: 'Email',
-    getValue: (reg: Registration) => reg.shooter.user.email
+    getValue: (reg: Registration) => reg.athlete.user.email
   },
   {
     header: 'Team',
-    getValue: (reg: Registration) => reg.shooter.team?.name || 'No Team'
+    getValue: (reg: Registration) => reg.athlete.team?.name || 'No Team'
   },
   {
     header: 'Grade',
-    getValue: (reg: Registration) => reg.shooter.grade || 'N/A'
+    getValue: (reg: Registration) => reg.athlete.grade || 'N/A'
   },
   {
     header: 'Division',
-    getValue: (reg: Registration) => reg.shooter.division || 'N/A'
+    getValue: (reg: Registration) => reg.athlete.division || 'N/A'
   },
   {
     header: 'Gender',
-    getValue: (reg: Registration) => reg.shooter.gender || 'N/A'
+    getValue: (reg: Registration) => reg.athlete.gender || 'N/A'
   },
   {
     header: 'Disciplines',

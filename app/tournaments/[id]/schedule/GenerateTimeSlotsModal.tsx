@@ -352,7 +352,7 @@ export default function GenerateTimeSlotsModal({ tournament, onClose, onSuccess 
           {/* Squad Capacity */}
           <div>
             <label htmlFor="squadCapacity" className="block text-sm font-medium text-gray-700 mb-2">
-              Squad Capacity (shooters per squad) *
+              Squad Capacity (athletes per squad) *
             </label>
             <input
               id="squadCapacity"

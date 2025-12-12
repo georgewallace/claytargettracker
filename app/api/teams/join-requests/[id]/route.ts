@@ -24,7 +24,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       where: { id: requestId },
       include: {
         team: true,
-        shooter: true
+        athlete: true
       }
     })
 
@@ -45,8 +45,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (action === 'approve') {
       // Get full shooter details
-      const shooter = await prisma.shooter.findUnique({
-        where: { id: joinRequest.shooterId },
+      const shooter = await prisma.athlete.findUnique({
+        where: { id: joinRequest.athleteId },
         include: {
           user: true,
           team: true
@@ -78,8 +78,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       // Approve: Add shooter to team and update request status
       await prisma.$transaction([
-        prisma.shooter.update({
-          where: { id: joinRequest.shooterId },
+        prisma.athlete.update({
+          where: { id: joinRequest.athleteId },
           data: { teamId: joinRequest.teamId }
         }),
         prisma.teamJoinRequest.update({
@@ -119,7 +119,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       where: { id: requestId },
       include: {
         team: true,
-        shooter: true
+        athlete: true
       }
     })
 
@@ -128,7 +128,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check authorization: shooter who made the request, team coach, or admin
-    const isRequester = user.shooter && joinRequest.shooterId === user.shooter.id
+    const isRequester = user.athlete && joinRequest.athleteId === user.athlete.id
     const isCoach = await isUserCoachOfTeam(user.id, joinRequest.team.id)
     const isAdmin = user.role === 'admin'
 

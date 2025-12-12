@@ -25,7 +25,7 @@ export default async function AdminCoachesPage() {
       }
     },
     include: {
-      shooter: true,
+      athlete: true,
       coachedTeams: {
         include: {
           team: true
@@ -47,7 +47,7 @@ export default async function AdminCoachesPage() {
       },
       _count: {
         select: {
-          shooters: true
+          athletes: true
         }
       }
     },

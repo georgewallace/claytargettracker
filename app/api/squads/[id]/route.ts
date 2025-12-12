@@ -57,7 +57,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       include: {
         members: {
           include: {
-            shooter: {
+            athlete: {
               include: {
                 user: true,
                 team: true

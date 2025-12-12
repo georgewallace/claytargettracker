@@ -7,17 +7,17 @@ import Link from 'next/link'
 // Force dynamic rendering (required for getCurrentUser)
 export const dynamic = 'force-dynamic'
 
-export default async function ShooterHistoryPage() {
+export default async function athleteHistoryPage() {
   const user = await getCurrentUser()
   
-  if (!user || !user.shooter) {
+  if (!user || !user.athlete) {
     redirect('/login')
   }
 
-  // Get all shoots for this shooter
+  // Get all shoots for this athlete
   const shoots = await prisma.shoot.findMany({
     where: {
-      shooterId: user.shooter.id
+      athleteId: user.athlete.id
     },
     include: {
       tournament: true,

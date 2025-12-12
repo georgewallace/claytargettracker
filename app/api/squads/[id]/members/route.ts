@@ -15,7 +15,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id: squadId } = await params
-    const { shooterId, position } = await request.json()
+    const { athleteId, position } = await request.json()
 
     // Check permissions (coach or admin)
     if (user.role !== 'coach' && user.role !== 'admin') {
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       include: {
         members: {
           include: {
-            shooter: {
+            athlete: {
               include: {
                 team: true
               }
@@ -55,9 +55,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Check if shooter is already in this squad
     const existing = await prisma.squadMember.findUnique({
       where: {
-        squadId_shooterId: {
+        squadId_athleteId: {
           squadId,
-          shooterId
+          athleteId
         }
       }
     })
@@ -72,18 +72,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // If squad is team-only, enforce team requirement
     if (squad.teamOnly && squad.members.length > 0) {
       // Get the shooter being added
-      const newShooter = await prisma.shooter.findUnique({
-        where: { id: shooterId },
+      const newShooter = await prisma.athlete.findUnique({
+        where: { id: athleteId },
         include: { team: true }
       })
 
       // Get team of existing squad members
-      const existingTeamIds = squad.members.map((m: { shooter: { teamId: string | null } }) => m.shooter.teamId).filter(Boolean)
+      const existingTeamIds = squad.members.map((m: { athlete: { teamId: string | null } }) => m.athlete.teamId).filter(Boolean)
       const firstTeamId = existingTeamIds[0]
 
       // Check if new shooter is from the same team
       if (newShooter && newShooter.teamId !== firstTeamId) {
-        const firstTeamName = squad.members[0]?.shooter.team?.name || 'the existing team'
+        const firstTeamName = squad.members[0]?.athlete.team?.name || 'the existing team'
         return NextResponse.json(
           { 
             error: `This is a team-only squad for ${firstTeamName}. Only shooters from ${firstTeamName} can be added.` 
@@ -105,11 +105,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const member = await prisma.squadMember.create({
       data: {
         squadId,
-        shooterId,
+        athleteId,
         position
       },
       include: {
-        shooter: {
+        athlete: {
           include: {
             user: true,
             team: true
@@ -133,7 +133,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id: squadId } = await params
-    const { shooterId } = await request.json()
+    const { athleteId } = await request.json()
 
     // Check permissions (coach or admin)
     if (user.role !== 'coach' && user.role !== 'admin') {
@@ -145,9 +145,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     await prisma.squadMember.delete({
       where: {
-        squadId_shooterId: {
+        squadId_athleteId: {
           squadId,
-          shooterId
+          athleteId
         }
       }
     })

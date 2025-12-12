@@ -30,10 +30,10 @@ interface Tournament {
 
 interface TournamentListProps {
   tournaments: Tournament[]
-  isShooter: boolean
+  isathlete: boolean
 }
 
-export default function TournamentList({ tournaments, isShooter }: TournamentListProps) {
+export default function TournamentList({ tournaments, isathlete }: TournamentListProps) {
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
 
   const getStatusBadge = (status: string) => {
@@ -99,8 +99,8 @@ export default function TournamentList({ tournaments, isShooter }: TournamentLis
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(tournament.status)}`}>
                     {tournament.status}
                   </span>
-                  {/* Registration Badge for Shooters */}
-                  {isShooter && tournament.isRegistered && (
+                  {/* Registration Badge for athletes */}
+                  {isathlete && tournament.isRegistered && (
                     <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full border border-green-300">
                       ✓ Registered
                     </span>
@@ -122,7 +122,7 @@ export default function TournamentList({ tournaments, isShooter }: TournamentLis
                 </div>
                 <div className="flex items-center">
                   <span className="font-medium mr-2">👥</span>
-                  {tournament._count.registrations} registered shooters
+                  {tournament._count.registrations} registered athletes
                 </div>
                 <div className="flex items-center flex-wrap gap-2 mt-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 flex-shrink-0" style={{color: 'rgb(255, 107, 53)'}}>
@@ -176,12 +176,12 @@ export default function TournamentList({ tournaments, isShooter }: TournamentLis
                   Disciplines
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Shooters
+                  Athletes
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                {isShooter && (
+                {isathlete && (
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Registration
                   </th>
@@ -232,7 +232,7 @@ export default function TournamentList({ tournaments, isShooter }: TournamentLis
                       {tournament.status}
                     </span>
                   </td>
-                  {isShooter && (
+                  {isathlete && (
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       {tournament.isRegistered ? (
                         <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full border border-green-300">

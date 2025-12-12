@@ -57,7 +57,7 @@ export default async function TournamentScoresPage({ params }: PageProps) {
             include: {
               members: {
                 include: {
-                  shooter: {
+                  athlete: {
                     include: {
                       user: true,
                       team: true

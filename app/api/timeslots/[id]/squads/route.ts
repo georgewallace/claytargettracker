@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       include: {
         members: {
           include: {
-            shooter: {
+            athlete: {
               include: {
                 user: true,
                 team: true
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       include: {
         members: {
           include: {
-            shooter: {
+            athlete: {
               include: {
                 user: true,
                 team: true

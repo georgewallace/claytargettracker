@@ -70,7 +70,7 @@ export default async function ShootOffDetailPage({ params }: PageProps) {
       discipline: true,
       participants: {
         include: {
-          shooter: {
+          athlete: {
             include: {
               user: true,
               team: true
@@ -97,7 +97,7 @@ export default async function ShootOffDetailPage({ params }: PageProps) {
             include: {
               participant: {
                 include: {
-                  shooter: {
+                  athlete: {
                     include: {
                       user: true
                     }

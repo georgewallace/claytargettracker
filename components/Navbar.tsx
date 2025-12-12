@@ -68,7 +68,7 @@ export default function Navbar({ user }: NavbarProps) {
                     </Link>
                     {user && (
                       <>
-                        {user.role === 'shooter' && (
+                        {user.role === 'athlete' && (
                           <Link
                             href="/history"
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"

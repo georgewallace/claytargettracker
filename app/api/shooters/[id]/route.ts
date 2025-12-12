@@ -27,7 +27,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Fetch the shooter to check team association
-    const shooter = await prisma.shooter.findUnique({
+    const shooter = await prisma.athlete.findUnique({
       where: { id },
       include: {
         team: true
@@ -74,7 +74,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
     
     // Update shooter
-    const updatedShooter = await prisma.shooter.update({
+    const updatedShooter = await prisma.athlete.update({
       where: { id },
       data: {
         birthMonth: parsedBirthMonth,
