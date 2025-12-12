@@ -30,7 +30,7 @@ export default async function Home() {
               Welcome to COYESS Tournaments
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Track tournaments, manage scores, and compete with shooters from around the region
+              Register for COYESS Tournaments
             </p>
           </div>
 
@@ -99,7 +99,7 @@ export default async function Home() {
             Welcome to COYESS Tournaments
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Track tournaments, manage scores, and compete with shooters from around the region
+            Register for COYESS Tournaments
           </p>
         </div>
 
