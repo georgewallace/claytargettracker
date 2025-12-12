@@ -583,11 +583,11 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{tournament.name}</h1>
-            <p className="text-gray-600 mt-1">Squad Management</p>
+            <h1 className="text-2xl font-bold text-gray-900">{tournament.name}</h1>
+            <p className="text-sm text-gray-600 mt-0.5">Squad Management</p>
           </div>
           <Link
             href={`/tournaments/${tournament.id}`}
@@ -599,20 +599,20 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
 
         {/* Status Messages */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md mb-3 text-sm">
             {error}
           </div>
         )}
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md mb-4">
+          <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-md mb-3 text-sm">
             {success}
           </div>
         )}
 
         {/* Discipline Tabs */}
-        <div className="bg-white rounded-lg shadow-md mb-6">
+        <div className="bg-white rounded-lg shadow-md mb-3">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 px-6" aria-label="Disciplines">
+            <nav className="-mb-px flex space-x-8 px-4" aria-label="Disciplines">
               {tournamentDisciplines.map((discipline: any) => {
                 const isActive = activeDiscipline === discipline.id
                 const disciplineSlots = tournament.timeSlots.filter(s => s.disciplineId === discipline.id)
@@ -626,7 +626,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                       isActive
                         ? 'border-indigo-500 text-indigo-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition`}
+                    } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition`}
                   >
                     {discipline.displayName}
                     <span className={`ml-2 ${isActive ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'} py-0.5 px-2.5 rounded-full text-xs font-medium`}>
@@ -640,24 +640,24 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
         </div>
 
         {/* Stats & Filters */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="grid grid-cols-4 gap-6 flex-1">
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <div className="flex items-center justify-between">
+            <div className="grid grid-cols-4 gap-4 flex-1">
               <div>
-                <p className="text-sm text-gray-600">Total Shooters</p>
-                <p className="text-2xl font-bold text-gray-900">{allShooters.length}</p>
+                <p className="text-xs text-gray-600">Total Shooters</p>
+                <p className="text-xl font-bold text-gray-900">{allShooters.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Unassigned</p>
-                <p className="text-2xl font-bold text-orange-600">{unassignedShooters.length}</p>
+                <p className="text-xs text-gray-600">Unassigned</p>
+                <p className="text-xl font-bold text-orange-600">{unassignedShooters.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Time Slots</p>
-                <p className="text-2xl font-bold text-gray-900">{sortedTimeSlots.length}</p>
+                <p className="text-xs text-gray-600">Time Slots</p>
+                <p className="text-xl font-bold text-gray-900">{sortedTimeSlots.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Squads</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xs text-gray-600">Squads</p>
+                <p className="text-xl font-bold text-gray-900">
                   {sortedTimeSlots.reduce((sum, slot) => sum + slot.squads.length, 0)}
                 </p>
               </div>
@@ -703,17 +703,17 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-4">
         {/* Unassigned Shooters - Left Sidebar */}
         <div className="col-span-3">
           <UnassignedShooters shooters={unassignedShooters} />
         </div>
 
         {/* Time Slots & Squads - Main Area */}
-        <div className="col-span-9 space-y-8">
+        <div className="col-span-9 space-y-4">
           {/* Add Time Slot Section */}
           {activeDiscipline && (
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-md p-4">
               {!showAddTimeSlot ? (
                 <button
                   onClick={() => setShowAddTimeSlot(true)}
@@ -882,10 +882,10 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
           ) : (
             Object.entries(timeSlotsByDate).map(([date, slots]) => (
               <div key={date}>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                <h2 className="text-lg font-bold text-gray-900 mb-3">
                   {format(new Date(`${date}T12:00:00.000Z`), 'EEEE, MMMM d, yyyy')}
                 </h2>
-                <div className="space-y-6">
+                <div className="space-y-3">
                   {(slots as any[]).map((timeSlot: any) => (
                     <TimeSlotSection 
                       key={timeSlot.id} 
