@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation'
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { format } from 'date-fns'
 import Link from 'next/link'
-import { getDivisionColor, formatTimeSlotLabel, isShooterAssigned } from '@/lib/squadUtils'
-import UnassignedShooters from './UnassignedShooters'
+import { getDivisionColor, formatTimeSlotLabel, isAthleteAssigned } from '@/lib/squadUtils'
+import Unassignedathletes from './UnassignedAthletes'
 import TimeSlotSection from './TimeSlotSection'
-import ShooterCard from './ShooterCard'
+import AthleteCard from './AthleteCard'
 
 interface Tournament {
   id: string
@@ -25,7 +25,7 @@ interface SquadManagerProps {
 
 export default function SquadManager({ tournament }: SquadManagerProps) {
   const router = useRouter()
-  const [draggedShooter, setDraggedShooter] = useState<any | null>(null)
+  const [draggedathlete, setDraggedathlete] = useState<any | null>(null)
   const [draggedSquad, setDraggedSquad] = useState<any | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -40,8 +40,8 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
     keepDivisionsTogether: true,
     keepTeamsCloseInTime: false,
     deleteExistingSquads: false,
-    includeShootersWithoutTeams: false,
-    includeShootersWithoutDivisions: false,
+    includeathletesWithoutTeams: false,
+    includeathletesWithoutDivisions: false,
     autoAssignAcrossDisciplines: false
   })
   const [showAddTimeSlot, setShowAddTimeSlot] = useState(false)
@@ -98,33 +98,33 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
       ).sort()
     : []
 
-  // Get all registered shooters
-  let allShooters = tournament.registrations.map(reg => ({
-    ...reg.shooter,
+  // Get all registered athletes
+  let allathletes = tournament.registrations.map(reg => ({
+    ...reg.athlete,
     registrationId: reg.id,
     disciplines: reg.disciplines
   }))
 
   // Filter by team if toggle is on
   if (showMyTeamOnly && currentUser?.coachedTeam) {
-    allShooters = allShooters.filter(shooter => shooter.teamId === currentUser.coachedTeam.id)
+    allathletes = allathletes.filter(athlete => athlete.teamId === currentUser.coachedTeam.id)
   }
 
-  // Helper function to check if shooter is assigned in this discipline
-  const isShooterAssignedInDiscipline = (shooterId: string, disciplineId: string) => {
+  // Helper function to check if athlete is assigned in this discipline
+  const isAthleteAssignedInDiscipline = (athleteId: string, disciplineId: string) => {
     return tournament.timeSlots
       .filter(slot => slot.disciplineId === disciplineId)
       .some(slot => slot.squads.some((squad: any) => 
-        squad.members.some((member: any) => member.shooterId === shooterId)
+        squad.members.some((member: any) => member.athleteId === athleteId)
       ))
   }
 
-  // Helper function to get all squads a shooter is in
-  const getShooterSquads = (shooterId: string) => {
+  // Helper function to get all squads a athlete is in
+  const getathletesquads = (athleteId: string) => {
     const squads: any[] = []
     tournament.timeSlots.forEach(slot => {
       slot.squads.forEach((squad: any) => {
-        if (squad.members.some((m: any) => m.shooterId === shooterId)) {
+        if (squad.members.some((m: any) => m.athleteId === athleteId)) {
           squads.push({
             ...squad,
             timeSlot: slot
@@ -136,11 +136,11 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
   }
 
   // Helper function to check for time overlaps
-  const hasTimeOverlap = (shooterId: string, newTimeSlot: any): {hasOverlap: boolean, overlappingSlots: any[]} => {
-    const shooterSquads = getShooterSquads(shooterId)
+  const hasTimeOverlap = (athleteId: string, newTimeSlot: any): {hasOverlap: boolean, overlappingSlots: any[]} => {
+    const athletesquads = getathletesquads(athleteId)
     const overlapping: any[] = []
     
-    for (const squadInfo of shooterSquads) {
+    for (const squadInfo of athletesquads) {
       const existingSlot = squadInfo.timeSlot
       
       // Check if same date (using ISO string to avoid timezone conversion)
@@ -170,10 +170,10 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
     }
   }
 
-  // Filter unassigned shooters for active discipline
-  const unassignedShooters = activeDiscipline 
-    ? allShooters.filter(shooter => 
-        !isShooterAssignedInDiscipline(shooter.id, activeDiscipline)
+  // Filter unassigned athletes for active discipline
+  const unassignedathletes = activeDiscipline 
+    ? allathletes.filter(athlete => 
+        !isAthleteAssignedInDiscipline(athlete.id, activeDiscipline)
       )
     : []
 
@@ -237,8 +237,8 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
       return
     }
     
-    const shooter = allShooters.find(s => s.id === activeId)
-    setDraggedShooter(shooter)
+    const athlete = allathletes.find(s => s.id === activeId)
+    setDraggedathlete(athlete)
   }
 
   const handleAutoAssignClick = () => {
@@ -263,7 +263,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to auto-assign shooters')
+        throw new Error(data.error || 'Failed to auto-assign athletes')
       }
 
       setShowAutoAssignModal(false)
@@ -404,7 +404,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     
-    setDraggedShooter(null)
+    setDraggedathlete(null)
     setDraggedSquad(null)
     
     if (!over) return
@@ -446,10 +446,10 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
       return
     }
     
-    // Continue with shooter dragging logic below...
+    // Continue with athlete dragging logic below...
     if (activeId.startsWith('squad-')) return // Don't continue if it was a squad drag
     
-    const shooterId = activeId // Use the activeId we already declared
+    const athleteId = activeId // Use the activeId we already declared
     
     // Check if dropping on a squad
     if (targetId.startsWith('squad-')) {
@@ -462,7 +462,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
       
       if (timeSlot) {
         // Check for time overlaps - block if conflict exists
-        const overlapCheck = hasTimeOverlap(shooterId, timeSlot)
+        const overlapCheck = hasTimeOverlap(athleteId, timeSlot)
         
         if (overlapCheck.hasOverlap) {
           const overlapInfo = overlapCheck.overlappingSlots.map(info => {
@@ -470,14 +470,14 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
             return `• ${slot.discipline.displayName} - ${slot.startTime} to ${slot.endTime} (${info.name})`
           }).join('\n')
           
-          const errorMsg = `❌ CANNOT ASSIGN - TIME CONFLICT\n\nThis shooter is already assigned to:\n${overlapInfo}\n\nThese times overlap with ${timeSlot.startTime} to ${timeSlot.endTime}.\n\nPlease remove the shooter from the conflicting squad first.`
+          const errorMsg = `❌ CANNOT ASSIGN - TIME CONFLICT\n\nThis athlete is already assigned to:\n${overlapInfo}\n\nThese times overlap with ${timeSlot.startTime} to ${timeSlot.endTime}.\n\nPlease remove the athlete from the conflicting squad first.`
           
           alert(errorMsg)
           return
         }
       }
       
-      // Add shooter to squad
+      // Add athlete to squad
       setLoading(true)
       setError('')
       setSuccess('')
@@ -486,16 +486,16 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
         const response = await fetch(`/api/squads/${squadId}/members`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shooterId })
+          body: JSON.stringify({ athleteId })
         })
         
         const data = await response.json()
         
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to assign shooter')
+          throw new Error(data.error || 'Failed to assign athlete')
         }
         
-        setSuccess(`Shooter assigned successfully!`)
+        setSuccess(`Athlete assigned successfully!`)
         setTimeout(() => setSuccess(''), 3000)
         router.refresh()
       } catch (err: any) {
@@ -516,7 +516,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
       
       if (timeSlot) {
         // Check for time overlaps - block if conflict exists
-        const overlapCheck = hasTimeOverlap(shooterId, timeSlot)
+        const overlapCheck = hasTimeOverlap(athleteId, timeSlot)
         
         if (overlapCheck.hasOverlap) {
           const overlapInfo = overlapCheck.overlappingSlots.map(info => {
@@ -524,14 +524,14 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
             return `• ${slot.discipline.displayName} - ${slot.startTime} to ${slot.endTime} (${info.name})`
           }).join('\n')
           
-          const errorMsg = `❌ CANNOT ASSIGN - TIME CONFLICT\n\nThis shooter is already assigned to:\n${overlapInfo}\n\nThese times overlap with ${timeSlot.startTime} to ${timeSlot.endTime}.\n\nPlease remove the shooter from the conflicting squad first.`
+          const errorMsg = `❌ CANNOT ASSIGN - TIME CONFLICT\n\nThis athlete is already assigned to:\n${overlapInfo}\n\nThese times overlap with ${timeSlot.startTime} to ${timeSlot.endTime}.\n\nPlease remove the athlete from the conflicting squad first.`
           
           alert(errorMsg)
           return
         }
       }
       
-      const squadName = prompt('Create a new squad for this shooter.\n\nSquad name:')
+      const squadName = prompt('Create a new squad for this athlete.\n\nSquad name:')
       if (!squadName) return
       
       setLoading(true)
@@ -556,19 +556,19 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
         
         const newSquad = await createResponse.json()
         
-        // Then add shooter to the new squad
+        // Then add athlete to the new squad
         const addResponse = await fetch(`/api/squads/${newSquad.id}/members`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shooterId })
+          body: JSON.stringify({ athleteId })
         })
         
         if (!addResponse.ok) {
           const data = await addResponse.json()
-          throw new Error(data.error || 'Failed to add shooter to squad')
+          throw new Error(data.error || 'Failed to add athlete to squad')
         }
         
-        setSuccess(`Squad "${squadName}" created and shooter assigned!`)
+        setSuccess(`Squad "${squadName}" created and athlete assigned!`)
         setTimeout(() => setSuccess(''), 3000)
         router.refresh()
       } catch (err: any) {
@@ -583,11 +583,11 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{tournament.name}</h1>
-            <p className="text-gray-600 mt-1">Squad Management</p>
+            <h1 className="text-2xl font-bold text-gray-900">{tournament.name}</h1>
+            <p className="text-sm text-gray-600 mt-0.5">Squad Management</p>
           </div>
           <Link
             href={`/tournaments/${tournament.id}`}
@@ -599,20 +599,20 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
 
         {/* Status Messages */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md mb-3 text-sm">
             {error}
           </div>
         )}
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md mb-4">
+          <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-md mb-3 text-sm">
             {success}
           </div>
         )}
 
         {/* Discipline Tabs */}
-        <div className="bg-white rounded-lg shadow-md mb-6">
+        <div className="bg-white rounded-lg shadow-md mb-3">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 px-6" aria-label="Disciplines">
+            <nav className="-mb-px flex space-x-8 px-4" aria-label="Disciplines">
               {tournamentDisciplines.map((discipline: any) => {
                 const isActive = activeDiscipline === discipline.id
                 const disciplineSlots = tournament.timeSlots.filter(s => s.disciplineId === discipline.id)
@@ -626,7 +626,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                       isActive
                         ? 'border-indigo-500 text-indigo-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition`}
+                    } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition`}
                   >
                     {discipline.displayName}
                     <span className={`ml-2 ${isActive ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'} py-0.5 px-2.5 rounded-full text-xs font-medium`}>
@@ -640,24 +640,24 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
         </div>
 
         {/* Stats & Filters */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="grid grid-cols-4 gap-6 flex-1">
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <div className="flex items-center justify-between">
+            <div className="grid grid-cols-4 gap-4 flex-1">
               <div>
-                <p className="text-sm text-gray-600">Total Shooters</p>
-                <p className="text-2xl font-bold text-gray-900">{allShooters.length}</p>
+                <p className="text-xs text-gray-600">Total athletes</p>
+                <p className="text-xl font-bold text-gray-900">{allathletes.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Unassigned</p>
-                <p className="text-2xl font-bold text-orange-600">{unassignedShooters.length}</p>
+                <p className="text-xs text-gray-600">Unassigned</p>
+                <p className="text-xl font-bold text-orange-600">{unassignedathletes.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Time Slots</p>
-                <p className="text-2xl font-bold text-gray-900">{sortedTimeSlots.length}</p>
+                <p className="text-xs text-gray-600">Time Slots</p>
+                <p className="text-xl font-bold text-gray-900">{sortedTimeSlots.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Squads</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xs text-gray-600">Squads</p>
+                <p className="text-xl font-bold text-gray-900">
                   {sortedTimeSlots.reduce((sum, slot) => sum + slot.squads.length, 0)}
                 </p>
               </div>
@@ -667,7 +667,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
               {/* Auto-Assign Button */}
               <button
                 onClick={handleAutoAssignClick}
-                disabled={autoAssigning || unassignedShooters.length === 0}
+                disabled={autoAssigning || unassignedathletes.length === 0}
                 className="px-6 py-2.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium shadow-sm"
               >
                 {autoAssigning ? (
@@ -703,17 +703,17 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Unassigned Shooters - Left Sidebar */}
+      <div className="grid grid-cols-12 gap-4">
+        {/* Unassigned athletes - Left Sidebar */}
         <div className="col-span-3">
-          <UnassignedShooters shooters={unassignedShooters} />
+          <Unassignedathletes athletes={unassignedathletes} />
         </div>
 
         {/* Time Slots & Squads - Main Area */}
-        <div className="col-span-9 space-y-8">
+        <div className="col-span-9 space-y-4">
           {/* Add Time Slot Section */}
           {activeDiscipline && (
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-md p-4">
               {!showAddTimeSlot ? (
                 <button
                   onClick={() => setShowAddTimeSlot(true)}
@@ -882,10 +882,10 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
           ) : (
             Object.entries(timeSlotsByDate).map(([date, slots]) => (
               <div key={date}>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                <h2 className="text-lg font-bold text-gray-900 mb-3">
                   {format(new Date(`${date}T12:00:00.000Z`), 'EEEE, MMMM d, yyyy')}
                 </h2>
-                <div className="space-y-6">
+                <div className="space-y-3">
                   {(slots as any[]).map((timeSlot: any) => (
                     <TimeSlotSection 
                       key={timeSlot.id} 
@@ -903,9 +903,9 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
 
       {/* Drag Overlay */}
       <DragOverlay>
-        {draggedShooter && (
+        {draggedathlete && (
           <div className="opacity-80">
-            <ShooterCard shooter={draggedShooter} isDragging />
+            <AthleteCard athlete={draggedathlete} isDragging />
           </div>
         )}
         {draggedSquad && (
@@ -920,7 +920,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
               </p>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Moving squad with {draggedSquad.members.length} {draggedSquad.members.length === 1 ? 'shooter' : 'shooters'}
+              Moving squad with {draggedSquad.members.length} {draggedSquad.members.length === 1 ? 'athlete' : 'athletes'}
             </p>
           </div>
         )}
@@ -948,7 +948,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
 
               <div className="mb-6">
                 <p className="text-gray-700 mb-4">
-                  This will automatically assign all unassigned shooters with teams to squads.
+                  This will automatically assign all unassigned athletes with teams to squads.
                 </p>
                 
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
@@ -991,7 +991,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                       />
                       <div className="flex-1">
                         <span className="text-sm font-medium text-gray-900">Keep divisions together</span>
-                        <p className="text-xs text-gray-600 mt-0.5">Shooters in the same division will be grouped together</p>
+                        <p className="text-xs text-gray-600 mt-0.5">Athletes in the same division will be grouped together</p>
                       </div>
                     </label>
 
@@ -1019,8 +1019,8 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                         <span className="text-sm font-medium text-gray-900">Auto-assign across all disciplines</span>
                         <p className="text-xs text-gray-600 mt-0.5">
                           {autoAssignOptions.autoAssignAcrossDisciplines 
-                            ? 'Will assign shooters to squads in all disciplines' 
-                            : `Will only assign shooters to squads in ${tournamentDisciplines.find(d => d.id === activeDiscipline)?.displayName || 'the active discipline'}`
+                            ? 'Will assign athletes to squads in all disciplines' 
+                            : `Will only assign athletes to squads in ${tournamentDisciplines.find(d => d.id === activeDiscipline)?.displayName || 'the active discipline'}`
                           }
                         </p>
                       </div>
@@ -1030,26 +1030,26 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                       <label className="flex items-start gap-3 cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={autoAssignOptions.includeShootersWithoutTeams}
-                          onChange={(e) => setAutoAssignOptions(prev => ({ ...prev, includeShootersWithoutTeams: e.target.checked }))}
+                          checked={autoAssignOptions.includeathletesWithoutTeams}
+                          onChange={(e) => setAutoAssignOptions(prev => ({ ...prev, includeathletesWithoutTeams: e.target.checked }))}
                           className="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                         />
                         <div className="flex-1">
-                          <span className="text-sm font-medium text-gray-900">Include shooters without teams</span>
-                          <p className="text-xs text-gray-600 mt-0.5">Assign shooters who are not on a team</p>
+                          <span className="text-sm font-medium text-gray-900">Include athletes without teams</span>
+                          <p className="text-xs text-gray-600 mt-0.5">Assign athletes who are not on a team</p>
                         </div>
                       </label>
 
                       <label className="flex items-start gap-3 cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={autoAssignOptions.includeShootersWithoutDivisions}
-                          onChange={(e) => setAutoAssignOptions(prev => ({ ...prev, includeShootersWithoutDivisions: e.target.checked }))}
+                          checked={autoAssignOptions.includeathletesWithoutDivisions}
+                          onChange={(e) => setAutoAssignOptions(prev => ({ ...prev, includeathletesWithoutDivisions: e.target.checked }))}
                           className="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                         />
                         <div className="flex-1">
-                          <span className="text-sm font-medium text-gray-900">Include shooters without divisions</span>
-                          <p className="text-xs text-gray-600 mt-0.5">Assign shooters who don't have a division set</p>
+                          <span className="text-sm font-medium text-gray-900">Include athletes without divisions</span>
+                          <p className="text-xs text-gray-600 mt-0.5">Assign athletes who don't have a division set</p>
                         </div>
                       </label>
                     </div>
@@ -1064,7 +1064,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                         />
                         <div className="flex-1">
                           <span className="text-sm font-medium text-gray-900">Delete existing squads</span>
-                          <p className="text-xs text-gray-600 mt-0.5">Remove all current squads before auto-assigning. If unchecked, only unassigned shooters will be added to available squads.</p>
+                          <p className="text-xs text-gray-600 mt-0.5">Remove all current squads before auto-assigning. If unchecked, only unassigned athletes will be added to available squads.</p>
                         </div>
                       </label>
                     </div>
@@ -1074,8 +1074,8 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                 <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
                   <div className="text-sm">
                     <div className="flex justify-between mb-1">
-                      <span className="text-gray-600">Unassigned shooters:</span>
-                      <span className="font-semibold text-gray-900">{unassignedShooters.length}</span>
+                      <span className="text-gray-600">Unassigned athletes:</span>
+                      <span className="font-semibold text-gray-900">{unassignedathletes.length}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Available time slots:</span>
@@ -1097,7 +1097,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                     <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Only unassigned shooters will be added. Existing squads will be preserved, and shooters will not be assigned if it would violate time conflict or squad rules.</span>
+                    <span>Only unassigned athletes will be added. Existing squads will be preserved, and athletes will not be assigned if it would violate time conflict or squad rules.</span>
                   </p>
                 )}
               </div>

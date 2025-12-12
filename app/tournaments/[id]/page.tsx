@@ -6,6 +6,7 @@ import Link from 'next/link'
 import RegisterButton from './RegisterButton'
 import CoachRegistration from './CoachRegistration'
 import RemoveRegistrationButton from './RemoveRegistrationButton'
+import ExportRegistrationsButton from './ExportRegistrationsButton'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 import TeamLogo from '@/components/TeamLogo'
 
@@ -55,7 +56,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
       },
       registrations: {
         include: {
-          shooter: {
+          athlete: {
             include: {
               user: true,
               team: true
@@ -70,7 +71,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
       },
       shoots: {
         include: {
-          shooter: {
+          athlete: {
             include: {
               user: true,
               team: true
@@ -87,25 +88,53 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  // Get all shooters for coach registration
-  const allShooters = await prisma.shooter.findMany({
-    include: {
-      user: true,
-      team: true
-    },
-    orderBy: {
-      user: {
-        name: 'asc'
-      }
-    }
-  })
+  // Get athletes for coach registration based on role
+  let allathletes: any[] = []
 
-  const registeredShooterIds = tournament.registrations.map(r => r.shooterId)
+  if (user?.role === 'coach') {
+    // Coaches can only register athletes from teams they coach
+    const coachedTeams = await prisma.teamCoach.findMany({
+      where: { userId: user.id },
+      select: { teamId: true }
+    })
+
+    const teamIds = coachedTeams.map(tc => tc.teamId)
+
+    allathletes = await prisma.athlete.findMany({
+      where: {
+        teamId: { in: teamIds }
+      },
+      include: {
+        user: true,
+        team: true
+      },
+      orderBy: {
+        user: {
+          name: 'asc'
+        }
+      }
+    })
+  } else if (user?.role === 'admin') {
+    // Admins can register any athlete
+    allathletes = await prisma.athlete.findMany({
+      include: {
+        user: true,
+        team: true
+      },
+      orderBy: {
+        user: {
+          name: 'asc'
+        }
+      }
+    })
+  }
+
+  const registeredathleteIds = tournament.registrations.map(r => r.athleteId)
   const isCoach = user?.role === 'coach' || user?.role === 'admin'
 
   // Check if current user is registered
-  const isRegistered = user?.shooter && tournament.registrations.some(
-    reg => reg.shooterId === user.shooter?.id
+  const isRegistered = user?.athlete && tournament.registrations.some(
+    reg => reg.athleteId === user.athlete?.id
   )
 
   const getStatusBadge = (status: string) => {
@@ -123,11 +152,12 @@ export default async function TournamentDetailPage({ params }: PageProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Coach Registration */}
         {isCoach && tournament.status === 'upcoming' && (
-          <CoachRegistration 
+          <CoachRegistration
             tournamentId={tournament.id}
-            allShooters={allShooters}
-            registeredShooterIds={registeredShooterIds}
+            allathletes={allathletes}
+            registeredathleteIds={registeredathleteIds}
             tournamentDisciplines={tournament.disciplines.map(td => td.discipline)}
+            userRole={user?.role as 'coach' | 'admin'}
           />
         )}
 
@@ -145,16 +175,18 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             
             {/* Action Buttons - Responsive Grid */}
             <div className="flex flex-wrap gap-2 sm:gap-3">
-              {/* Leaderboard button - visible to everyone */}
-              <Link
-                href={`/tournaments/${tournament.id}/leaderboard`}
-                className="bg-yellow-500 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition font-medium text-sm sm:text-base whitespace-nowrap"
-              >
-                🏆 Leaderboard
-              </Link>
-              
-              {/* Enter Scores button for coaches and admins */}
-              {user && (user.role === 'coach' || user.role === 'admin') && (
+              {/* Leaderboard button - visible to everyone when enabled */}
+              {tournament.enableLeaderboard && (
+                <Link
+                  href={`/tournaments/${tournament.id}/leaderboard`}
+                  className="bg-yellow-500 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition font-medium text-sm sm:text-base whitespace-nowrap"
+                >
+                  🏆 Leaderboard
+                </Link>
+              )}
+
+              {/* Enter Scores button for coaches and admins when enabled */}
+              {tournament.enableScores && user && (user.role === 'coach' || user.role === 'admin') && (
                 <Link
                   href={`/tournaments/${tournament.id}/scores`}
                   className="bg-purple-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
@@ -190,6 +222,10 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                       Shoot-Offs
                     </Link>
                   )}
+                  <ExportRegistrationsButton
+                    registrations={tournament.registrations}
+                    tournamentName={tournament.name}
+                  />
                   <Link
                     href={`/tournaments/${tournament.id}/edit`}
                     className="bg-gray-100 text-gray-700 px-4 sm:px-6 py-2 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
@@ -199,11 +235,11 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                 </>
               )}
               
-              {/* Register button for shooters */}
-              {user && user.shooter && !isRegistered && tournament.status === 'upcoming' && (
+              {/* Register button for athletes */}
+              {user && user.athlete && !isRegistered && tournament.status === 'upcoming' && (
                 <RegisterButton 
                   tournamentId={tournament.id} 
-                  shooterId={user.shooter.id}
+                  athleteId={user.athlete.id}
                   tournamentDisciplines={tournament.disciplines.map(td => td.discipline)}
                 />
               )}
@@ -225,7 +261,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
               </div>
               <div className="flex items-center text-gray-700">
                 <span className="font-semibold mr-2">👥 Registered:</span>
-                {tournament.registrations.length} shooters
+                {tournament.registrations.length} athletes
               </div>
               <div className="flex items-center text-gray-700">
                 <span className="font-semibold mr-2">👤 Organizer:</span>
@@ -242,14 +278,14 @@ export default async function TournamentDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Registered Shooters */}
+        {/* Registered athletes */}
         <div className="bg-white rounded-lg shadow-md p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Registered Shooters ({tournament.registrations.length})
+            Registered athletes ({tournament.registrations.length})
           </h2>
           
           {tournament.registrations.length === 0 ? (
-            <p className="text-gray-600">No shooters registered yet.</p>
+            <p className="text-gray-600">No athletes registered yet.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tournament.registrations.map((registration) => (
@@ -259,39 +295,39 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
-                      {registration.shooter.team && (
+                      {registration.athlete.team && (
                         <TeamLogo 
-                          logoUrl={registration.shooter.team.logoUrl}
-                          teamName={registration.shooter.team.name}
+                          logoUrl={registration.athlete.team.logoUrl}
+                          teamName={registration.athlete.team.name}
                           size="sm"
                         />
                       )}
                       <div className="font-semibold text-gray-900">
-                        {registration.shooter.user.name}
+                        {registration.athlete.user.name}
                       </div>
                     </div>
                     {/* Remove button for coaches/admins */}
                     {isCoach && (
                       <RemoveRegistrationButton 
                         registrationId={registration.id}
-                        shooterName={registration.shooter.user.name}
+                        athleteName={registration.athlete.user.name}
                         isCompact={true}
                       />
                     )}
                   </div>
                   
                   <div className="space-y-1">
-                    {registration.shooter.team && (
+                    {registration.athlete.team && (
                       <div className="text-sm text-gray-600">
-                        Team: {registration.shooter.team.name}
+                        Team: {registration.athlete.team.name}
                       </div>
                     )}
-                    {(registration.shooter.grade || registration.shooter.division) && (
+                    {(registration.athlete.grade || registration.athlete.division) && (
                       <div className="text-sm text-gray-600">
-                        {registration.shooter.grade && <span>Grade: {registration.shooter.grade}</span>}
-                        {registration.shooter.grade && registration.shooter.division && <span> • </span>}
-                        {registration.shooter.division && (
-                          <span className="font-medium text-indigo-600">{registration.shooter.division}</span>
+                        {registration.athlete.grade && <span>Grade: {registration.athlete.grade}</span>}
+                        {registration.athlete.grade && registration.athlete.division && <span> • </span>}
+                        {registration.athlete.division && (
+                          <span className="font-medium text-indigo-600">{registration.athlete.division}</span>
                         )}
                       </div>
                     )}

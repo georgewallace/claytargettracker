@@ -7,10 +7,10 @@ import { getUserFirstCoachedTeam } from '@/lib/teamHelpers'
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
-    const { shooterId } = await request.json()
+    const { athleteId } = await request.json()
     
     // Validate input
-    if (!shooterId) {
+    if (!athleteId) {
       return NextResponse.json(
         { error: 'Shooter ID is required' },
         { status: 400 }
@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Get shooter details with user
-    const shooterToAdd = await prisma.shooter.findUnique({
-      where: { id: shooterId },
+    const shooterToAdd = await prisma.athlete.findUnique({
+      where: { id: athleteId },
       include: { 
         user: true,
         team: true
@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Update shooter's team
-    const shooter = await prisma.shooter.update({
-      where: { id: shooterId },
+    const shooter = await prisma.athlete.update({
+      where: { id: athleteId },
       data: { teamId: team.id },
       include: {
         user: true,

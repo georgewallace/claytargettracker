@@ -100,7 +100,7 @@ export default function TimeSlotCard({ timeSlot, onUpdate }: TimeSlotCardProps) 
 
           <div className="space-y-1 text-sm text-gray-600">
             <div>
-              <span className="font-medium">Capacity:</span> {timeSlot.squadCapacity} shooters per squad
+              <span className="font-medium">Capacity:</span> {timeSlot.squadCapacity} athletes per squad
             </div>
             <div>
               <span className="font-medium">Squads:</span>{' '}

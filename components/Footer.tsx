@@ -10,10 +10,10 @@ export default function Footer() {
                 <circle cx="12" cy="12" r="6"></circle>
                 <circle cx="12" cy="12" r="2"></circle>
               </svg>
-              Clay Target Tracker
+              COYESS Tournaments
             </h3>
             <p className="text-sm text-gray-600">
-              Track tournaments, manage scores, and compete with shooters from around the region.
+              Register for COYESS Tournaments
             </p>
           </div>
           
@@ -49,7 +49,7 @@ export default function Footer() {
         
         <div className="border-t border-gray-200 mt-8 pt-8 text-center">
           <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} Clay Target Tracker. All rights reserved.
+            © {new Date().getFullYear()} COYESS Tournaments. All rights reserved.
           </p>
         </div>
       </div>

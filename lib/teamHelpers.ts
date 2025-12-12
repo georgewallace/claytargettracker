@@ -24,7 +24,7 @@ export async function getUserCoachedTeam(userId: string) {
     include: {
       team: {
         include: {
-          shooters: {
+          athletes: {
             include: {
               user: true
             }

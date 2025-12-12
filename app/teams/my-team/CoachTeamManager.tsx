@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-interface Shooter {
+interface Athlete {
   id: string
   grade: string | null
   division: string | null
@@ -20,14 +20,14 @@ interface Shooter {
 interface Team {
   id: string
   name: string
-  shooters: Shooter[]
+  athletes: Athlete[]
 }
 
 interface JoinRequest {
   id: string
   message: string | null
   createdAt: Date
-  shooter: {
+  athlete: {
     id: string
     user: {
       name: string
@@ -38,38 +38,38 @@ interface JoinRequest {
 
 interface CoachTeamManagerProps {
   team: Team
-  availableShooters: Shooter[]
+  availableathletes: Athlete[]
   joinRequests: JoinRequest[]
 }
 
-export default function CoachTeamManager({ team, availableShooters, joinRequests }: CoachTeamManagerProps) {
+export default function CoachTeamManager({ team, availableathletes, joinRequests }: CoachTeamManagerProps) {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const filteredAvailable = availableShooters.filter(shooter =>
-    shooter.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    shooter.user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAvailable = availableathletes.filter(athlete =>
+    athlete.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    athlete.user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleAddShooter = async (shooterId: string) => {
+  const handleAddathlete = async (athleteId: string) => {
     setLoading(true)
     setError('')
     setSuccess('')
 
     try {
-      const response = await fetch('/api/teams/add-shooter', {
+      const response = await fetch('/api/teams/add-athlete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shooterId })
+        body: JSON.stringify({ athleteId })
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Failed to add shooter')
+        setError(data.error || 'Failed to add athlete')
         return
       }
 
@@ -85,8 +85,8 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
     }
   }
 
-  const handleRemoveShooter = async (shooterId: string) => {
-    if (!confirm('Are you sure you want to remove this shooter from the team?')) {
+  const handleRemoveathlete = async (athleteId: string) => {
+    if (!confirm('Are you sure you want to remove this athlete from the team?')) {
       return
     }
 
@@ -95,16 +95,16 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
     setSuccess('')
 
     try {
-      const response = await fetch('/api/teams/remove-shooter', {
+      const response = await fetch('/api/teams/remove-athlete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shooterId })
+        body: JSON.stringify({ athleteId })
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Failed to remove shooter')
+        setError(data.error || 'Failed to remove athlete')
         return
       }
 
@@ -120,7 +120,7 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
     }
   }
 
-  const handleApproveRequest = async (requestId: string, shooterName: string) => {
+  const handleApproveRequest = async (requestId: string, athleteName: string) => {
     setLoading(true)
     setError('')
     setSuccess('')
@@ -139,7 +139,7 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
         return
       }
 
-      setSuccess(`${shooterName} approved and added to the team!`)
+      setSuccess(`${athleteName} approved and added to the team!`)
       setTimeout(() => {
         router.refresh()
         setSuccess('')
@@ -151,8 +151,8 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
     }
   }
 
-  const handleRejectRequest = async (requestId: string, shooterName: string) => {
-    if (!confirm(`Reject join request from ${shooterName}?`)) {
+  const handleRejectRequest = async (requestId: string, athleteName: string) => {
+    if (!confirm(`Reject join request from ${athleteName}?`)) {
       return
     }
 
@@ -174,7 +174,7 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
         return
       }
 
-      setSuccess(`Request from ${shooterName} rejected`)
+      setSuccess(`Request from ${athleteName} rejected`)
       setTimeout(() => {
         router.refresh()
         setSuccess('')
@@ -208,7 +208,7 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
             Pending Join Requests ({joinRequests.length})
           </h2>
           <p className="text-gray-600 mb-6">
-            Review and approve/reject requests from shooters who want to join your team
+            Review and approve/reject requests from athletes who want to join your team
           </p>
 
           <div className="space-y-3">
@@ -219,10 +219,10 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
               >
                 <div className="flex-1">
                   <div className="font-medium text-gray-900">
-                    {request.shooter.user.name}
+                    {request.athlete.user.name}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {request.shooter.user.email}
+                    {request.athlete.user.email}
                   </div>
                   {request.message && (
                     <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-700 italic">
@@ -235,14 +235,14 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
                 </div>
                 <div className="flex gap-2 ml-4">
                   <button
-                    onClick={() => handleApproveRequest(request.id, request.shooter.user.name)}
+                    onClick={() => handleApproveRequest(request.id, request.athlete.user.name)}
                     disabled={loading}
                     className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
                   >
                     ✓ Approve
                   </button>
                   <button
-                    onClick={() => handleRejectRequest(request.id, request.shooter.user.name)}
+                    onClick={() => handleRejectRequest(request.id, request.athlete.user.name)}
                     disabled={loading}
                     className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
                   >
@@ -258,44 +258,44 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
       {/* Current Roster */}
       <div className="bg-white rounded-lg shadow-md p-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          Current Roster ({team.shooters.length})
+          Current Roster ({team.athletes.length})
         </h2>
 
-        {team.shooters.length === 0 ? (
+        {team.athletes.length === 0 ? (
           <p className="text-gray-600 text-center py-8">
-            No shooters on your team yet. Add some from the list below!
+            No athletes on your team yet. Add some from the list below!
           </p>
         ) : (
           <div className="space-y-3">
-            {team.shooters.map((shooter) => (
+            {team.athletes.map((athlete) => (
               <div
-                key={shooter.id}
+                key={athlete.id}
                 className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition"
               >
                 <div className="flex-1">
                   <div className="font-medium text-gray-900">
-                    {shooter.user.name}
+                    {athlete.user.name}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {shooter.user.email}
+                    {athlete.user.email}
                   </div>
-                  {(shooter.grade || shooter.division) && (
+                  {(athlete.grade || athlete.division) && (
                     <div className="text-sm text-gray-600 mt-1">
-                      {shooter.grade && <span>Grade: {shooter.grade}</span>}
-                      {shooter.grade && shooter.division && <span> • </span>}
-                      {shooter.division && <span className="font-medium text-indigo-600">{shooter.division}</span>}
+                      {athlete.grade && <span>Grade: {athlete.grade}</span>}
+                      {athlete.grade && athlete.division && <span> • </span>}
+                      {athlete.division && <span className="font-medium text-indigo-600">{athlete.division}</span>}
                     </div>
                   )}
                 </div>
                 <div className="flex gap-2">
                   <Link
-                    href={`/shooters/${shooter.id}/edit`}
+                    href={`/athletes/${athlete.id}/edit`}
                     className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition text-sm"
                   >
                     Edit Details
                   </Link>
                   <button
-                    onClick={() => handleRemoveShooter(shooter.id)}
+                    onClick={() => handleRemoveathlete(athlete.id)}
                     disabled={loading}
                     className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm"
                   >
@@ -308,13 +308,13 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
         )}
       </div>
 
-      {/* Add Shooters */}
+      {/* Add athletes */}
       <div className="bg-white rounded-lg shadow-md p-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          Add Shooters to Team
+          Add athletes to Team
         </h2>
         <p className="text-gray-600 mb-6">
-          Select shooters to add to your team roster
+          Select athletes to add to your team roster
         </p>
 
         <div className="mb-4">
@@ -329,30 +329,30 @@ export default function CoachTeamManager({ team, availableShooters, joinRequests
 
         {filteredAvailable.length === 0 ? (
           <p className="text-gray-600 text-center py-8">
-            {searchTerm ? 'No shooters match your search.' : 'No available shooters to add.'}
+            {searchTerm ? 'No athletes match your search.' : 'No available athletes to add.'}
           </p>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {filteredAvailable.map((shooter) => (
+            {filteredAvailable.map((athlete) => (
               <div
-                key={shooter.id}
+                key={athlete.id}
                 className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition"
               >
                 <div>
                   <div className="font-medium text-gray-900">
-                    {shooter.user.name}
+                    {athlete.user.name}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {shooter.user.email}
+                    {athlete.user.email}
                   </div>
-                  {shooter.team && (
+                  {athlete.team && (
                     <div className="text-sm text-indigo-600 mt-1">
-                      Currently on: {shooter.team.name}
+                      Currently on: {athlete.team.name}
                     </div>
                   )}
                 </div>
                 <button
-                  onClick={() => handleAddShooter(shooter.id)}
+                  onClick={() => handleAddathlete(athlete.id)}
                   disabled={loading}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm"
                 >

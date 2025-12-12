@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-interface Shooter {
+interface athlete {
   id: string
   gender: string | null
   birthMonth: number | null
@@ -25,7 +25,7 @@ interface Shooter {
 }
 
 interface ProfileFormProps {
-  shooter: Shooter
+  athlete: athlete
 }
 
 const GRADES = ['6', '7', '8', '9', '10', '11', '12', 'College']
@@ -37,20 +37,20 @@ const NSCA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA', 'Master']
 const ATA_CLASSES = ['A', 'AA', 'AAA']
 const NSSA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA', 'Master']
 
-export default function ProfileForm({ shooter }: ProfileFormProps) {
+export default function ProfileForm({ athlete }: ProfileFormProps) {
   const router = useRouter()
   
   const [formData, setFormData] = useState({
-    gender: shooter.gender || '',
-    birthMonth: shooter.birthMonth || '',
-    birthYear: shooter.birthYear || '',
-    grade: shooter.grade || '',
-    nscaClass: shooter.nscaClass || '',
-    ataClass: shooter.ataClass || '',
-    nssaClass: shooter.nssaClass || '',
-    ataNumber: shooter.ataNumber || '',
-    nscaNumber: shooter.nscaNumber || '',
-    nssaNumber: shooter.nssaNumber || ''
+    gender: athlete.gender || '',
+    birthMonth: athlete.birthMonth || '',
+    birthYear: athlete.birthYear || '',
+    grade: athlete.grade || '',
+    nscaClass: athlete.nscaClass || '',
+    ataClass: athlete.ataClass || '',
+    nssaClass: athlete.nssaClass || '',
+    ataNumber: athlete.ataNumber || '',
+    nscaNumber: athlete.nscaNumber || '',
+    nssaNumber: athlete.nssaNumber || ''
   })
   
   const [error, setError] = useState('')
@@ -100,7 +100,7 @@ export default function ProfileForm({ shooter }: ProfileFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Shooter Profile Information</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Athlete profile information</h2>
       
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
@@ -301,12 +301,12 @@ export default function ProfileForm({ shooter }: ProfileFormProps) {
       </div>
 
       {/* Division Display */}
-      {shooter.division && (
+      {athlete.division && (
         <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
           <div className="flex items-center justify-between">
             <div>
               <h4 className="text-sm font-medium text-indigo-900">Current Division</h4>
-              <p className="text-lg font-bold text-indigo-700 mt-1">{shooter.division}</p>
+              <p className="text-lg font-bold text-indigo-700 mt-1">{athlete.division}</p>
             </div>
             <div className="text-xs text-indigo-600">
               Auto-calculated based on grade
@@ -316,12 +316,12 @@ export default function ProfileForm({ shooter }: ProfileFormProps) {
       )}
 
       {/* Team Display */}
-      {shooter.team && (
+      {athlete.team && (
         <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
           <div className="flex items-center justify-between">
             <div>
               <h4 className="text-sm font-medium text-gray-700">Team</h4>
-              <p className="text-lg font-semibold text-gray-900 mt-1">{shooter.team.name}</p>
+              <p className="text-lg font-semibold text-gray-900 mt-1">{athlete.team.name}</p>
             </div>
           </div>
         </div>

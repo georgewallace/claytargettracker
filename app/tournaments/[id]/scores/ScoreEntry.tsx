@@ -22,8 +22,8 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
   const router = useRouter()
   const [activeDiscipline, setActiveDiscipline] = useState<string | null>(null)
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null)
-  const [scores, setScores] = useState<Record<string, Record<number, number>>>({}) // shooterId -> round -> score
-  const [allDisciplineScores, setAllDisciplineScores] = useState<Record<string, boolean>>({}) // shooterId -> hasScores (for completion tracking)
+  const [scores, setScores] = useState<Record<string, Record<number, number>>>({}) // athleteId -> round -> score
+  const [allDisciplineScores, setAllDisciplineScores] = useState<Record<string, boolean>>({}) // athleteId -> hasScores (for completion tracking)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -53,37 +53,37 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
     
     const fetchAllDisciplineScores = async () => {
       try {
-        const allShooterIds = new Set<string>()
-        const shootersWithScores = new Set<string>()
+        const allathleteIds = new Set<string>()
+        const athletesWithScores = new Set<string>()
         
-        // Get all shooters in this discipline's squads
+        // Get all athletes in this discipline's squads
         tournament.timeSlots
           .filter(slot => slot.disciplineId === activeDiscipline)
           .forEach(slot => {
             slot.squads.forEach((squad: any) => {
               squad.members.forEach((member: any) => {
-                allShooterIds.add(member.shooter.id)
+                allathleteIds.add(member.athlete.id)
               })
             })
           })
         
         // Fetch scores for all squads in this discipline
-        for (const shooterId of allShooterIds) {
+        for (const athleteId of allathleteIds) {
           const response = await fetch(
-            `/api/tournaments/${tournament.id}/scores?shooterId=${shooterId}&disciplineId=${activeDiscipline}`
+            `/api/tournaments/${tournament.id}/scores?athleteId=${athleteId}&disciplineId=${activeDiscipline}`
           )
           if (response.ok) {
             const data = await response.json()
             if (data.length > 0 && data[0].scores.length > 0) {
-              shootersWithScores.add(shooterId)
+              athletesWithScores.add(athleteId)
             }
           }
         }
         
         // Build completion map
         const completionMap: Record<string, boolean> = {}
-        allShooterIds.forEach(id => {
-          completionMap[id] = shootersWithScores.has(id)
+        allathleteIds.forEach(id => {
+          completionMap[id] = athletesWithScores.has(id)
         })
         
         setAllDisciplineScores(completionMap)
@@ -103,7 +103,7 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
           // Calculate completion for this squad using allDisciplineScores
           let membersWithScores = 0
           squad.members.forEach((member: any) => {
-            if (allDisciplineScores[member.shooter.id]) {
+            if (allDisciplineScores[member.athlete.id]) {
               membersWithScores++
             }
           })
@@ -185,11 +185,11 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
           const data = await response.json()
           // Transform data into scores object
           data.forEach((shoot: any) => {
-            if (!scoresObj[shoot.shooterId]) {
-              scoresObj[shoot.shooterId] = {}
+            if (!scoresObj[shoot.athleteId]) {
+              scoresObj[shoot.athleteId] = {}
             }
             shoot.scores.forEach((score: any) => {
-              scoresObj[shoot.shooterId][score.station] = score.targets
+              scoresObj[shoot.athleteId][score.station] = score.targets
             })
           })
         }
@@ -201,18 +201,18 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
     }
   }
 
-  const handleScoreChange = (shooterId: string, round: number, value: string) => {
+  const handleScoreChange = (athleteId: string, round: number, value: string) => {
     // Allow empty string
     if (value === '') {
       setScores(prev => {
         const newScores = { ...prev }
-        if (newScores[shooterId]) {
-          const shooterScores = { ...newScores[shooterId] }
-          delete shooterScores[round]
-          if (Object.keys(shooterScores).length === 0) {
-            delete newScores[shooterId]
+        if (newScores[athleteId]) {
+          const athletescores = { ...newScores[athleteId] }
+          delete athletescores[round]
+          if (Object.keys(athletescores).length === 0) {
+            delete newScores[athleteId]
           } else {
-            newScores[shooterId] = shooterScores
+            newScores[athleteId] = athletescores
           }
         }
         return newScores
@@ -228,16 +228,16 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
 
     setScores(prev => ({
       ...prev,
-      [shooterId]: {
-        ...(prev[shooterId] || {}),
+      [athleteId]: {
+        ...(prev[athleteId] || {}),
         [round]: numValue
       }
     }))
   }
 
-  const getShooterTotal = (shooterId: string): number => {
-    const shooterScores = scores[shooterId] || {}
-    return Object.values(shooterScores).reduce((sum, score) => sum + score, 0)
+  const getathleteTotal = (athleteId: string): number => {
+    const athletescores = scores[athleteId] || {}
+    return Object.values(athletescores).reduce((sum, score) => sum + score, 0)
   }
 
   const handleSaveScores = async () => {
@@ -248,31 +248,31 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
     setSuccess('')
 
     try {
-      // Build a map of shooterId to their squad's date
-      const shooterToDateMap: Record<string, Date> = {}
+      // Build a map of athleteId to their squad's date
+      const athleteToDateMap: Record<string, Date> = {}
       squadsToDisplay.forEach((squad: any) => {
         squad.members.forEach((member: any) => {
-          shooterToDateMap[member.shooter.id] = squad.timeSlot.date
+          athleteToDateMap[member.athlete.id] = squad.timeSlot.date
         })
       })
 
       // Validate scores before saving
-      const invalidShooters: string[] = []
-      Object.entries(scores).forEach(([shooterId, rounds]) => {
+      const invalidathletes: string[] = []
+      Object.entries(scores).forEach(([athleteId, rounds]) => {
         const total = Object.values(rounds).reduce((sum, score) => sum + score, 0)
         if (total > maxPossibleScore) {
           const member = squadsToDisplay
             .flatMap(s => s.members)
-            .find((m: any) => m.shooter.id === shooterId)
+            .find((m: any) => m.athlete.id === athleteId)
           if (member) {
-            invalidShooters.push(`${member.shooter.user.name} (${total}/${maxPossibleScore})`)
+            invalidathletes.push(`${member.athlete.user.name} (${total}/${maxPossibleScore})`)
           }
         }
       })
 
-      if (invalidShooters.length > 0) {
+      if (invalidathletes.length > 0) {
         setError(
-          `Cannot save scores. The following shooter(s) have scores exceeding the tournament limit of ${maxPossibleScore} targets:\n\n${invalidShooters.join('\n')}\n\nPlease correct the scores before saving.`
+          `Cannot save scores. The following athlete(s) have scores exceeding the tournament limit of ${maxPossibleScore} targets:\n\n${invalidathletes.join('\n')}\n\nPlease correct the scores before saving.`
         )
         setLoading(false)
         return
@@ -280,11 +280,11 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
 
       // Prepare scores data
       const scoresData = Object.entries(scores)
-        .filter(([shooterId]) => shooterToDateMap[shooterId]) // Only include shooters in displayed squads
-        .map(([shooterId, rounds]) => ({
-          shooterId,
+        .filter(([athleteId]) => athleteToDateMap[athleteId]) // Only include athletes in displayed squads
+        .map(([athleteId, rounds]) => ({
+          athleteId,
           disciplineId: activeDiscipline,
-          date: shooterToDateMap[shooterId],
+          date: athleteToDateMap[athleteId],
           rounds: Object.entries(rounds).map(([round, targets]) => ({
             station: parseInt(round),
             targets,
@@ -304,13 +304,13 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
         throw new Error(data.error || 'Failed to save scores')
       }
 
-      setSuccess(`Scores saved successfully! ${scoresData.length} shooter${scoresData.length !== 1 ? 's' : ''} updated.`)
+      setSuccess(`Scores saved successfully! ${scoresData.length} athlete${scoresData.length !== 1 ? 's' : ''} updated.`)
       
-      // Update completion tracking for the shooters who just got scores
+      // Update completion tracking for the athletes who just got scores
       setAllDisciplineScores(prev => {
         const updated = { ...prev }
-        scoresData.forEach(({ shooterId }) => {
-          updated[shooterId] = true
+        scoresData.forEach(({ athleteId }) => {
+          updated[athleteId] = true
         })
         return updated
       })
@@ -439,7 +439,7 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
                 </div>
                 <div className="text-sm font-medium text-gray-700 mt-2 flex items-center justify-between">
                   <span>
-                    {squad.members.length} shooter{squad.members.length !== 1 ? 's' : ''}
+                    {squad.members.length} athlete{squad.members.length !== 1 ? 's' : ''}
                   </span>
                   {!squad.isComplete && (
                     <span className="text-xs text-gray-500">
@@ -504,7 +504,7 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
                   <thead>
                     <tr className="bg-gray-100 border-b-2 border-gray-300">
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-r border-gray-300 whitespace-nowrap">
-                        Shooter
+                        athlete
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-r border-gray-300 whitespace-nowrap">
                         Team
@@ -524,16 +524,16 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
                       <tr key={member.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} border-b border-gray-200 hover:bg-blue-50`}>
                         <td className="px-3 py-1.5 border-r border-gray-200 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            {member.shooter.user.name}
+                            {member.athlete.user.name}
                           </div>
-                          {member.shooter.division && (
+                          {member.athlete.division && (
                             <div className="text-xs text-gray-500">
-                              {member.shooter.division}
+                              {member.athlete.division}
                             </div>
                           )}
                         </td>
                         <td className="px-3 py-1.5 text-sm text-gray-600 border-r border-gray-200 whitespace-nowrap">
-                          {member.shooter.team?.name || '—'}
+                          {member.athlete.team?.name || '—'}
                         </td>
                         {Array.from({ length: isSkeetOrTrap ? maxRounds : maxStations }, (_, i) => (
                           <td key={i} className="px-1 py-1 text-center border-r border-gray-200">
@@ -541,8 +541,8 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
                               type="text"
                               inputMode="numeric"
                               pattern="[0-9]*"
-                              value={scores[member.shooter.id]?.[i + 1] ?? ''}
-                              onChange={(e) => handleScoreChange(member.shooter.id, i + 1, e.target.value)}
+                              value={scores[member.athlete.id]?.[i + 1] ?? ''}
+                              onChange={(e) => handleScoreChange(member.athlete.id, i + 1, e.target.value)}
                               onFocus={(e) => e.target.select()}
                               className="w-full h-8 px-1 text-center border-0 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-yellow-50 text-base font-mono"
                               placeholder="-"
@@ -551,18 +551,18 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
                           </td>
                         ))}
                         <td className={`px-2 py-1 text-center border-l-2 ${
-                          getShooterTotal(member.shooter.id) > maxPossibleScore
+                          getathleteTotal(member.athlete.id) > maxPossibleScore
                             ? 'bg-red-100 border-red-400'
                             : 'bg-indigo-50 border-indigo-200'
                         }`}>
                           <div className={`text-base font-bold font-mono ${
-                            getShooterTotal(member.shooter.id) > maxPossibleScore
+                            getathleteTotal(member.athlete.id) > maxPossibleScore
                               ? 'text-red-700'
                               : 'text-indigo-900'
                           }`}>
-                            {getShooterTotal(member.shooter.id)}
+                            {getathleteTotal(member.athlete.id)}
                           </div>
-                          {getShooterTotal(member.shooter.id) > maxPossibleScore && (
+                          {getathleteTotal(member.athlete.id) > maxPossibleScore && (
                             <div className="text-xs text-red-600 font-semibold">
                               Max: {maxPossibleScore}
                             </div>
@@ -597,7 +597,7 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
 
       {activeSquads.length === 0 && activeDiscipline && (
         <div className="bg-white rounded-lg shadow-md p-12 text-center">
-          <p className="text-gray-600">No squads with shooters for this discipline yet</p>
+          <p className="text-gray-600">No squads with athletes for this discipline yet</p>
         </div>
       )}
     </div>

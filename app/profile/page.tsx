@@ -14,9 +14,9 @@ export default async function ProfilePage() {
     redirect('/login')
   }
   
-  // Get shooter profile if exists
-  const shooter = user.shooter ? await prisma.shooter.findUnique({
-    where: { id: user.shooter.id },
+  // Get athlete profile if exists
+  const athlete = user.athlete ? await prisma.athlete.findUnique({
+    where: { id: user.athlete.id },
     include: {
       user: true,
       team: {
@@ -43,10 +43,10 @@ export default async function ProfilePage() {
     }
   }) : null
 
-  // Calculate shooting statistics if shooter exists
+  // Calculate shooting statistics if athlete exists
   let shootingStats = null
-  if (shooter && shooter.shoots.length > 0) {
-    const shootsWithTotals = shooter.shoots.map((shoot: any) => {
+  if (athlete && athlete.shoots.length > 0) {
+    const shootsWithTotals = athlete.shoots.map((shoot: any) => {
       const totalTargets = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
       const totalPossible = shoot.scores.reduce((sum: number, score: any) => sum + score.totalTargets, 0)
       const percentage = totalPossible > 0 ? ((totalTargets / totalPossible) * 100) : 0
@@ -107,10 +107,10 @@ export default async function ProfilePage() {
           <AccountSettings user={user} />
         </div>
 
-        {/* Shooter Profile - Only for users with shooter profiles */}
-        {shooter ? (
+        {/* Athlete Profile - Only for users with athlete profiles */}
+        {athlete ? (
           <>
-            <ProfileForm shooter={shooter} />
+            <ProfileForm athlete={athlete} />
             {shootingStats && shootingStats.totalShoots > 0 && (
               <div className="mt-8 space-y-8">
                 {/* Statistics Cards */}
@@ -183,12 +183,12 @@ export default async function ProfilePage() {
         ) : (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <p className="text-gray-600 mb-4">
-              You don't have a shooter profile yet.
+              You don't have a athlete profile yet.
             </p>
             {(user.role === 'coach' || user.role === 'admin') && (
               <p className="text-gray-500 text-sm">
-                As a {user.role}, you can manage tournaments and teams without a shooter profile. 
-                If you'd like to compete in tournaments, please contact an administrator to set up your shooter profile.
+                As a {user.role}, you can manage tournaments and teams without a athlete profile. 
+                If you'd like to compete in tournaments, please contact an administrator to set up your athlete profile.
               </p>
             )}
           </div>

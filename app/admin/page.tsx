@@ -28,7 +28,7 @@ export default async function AdminDashboardPage() {
   // Fetch dashboard statistics
   const [
     tournamentStats,
-    shooterCount,
+    athleteCount,
     teamCount,
     coachCount,
     recentRegistrations,
@@ -40,8 +40,8 @@ export default async function AdminDashboardPage() {
       by: ['status'],
       _count: true,
     }),
-    // Shooter count
-    prisma.shooter.count(),
+    // Athlete count
+    prisma.athlete.count(),
     // Team count
     prisma.team.count(),
     // Coach count
@@ -59,7 +59,7 @@ export default async function AdminDashboardPage() {
         createdAt: 'desc'
       },
       include: {
-        shooter: {
+        athlete: {
           include: {
             user: true,
             team: true
@@ -80,7 +80,7 @@ export default async function AdminDashboardPage() {
         createdAt: 'desc'
       },
       include: {
-        shooter: {
+        athlete: {
           include: {
             user: true
           }
@@ -167,13 +167,13 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Total Shooters */}
+          {/* Total Athletes */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-gray-500 text-sm font-medium">Total Shooters</h3>
+              <h3 className="text-gray-500 text-sm font-medium">Total aSthletes</h3>
               <span className="text-3xl">👥</span>
             </div>
-            <div className="text-3xl font-bold text-gray-900">{shooterCount}</div>
+            <div className="text-3xl font-bold text-gray-900">{athleteCount}</div>
             <div className="mt-2 text-sm text-gray-600">
               Registered users
             </div>
@@ -309,7 +309,7 @@ export default async function AdminDashboardPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div>{tournament._count.registrations} shooters</div>
+                        <div>{tournament._count.registrations} athletes</div>
                         <div>{tournament._count.shoots} scores</div>
                         <div>{tournament._count.timeSlots} time slots</div>
                       </td>
@@ -378,14 +378,14 @@ export default async function AdminDashboardPage() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="font-semibold text-gray-900">
-                          {registration.shooter.user.name}
+                          {registration.athlete.user.name}
                         </div>
                         <div className="text-sm text-gray-600">
                           {registration.tournament.name}
                         </div>
-                        {registration.shooter.team && (
+                        {registration.athlete.team && (
                           <div className="text-sm text-gray-500">
-                            Team: {registration.shooter.team.name}
+                            Team: {registration.athlete.team.name}
                           </div>
                         )}
                       </div>
@@ -432,7 +432,7 @@ export default async function AdminDashboardPage() {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="font-semibold text-gray-900">
-                            {shoot.shooter.user.name}
+                            {shoot.athlete.user.name}
                           </div>
                           <div className="text-sm text-gray-600">
                             {shoot.tournament.name}

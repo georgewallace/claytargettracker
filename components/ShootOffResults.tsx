@@ -57,9 +57,9 @@ export default function ShootOffResults({ shootOffs, tournamentId, isAdmin }: Sh
               <div className="text-2xl font-bold text-white mb-1">
                 {shootOff.winner.user.name}
               </div>
-              {shootOff.winner.shooter?.team && (
+              {shootOff.winner.athlete?.team && (
                 <div className="text-white/80 text-sm">
-                  {shootOff.winner.shooter.team.name}
+                  {shootOff.winner.athlete.team.name}
                 </div>
               )}
             </div>

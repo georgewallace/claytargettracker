@@ -21,14 +21,14 @@ export default async function TeamsPage() {
           user: true
         }
       },
-      shooters: {
+      athletes: {
         include: {
           user: true
         }
       },
       _count: {
         select: {
-          shooters: true
+          athletes: true
         }
       }
     },
@@ -37,10 +37,10 @@ export default async function TeamsPage() {
     }
   })
 
-  // Get join requests for this shooter if they are a shooter
-  const joinRequests = user.shooter ? await prisma.teamJoinRequest.findMany({
+  // Get join requests for this athlete if they are an athlete
+  const joinRequests = user.athlete ? await prisma.teamJoinRequest.findMany({
     where: {
-      shooterId: user.shooter.id
+      athleteId: user.athlete.id
     },
     include: {
       team: {
@@ -55,8 +55,32 @@ export default async function TeamsPage() {
     }
   }) : []
 
+  // Get coach's team if they are a coach
+  const coachTeam = user.role === 'coach' ? await prisma.teamCoach.findFirst({
+    where: {
+      userId: user.id
+    },
+    include: {
+      team: {
+        include: {
+          coaches: {
+            include: {
+              user: true
+            }
+          },
+          _count: {
+            select: {
+              athletes: true
+            }
+          }
+        }
+      }
+    }
+  }) : null
+
   const canCreateTeam = user.role === 'coach' || user.role === 'admin'
-  const isShooter = !!user.shooter
+  const isathlete = !!user.athlete
+  const hasTeam = !!coachTeam
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -71,21 +95,54 @@ export default async function TeamsPage() {
         </div>
 
         {/* Team Creation (Coaches/Admins Only) */}
-        {canCreateTeam && (
+        {canCreateTeam && !hasTeam && (
           <div className="bg-white rounded-lg shadow-md p-8 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Create New Team</h2>
             <CreateTeamForm />
           </div>
         )}
 
+        {/* Manage Team (Coaches with team) */}
+        {canCreateTeam && hasTeam && coachTeam && (
+          <div className="bg-white rounded-lg shadow-md p-8 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Manage Team</h2>
+            <div className="flex items-center justify-between bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Your Team</h3>
+                <p className="text-indigo-600 text-2xl font-bold mt-1">
+                  {coachTeam.team.name}
+                </p>
+                <p className="text-sm text-gray-600 mt-2">
+                  {coachTeam.team._count.athletes} athlete{coachTeam.team._count.athletes !== 1 ? 's' : ''} •
+                  {' '}{coachTeam.team.coaches.length} coach{coachTeam.team.coaches.length !== 1 ? 'es' : ''}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <a
+                  href={`/teams/${coachTeam.team.id}`}
+                  className="px-6 py-2.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium text-center"
+                >
+                  Manage Team
+                </a>
+                <a
+                  href={`/teams/${coachTeam.team.id}/roster`}
+                  className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition font-medium text-center"
+                >
+                  View Roster
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Current Team Status */}
-        {user.shooter?.team && (
+        {user.athlete?.team && (
           <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6 mb-8">
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Your Current Team</h3>
                 <p className="text-indigo-600 text-xl font-bold mt-1">
-                  {user.shooter.team.name}
+                  {user.athlete.team.name}
                 </p>
               </div>
             </div>
@@ -93,7 +150,7 @@ export default async function TeamsPage() {
         )}
 
         {/* Pending Join Requests */}
-        {isShooter && joinRequests.length > 0 && (
+        {isathlete && joinRequests.length > 0 && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Pending Join Requests</h3>
             <div className="space-y-3">
@@ -133,7 +190,7 @@ export default async function TeamsPage() {
           ) : (
             <TeamBrowser 
               teams={teams} 
-              currentShooter={user.shooter || null}
+              currentathlete={user.athlete || null}
               pendingRequests={joinRequests.filter(r => r.status === 'pending')}
             />
           )}

@@ -57,7 +57,7 @@ export default async function TournamentScoresPage({ params }: PageProps) {
             include: {
               members: {
                 include: {
-                  shooter: {
+                  athlete: {
                     include: {
                       user: true,
                       team: true
@@ -84,6 +84,11 @@ export default async function TournamentScoresPage({ params }: PageProps) {
 
   if (!tournament) {
     notFound()
+  }
+
+  // Check if scores are enabled for this tournament
+  if (!tournament.enableScores) {
+    redirect(`/tournaments/${id}`)
   }
 
   return (

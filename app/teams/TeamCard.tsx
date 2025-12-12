@@ -7,28 +7,28 @@ interface TeamCardProps {
   team: {
     id: string
     name: string
-    shooters: Array<{
+    athletes: Array<{
       id: string
       user: {
         name: string
       }
     }>
     _count: {
-      shooters: number
+      athletes: number
     }
   }
-  currentShooter: {
+  currentathlete: {
     id: string
     teamId: string | null
   } | null
 }
 
-export default function TeamCard({ team, currentShooter }: TeamCardProps) {
+export default function TeamCard({ team, currentathlete }: TeamCardProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const isCurrentTeam = currentShooter?.teamId === team.id
+  const isCurrentTeam = currentathlete?.teamId === team.id
 
   const handleJoin = async () => {
     setLoading(true)
@@ -93,22 +93,22 @@ export default function TeamCard({ team, currentShooter }: TeamCardProps) {
 
       <div className="mb-4">
         <p className="text-sm text-gray-600">
-          {team._count.shooters} {team._count.shooters === 1 ? 'member' : 'members'}
+          {team._count.athletes} {team._count.athletes === 1 ? 'member' : 'members'}
         </p>
       </div>
 
-      {team.shooters.length > 0 && (
+      {team.athletes.length > 0 && (
         <div className="mb-4">
           <p className="text-xs font-medium text-gray-700 mb-2">Members:</p>
           <div className="space-y-1">
-            {team.shooters.slice(0, 3).map((shooter) => (
-              <p key={shooter.id} className="text-sm text-gray-600">
-                • {shooter.user.name}
+            {team.athletes.slice(0, 3).map((athlete) => (
+              <p key={athlete.id} className="text-sm text-gray-600">
+                • {athlete.user.name}
               </p>
             ))}
-            {team.shooters.length > 3 && (
+            {team.athletes.length > 3 && (
               <p className="text-sm text-gray-500">
-                + {team.shooters.length - 3} more
+                + {team.athletes.length - 3} more
               </p>
             )}
           </div>
@@ -121,7 +121,7 @@ export default function TeamCard({ team, currentShooter }: TeamCardProps) {
         </div>
       )}
 
-      {currentShooter && (
+      {currentathlete && (
         <div>
           {isCurrentTeam ? (
             <button
@@ -134,10 +134,10 @@ export default function TeamCard({ team, currentShooter }: TeamCardProps) {
           ) : (
             <button
               onClick={handleJoin}
-              disabled={loading || currentShooter.teamId !== null}
+              disabled={loading || currentathlete.teamId !== null}
               className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
-              {loading ? 'Joining...' : currentShooter.teamId ? 'Leave current team first' : 'Join Team'}
+              {loading ? 'Joining...' : currentathlete.teamId ? 'Leave current team first' : 'Join Team'}
             </button>
           )}
         </div>

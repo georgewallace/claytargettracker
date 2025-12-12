@@ -40,7 +40,7 @@ export default function Navbar({ user }: NavbarProps) {
                 <circle cx="12" cy="12" r="6"></circle>
                 <circle cx="12" cy="12" r="2"></circle>
               </svg>
-              <span className="ml-2 text-xl font-bold text-gray-900">Clay Target Tracker</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">COYESS Tournaments</span>
             </Link>
           </div>
 
@@ -68,7 +68,7 @@ export default function Navbar({ user }: NavbarProps) {
                     </Link>
                     {user && (
                       <>
-                        {user.role === 'shooter' && (
+                        {user.role === 'athlete' && (
                           <Link
                             href="/history"
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"

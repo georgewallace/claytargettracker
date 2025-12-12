@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation'
 
 interface RemoveRegistrationButtonProps {
   registrationId: string
-  shooterName: string
+  athleteName: string
   isCompact?: boolean
 }
 
 export default function RemoveRegistrationButton({ 
   registrationId, 
-  shooterName,
+  athleteName,
   isCompact = false
 }: RemoveRegistrationButtonProps) {
   const router = useRouter()
@@ -88,7 +88,7 @@ export default function RemoveRegistrationButton({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Remove Shooter from Tournament?
+              Remove Athlete from Tournament?
             </h3>
 
             {checkingScores ? (
@@ -106,7 +106,7 @@ export default function RemoveRegistrationButton({
 
                 <div className="mb-6">
                   <p className="text-gray-700 mb-3">
-                    Are you sure you want to remove <span className="font-semibold">{shooterName}</span> from this tournament?
+                    Are you sure you want to remove <span className="font-semibold">{athleteName}</span> from this tournament?
                   </p>
 
                   {hasScores && (
@@ -119,10 +119,10 @@ export default function RemoveRegistrationButton({
                         </div>
                         <div className="ml-3">
                           <h4 className="text-sm font-medium text-red-800">
-                            Warning: Shooter has scores
+                            Warning: Athlete has scores
                           </h4>
                           <p className="mt-1 text-sm text-red-700">
-                            This shooter has entered scores for {shootCount} shoot{shootCount !== 1 ? 's' : ''} in this tournament.
+                            This athlete has entered scores for {shootCount} shoot{shootCount !== 1 ? 's' : ''} in this tournament.
                           </p>
                         </div>
                       </div>
@@ -142,7 +142,7 @@ export default function RemoveRegistrationButton({
                           Also delete all scores
                         </span>
                         <p className="text-xs text-gray-600 mt-1">
-                          If unchecked, the shooter's scores will remain in the system (orphaned data)
+                          If unchecked, the athlete's scores will remain in the system (orphaned data)
                         </p>
                       </div>
                     </label>
@@ -158,7 +158,7 @@ export default function RemoveRegistrationButton({
                         </div>
                         <div className="ml-3">
                           <p className="text-sm text-blue-700">
-                            This shooter has not entered any scores yet. Safe to remove.
+                            This athlete has not entered any scores yet. Safe to remove.
                           </p>
                         </div>
                       </div>

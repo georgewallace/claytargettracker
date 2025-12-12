@@ -3,16 +3,16 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-interface ShooterScore {
-  shooterId: string
-  shooterName: string
+interface athletescore {
+  athleteId: string
+  athleteName: string
   teamName: string | null
   totalScore: number
 }
 
 interface Tie {
   position: number
-  shooters: ShooterScore[]
+  athletes: athletescore[]
   description: string
 }
 
@@ -41,7 +41,7 @@ export default function TieAlert({ ties, tournamentId, isAdmin }: TieAlertProps)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           position: tie.position,
-          shooterIds: tie.shooters.map(s => s.shooterId)
+          athleteIds: tie.athletes.map(s => s.athleteId)
         })
       })
 
@@ -89,16 +89,16 @@ export default function TieAlert({ ties, tournamentId, isAdmin }: TieAlertProps)
                   {tie.description}
                 </p>
                 <div className="bg-white rounded-md p-3 space-y-2">
-                  {tie.shooters.map((shooter, idx) => (
-                    <div key={shooter.shooterId} className="flex items-center justify-between text-sm">
+                  {tie.athletes.map((athlete, idx) => (
+                    <div key={athlete.athleteId} className="flex items-center justify-between text-sm">
                       <div className="flex items-center space-x-2">
                         <span className="font-semibold text-gray-700">{idx + 1}.</span>
-                        <span className="text-gray-900">{shooter.shooterName}</span>
-                        {shooter.teamName && (
-                          <span className="text-gray-500">({shooter.teamName})</span>
+                        <span className="text-gray-900">{athlete.athleteName}</span>
+                        {athlete.teamName && (
+                          <span className="text-gray-500">({athlete.teamName})</span>
                         )}
                       </div>
-                      <span className="font-bold text-gray-900">{shooter.totalScore} pts</span>
+                      <span className="font-bold text-gray-900">{athlete.totalScore} pts</span>
                     </div>
                   ))}
                 </div>

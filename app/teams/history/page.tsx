@@ -61,8 +61,8 @@ export default async function TeamHistoryPage() {
     )
   }
 
-  // Get team shooters with their history
-  const teamShooters = await prisma.shooter.findMany({
+  // Get team athletes with their history
+  const teamathletes = await prisma.athlete.findMany({
     where: {
       teamId: team.id
     },
@@ -89,8 +89,8 @@ export default async function TeamHistoryPage() {
   })
 
   // Calculate totals and percentages for each shoot
-  const shootersWithHistory = teamShooters.map(shooter => {
-    const shootsWithTotals = shooter.shoots.map(shoot => {
+  const athletesWithHistory = teamathletes.map(athlete => {
+    const shootsWithTotals = athlete.shoots.map(shoot => {
       const totalTargets = shoot.scores.reduce((sum, score) => sum + score.targets, 0)
       const totalPossible = shoot.scores.reduce((sum, score) => sum + score.totalTargets, 0)
       const percentage = totalPossible > 0 ? ((totalTargets / totalPossible) * 100) : 0
@@ -158,11 +158,11 @@ export default async function TeamHistoryPage() {
     })
 
     return {
-      id: shooter.id,
-      name: shooter.user.name,
-      email: shooter.user.email,
-      grade: shooter.grade,
-      division: shooter.division,
+      id: athlete.id,
+      name: athlete.user.name,
+      email: athlete.user.email,
+      grade: athlete.grade,
+      division: athlete.division,
       shoots: shootsWithTotals,
       stats
     }
@@ -173,7 +173,7 @@ export default async function TeamHistoryPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <TeamHistoryViewer 
           teamName={team.name}
-          shooters={shootersWithHistory}
+          athletes={athletesWithHistory}
         />
       </div>
     </div>

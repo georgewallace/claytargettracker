@@ -44,7 +44,7 @@ export default async function LeaderboardPage({ params }: PageProps) {
       },
       shoots: {
         include: {
-          shooter: {
+          athlete: {
             include: {
               user: true,
               team: true
@@ -61,7 +61,7 @@ export default async function LeaderboardPage({ params }: PageProps) {
             include: {
               members: {
                 include: {
-                  shooter: {
+                  athlete: {
                     include: {
                       user: true,
                       team: true
@@ -77,7 +77,7 @@ export default async function LeaderboardPage({ params }: PageProps) {
         include: {
           participants: {
             include: {
-              shooter: {
+              athlete: {
                 include: {
                   user: true
                 }
@@ -95,6 +95,11 @@ export default async function LeaderboardPage({ params }: PageProps) {
   })
 
   if (!tournament) {
+    notFound()
+  }
+
+  // Check if leaderboard is enabled for this tournament
+  if (!tournament.enableLeaderboard) {
     notFound()
   }
 

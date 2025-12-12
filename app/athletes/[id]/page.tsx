@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { isUserCoachOfTeam } from '@/lib/teamHelpers'
-import ShooterProfileView from './ShooterProfileView'
+import AthleteProfileView from './AthleteProfileView'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -13,7 +13,7 @@ interface PageProps {
   }>
 }
 
-export default async function ShooterProfilePage({ params }: PageProps) {
+export default async function athleteProfilePage({ params }: PageProps) {
   const { id } = await params
   const user = await getCurrentUser()
   
@@ -22,8 +22,8 @@ export default async function ShooterProfilePage({ params }: PageProps) {
     redirect('/login')
   }
   
-  // Fetch shooter with full details
-  const shooter = await prisma.shooter.findUnique({
+  // Fetch athlete with full details
+  const athlete = await prisma.athlete.findUnique({
     where: { id },
     include: {
       user: true,
@@ -51,22 +51,22 @@ export default async function ShooterProfilePage({ params }: PageProps) {
     }
   })
 
-  if (!shooter) {
+  if (!athlete) {
     notFound()
   }
 
   // Check permissions
-  const isOwnProfile = user.shooter?.id === shooter.id
-  const isCoachOfTeam = shooter.team ? await isUserCoachOfTeam(user.id, shooter.team.id) : false
+  const isOwnProfile = user.athlete?.id === athlete.id
+  const isCoachOfTeam = athlete.team ? await isUserCoachOfTeam(user.id, athlete.team.id) : false
   const isAdmin = user.role === 'admin'
 
-  // Allow access if: own profile, coach of shooter's team, or admin
+  // Allow access if: own profile, coach of athlete's team, or admin
   if (!isOwnProfile && !isCoachOfTeam && !isAdmin) {
     redirect('/')
   }
 
   // Calculate statistics
-  const shootsWithTotals = shooter.shoots.map(shoot => {
+  const shootsWithTotals = athlete.shoots.map(shoot => {
     const totalTargets = shoot.scores.reduce((sum, score) => sum + score.targets, 0)
     const totalPossible = shoot.scores.reduce((sum, score) => sum + score.totalTargets, 0)
     const percentage = totalPossible > 0 ? ((totalTargets / totalPossible) * 100) : 0
@@ -138,12 +138,12 @@ export default async function ShooterProfilePage({ params }: PageProps) {
   // Get division averages for comparison
   const divisionAverages: Record<string, Record<string, number>> = {}
   
-  if (shooter.division) {
-    // Get all shoots from shooters in the same division
+  if (athlete.division) {
+    // Get all shoots from athletes in the same division
     const divisionShoots = await prisma.shoot.findMany({
       where: {
-        shooter: {
-          division: shooter.division
+        athlete: {
+          division: athlete.division
         }
       },
       include: {
@@ -190,15 +190,15 @@ export default async function ShooterProfilePage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <ShooterProfileView
-          shooter={{
-            id: shooter.id,
-            name: shooter.user.name,
-            email: shooter.user.email,
-            grade: shooter.grade,
-            division: shooter.division,
-            profilePictureUrl: shooter.profilePictureUrl,
-            team: shooter.team,
+        <AthleteProfileView
+          athlete={{
+            id: athlete.id,
+            name: athlete.user.name,
+            email: athlete.user.email,
+            grade: athlete.grade,
+            division: athlete.division,
+            profilePictureUrl: athlete.profilePictureUrl,
+            team: athlete.team,
             shoots: shootsWithTotals,
             stats
           }}

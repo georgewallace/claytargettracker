@@ -22,11 +22,11 @@ const TRIGGER_OPTIONS = [
   { value: '3rd', label: '3rd Place', description: 'Tied for 3rd place' },
   { value: 'top5', label: 'Top 5', description: 'Any ties in top 5 positions' },
   { value: 'top10', label: 'Top 10', description: 'Any ties in top 10 positions' },
-  { value: 'perfect', label: 'Perfect Scores Only', description: 'Only when at least one shooter has perfect score' },
+  { value: 'perfect', label: 'Perfect Scores Only', description: 'Only when at least one athlete has perfect score' },
 ]
 
 const FORMAT_OPTIONS = [
-  { value: 'sudden_death', label: 'Sudden Death', description: 'Continue until one shooter misses' },
+  { value: 'sudden_death', label: 'Sudden Death', description: 'Continue until one athlete misses' },
   { value: 'fixed_rounds', label: 'Fixed Rounds', description: 'Predetermined number of targets, highest wins' },
   { value: 'progressive', label: 'Progressive Difficulty', description: 'Increases difficulty if ties persist' },
 ]
@@ -169,7 +169,7 @@ export default function ShootOffSettings({ config, onChange }: ShootOffSettingsP
               className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <p className="mt-1 text-sm text-gray-500">
-              Number of targets each shooter will fire per round (typically 1-5)
+              Number of targets each athlete will shoot per round (typically 1-5)
             </p>
           </div>
 
@@ -203,7 +203,7 @@ export default function ShootOffSettings({ config, onChange }: ShootOffSettingsP
               <div>
                 <div className="text-sm font-medium text-gray-900">Require Perfect Score</div>
                 <div className="text-sm text-gray-500">
-                  Only trigger shoot-offs if at least one tied shooter has a perfect score (e.g., 100/100).
+                  Only trigger shoot-offs if at least one tied athlete has a perfect score (e.g., 100/100).
                   Useful for championship rounds.
                 </div>
               </div>

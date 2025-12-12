@@ -17,7 +17,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Get shooter profile
-    const shooter = await prisma.shooter.findUnique({
+    const shooter = await prisma.athlete.findUnique({
       where: { userId: user.id }
     })
 
@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update gender
-    await prisma.shooter.update({
+    await prisma.athlete.update({
       where: { id: shooter.id },
       data: { gender }
     })

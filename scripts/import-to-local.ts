@@ -67,16 +67,17 @@ async function main() {
     }
     console.log(`✅ Imported ${data.teamCoaches.length} team coaches\n`)
 
-    // 5. Import Shooters
-    console.log('🎯 Importing Shooters...')
-    for (const shooter of data.shooters) {
-      await prisma.shooter.upsert({
-        where: { id: shooter.id },
-        update: shooter,
-        create: shooter
+    // 5. Import Athletes (from shooters in JSON)
+    console.log('🎯 Importing Athletes...')
+    const shootersData = data.shooters || data.athletes || []
+    for (const athlete of shootersData) {
+      await prisma.athlete.upsert({
+        where: { id: athlete.id },
+        update: athlete,
+        create: athlete
       })
     }
-    console.log(`✅ Imported ${data.shooters.length} shooters\n`)
+    console.log(`✅ Imported ${shootersData.length} athletes\n`)
 
     // 6. Import Tournaments
     console.log('🏅 Importing Tournaments...')
@@ -149,18 +150,23 @@ async function main() {
     }
     console.log(`✅ Imported ${data.squads.length} squads\n`)
 
-    // 10. Import Squad Members
+    // 10. Import Squad Members (map shooterId to athleteId)
     console.log('🎯 Importing Squad Members...')
     for (const member of data.squadMembers) {
+      const { shooterId, ...memberData } = member
+      const athleteId = shooterId || member.athleteId // Handle both old and new field names
+
       await prisma.squadMember.upsert({
         where: { id: member.id },
         update: {
-          ...member,
+          ...memberData,
+          athleteId,
           createdAt: new Date(member.createdAt),
           updatedAt: new Date(member.updatedAt)
         },
         create: {
-          ...member,
+          ...memberData,
+          athleteId,
           createdAt: new Date(member.createdAt),
           updatedAt: new Date(member.updatedAt)
         }
@@ -168,17 +174,22 @@ async function main() {
     }
     console.log(`✅ Imported ${data.squadMembers.length} squad members\n`)
 
-    // 11. Import Registrations
+    // 11. Import Registrations (map shooterId to athleteId if present)
     console.log('📝 Importing Registrations...')
     for (const reg of data.registrations) {
+      const { shooterId, ...regData } = reg
+      const athleteId = shooterId || reg.athleteId
+
       await prisma.registration.upsert({
         where: { id: reg.id },
         update: {
-          ...reg,
+          ...regData,
+          athleteId,
           createdAt: new Date(reg.createdAt)
         },
         create: {
-          ...reg,
+          ...regData,
+          athleteId,
           createdAt: new Date(reg.createdAt)
         }
       })
@@ -202,20 +213,25 @@ async function main() {
     }
     console.log(`✅ Imported ${data.registrationDisciplines.length} registration disciplines\n`)
 
-    // 13. Import Shoots (map discipline IDs)
+    // 13. Import Shoots (map shooterId to athleteId and discipline IDs)
     console.log('🎯 Importing Shoots...')
     for (const shoot of data.shoots) {
+      const { shooterId, ...shootData } = shoot
+      const athleteId = shooterId || shoot.athleteId
+
       await prisma.shoot.upsert({
         where: { id: shoot.id },
         update: {
-          ...shoot,
+          ...shootData,
+          athleteId,
           disciplineId: disciplineIdMap[shoot.disciplineId] || shoot.disciplineId,
           date: new Date(shoot.date),
           createdAt: new Date(shoot.createdAt),
           updatedAt: new Date(shoot.updatedAt)
         },
         create: {
-          ...shoot,
+          ...shootData,
+          athleteId,
           disciplineId: disciplineIdMap[shoot.disciplineId] || shoot.disciplineId,
           date: new Date(shoot.date),
           createdAt: new Date(shoot.createdAt),
@@ -244,42 +260,53 @@ async function main() {
     }
     console.log(`✅ Imported ${data.scores.length} scores\n`)
 
-    // 15. Import Shooter Averages (map discipline IDs)
-    if (data.shooterAverages && data.shooterAverages.length > 0) {
-      console.log('📊 Importing Shooter Averages...')
-      for (const avg of data.shooterAverages) {
-        await prisma.shooterAverage.upsert({
+    // 15. Import Athlete Averages (from shooterAverages in JSON - map shooterId to athleteId and discipline IDs)
+    const averagesData = data.shooterAverages || data.athleteAverages || []
+    if (averagesData.length > 0) {
+      console.log('📊 Importing Athlete Averages...')
+      for (const avg of averagesData) {
+        const { shooterId, ...avgData } = avg
+        const athleteId = shooterId || avg.athleteId
+
+        await prisma.athleteAverage.upsert({
           where: { id: avg.id },
           update: {
-            ...avg,
+            ...avgData,
+            athleteId,
             disciplineId: disciplineIdMap[avg.disciplineId] || avg.disciplineId,
             lastUpdated: new Date(avg.lastUpdated),
             createdAt: new Date(avg.createdAt)
           },
           create: {
-            ...avg,
+            ...avgData,
+            athleteId,
             disciplineId: disciplineIdMap[avg.disciplineId] || avg.disciplineId,
             lastUpdated: new Date(avg.lastUpdated),
             createdAt: new Date(avg.createdAt)
           }
         })
       }
-      console.log(`✅ Imported ${data.shooterAverages.length} shooter averages\n`)
+      console.log(`✅ Imported ${averagesData.length} athlete averages\n`)
     }
 
-    // 16. Import Team Join Requests
+    // 16. Import Team Join Requests (map shooterId to athleteId if present)
     if (data.teamJoinRequests && data.teamJoinRequests.length > 0) {
       console.log('📨 Importing Team Join Requests...')
       for (const req of data.teamJoinRequests) {
+        const { shooterId, ...reqData } = req
+        const athleteId = shooterId || req.athleteId
+
         await prisma.teamJoinRequest.upsert({
           where: { id: req.id },
           update: {
-            ...req,
+            ...reqData,
+            athleteId,
             createdAt: new Date(req.createdAt),
             updatedAt: new Date(req.updatedAt)
           },
           create: {
-            ...req,
+            ...reqData,
+            athleteId,
             createdAt: new Date(req.createdAt),
             updatedAt: new Date(req.updatedAt)
           }
@@ -294,7 +321,7 @@ async function main() {
     console.log(`   - ${data.users.length} users`)
     console.log(`   - ${data.teams.length} teams`)
     console.log(`   - ${data.teamCoaches.length} team coaches`)
-    console.log(`   - ${data.shooters.length} shooters`)
+    console.log(`   - ${shootersData.length} athletes`)
     console.log(`   - ${data.tournaments.length} tournaments`)
     console.log(`   - ${data.tournamentDisciplines.length} tournament disciplines`)
     console.log(`   - ${data.timeSlots.length} time slots`)
@@ -304,6 +331,12 @@ async function main() {
     console.log(`   - ${data.registrationDisciplines.length} registration disciplines`)
     console.log(`   - ${data.shoots.length} shoots`)
     console.log(`   - ${data.scores.length} scores`)
+    if (averagesData.length > 0) {
+      console.log(`   - ${averagesData.length} athlete averages`)
+    }
+    if (data.teamJoinRequests && data.teamJoinRequests.length > 0) {
+      console.log(`   - ${data.teamJoinRequests.length} team join requests`)
+    }
 
   } catch (error) {
     console.error('❌ Error importing data:', error)

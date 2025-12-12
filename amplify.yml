@@ -6,7 +6,16 @@ frontend:
         - nvm install 20
         - nvm use 20
         - node --version
+        # CRITICAL: Copy PostgreSQL schema BEFORE npm ci
+        # This ensures postinstall script uses the correct schema
+        - echo "=== Copying PostgreSQL schema for staging ==="
+        - cp prisma/schema-postgres.prisma prisma/schema.prisma
+        - cat prisma/schema.prisma | head -20
+        # Clean any cached Prisma client to force fresh generation
+        - rm -rf node_modules/.prisma node_modules/@prisma/client
         - npm ci
+        # Verify Prisma client was generated with correct schema
+        - echo "=== Verifying Prisma client generation ==="
         - npx prisma generate
         # Verify Prisma binaries were generated
         - echo "Checking for Prisma binaries..."

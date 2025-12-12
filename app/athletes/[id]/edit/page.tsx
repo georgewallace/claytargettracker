@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { isUserCoachOfTeam } from '@/lib/teamHelpers'
-import EditShooterForm from './EditShooterForm'
+import EditAthleteForm from './EditAthleteForm'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 
 // Force dynamic rendering (required for getCurrentUser)
@@ -18,18 +18,18 @@ interface PageProps {
 export async function generateStaticParams() {
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
     return [
-      { id: 'shooter-1' },
-      { id: 'shooter-2' },
-      { id: 'shooter-3' },
+      { id: 'athlete-1' },
+      { id: 'athlete-2' },
+      { id: 'athlete-3' },
     ]
   }
   return []
 }
 
-export default async function EditShooterPage({ params }: PageProps) {
+export default async function EditAthletePage({ params }: PageProps) {
   // In demo mode, show placeholder
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-    return <DemoModePlaceholder pageName="Edit Shooter" />
+    return <DemoModePlaceholder pageName="Edit Athlete" />
   }
   const { id } = await params
   const user = await getCurrentUser()
@@ -44,8 +44,8 @@ export default async function EditShooterPage({ params }: PageProps) {
     redirect('/teams/my-team')
   }
   
-  // Fetch shooter with team
-  const shooter = await prisma.shooter.findUnique({
+  // Fetch athlete with team
+  const athlete = await prisma.athlete.findUnique({
     where: { id },
     include: {
       user: true,
@@ -53,13 +53,13 @@ export default async function EditShooterPage({ params }: PageProps) {
     }
   })
 
-  if (!shooter) {
+  if (!athlete) {
     notFound()
   }
 
-  // If user is coach (not admin), verify they coach this shooter's team
+  // If user is coach (not admin), verify they coach this athlete's team
   if (user.role === 'coach') {
-    if (!shooter.team || !(await isUserCoachOfTeam(user.id, shooter.team.id))) {
+    if (!athlete.team || !(await isUserCoachOfTeam(user.id, athlete.team.id))) {
       redirect('/teams/my-team')
     }
   }
@@ -69,13 +69,13 @@ export default async function EditShooterPage({ params }: PageProps) {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-md p-8">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Edit Shooter Details</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Edit Athlete Details</h1>
             <p className="text-gray-600 mt-2">
-              {shooter.user.name} 
-              {shooter.team && <span className="text-gray-500"> • {shooter.team.name}</span>}
+              {athlete.user.name} 
+              {athlete.team && <span className="text-gray-500"> • {athlete.team.name}</span>}
             </p>
           </div>
-          <EditShooterForm shooter={shooter} />
+          <EditAthleteForm athlete={athlete} />
         </div>
       </div>
     </div>

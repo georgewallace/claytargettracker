@@ -1,5 +1,5 @@
 {
-  "name": "claytargettracker",
+  "name": "coyess-tournaments",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,6 +12,9 @@
     "db:push": "bash scripts/db-local-push.sh",
     "db:migrate:staging": "bash scripts/db-migrate-staging.sh",
     "db:create:migration": "bash scripts/db-create-migration.sh",
+    "deploy:staging": "bash scripts/deploy-staging.sh",
+    "validate:staging": "bash scripts/validate-staging-deployment.sh",
+    "setup:hooks": "bash scripts/setup-git-hooks.sh",
     "db:studio": "npx prisma studio",
     "db:generate": "npx prisma generate",
     "db:seed": "tsx scripts/seed-test-data.ts",
@@ -29,7 +32,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
-    "@prisma/client": "^6.18.0",
+    "@prisma/client": "^6.19.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^20",
@@ -54,6 +57,7 @@
   "devDependencies": {
     "eslint": "^9",
     "eslint-config-next": "16.0.0",
+    "pg": "^8.16.3",
     "tsx": "^4.20.6"
   }
 }

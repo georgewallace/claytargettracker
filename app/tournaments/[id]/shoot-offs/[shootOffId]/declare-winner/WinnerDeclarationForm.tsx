@@ -80,7 +80,7 @@ export default function WinnerDeclarationForm({ shootOff, winner, tournament }: 
           />
           <div>
             <span className="text-gray-900 font-medium">
-              I confirm that <strong>{winner.shooter.user.name}</strong> is the winner of this shoot-off
+              I confirm that <strong>{winner.athlete.user.name}</strong> is the winner of this shoot-off
             </span>
             <p className="text-sm text-gray-600 mt-1">
               This action will mark the shoot-off as completed and update the tournament leaderboard.
@@ -96,7 +96,7 @@ export default function WinnerDeclarationForm({ shootOff, winner, tournament }: 
         <ul className="space-y-2 text-sm text-gray-700">
           <li className="flex items-start">
             <span className="mr-2">✓</span>
-            <span><strong>{winner.shooter.user.name}</strong> will be marked as the winner</span>
+            <span><strong>{winner.athlete.user.name}</strong> will be marked as the winner</span>
           </li>
           <li className="flex items-start">
             <span className="mr-2">✓</span>

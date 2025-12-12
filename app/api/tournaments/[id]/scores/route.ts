@@ -17,18 +17,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id: tournamentId } = await params
     const { searchParams } = new URL(request.url)
     const squadId = searchParams.get('squadId')
-    const shooterId = searchParams.get('shooterId')
+    const athleteId = searchParams.get('athleteId')
     const disciplineId = searchParams.get('disciplineId')
 
-    // Must have either squadId or shooterId, and must have disciplineId
-    if (!disciplineId || (!squadId && !shooterId)) {
+    // Must have either squadId or athleteId, and must have disciplineId
+    if (!disciplineId || (!squadId && !athleteId)) {
       return NextResponse.json(
-        { error: 'Missing required parameters. Need disciplineId and either squadId or shooterId' },
+        { error: 'Missing required parameters. Need disciplineId and either squadId or athleteId' },
         { status: 400 }
       )
     }
 
-    let shooterIds: string[] = []
+    let athleteIds: string[] = []
 
     if (squadId) {
       // Get squad members
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         include: {
           members: {
             include: {
-              shooter: true
+              athlete: true
             }
           }
         }
@@ -50,10 +50,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         )
       }
 
-      shooterIds = squad.members.map((m: { shooter: { id: string } }) => m.shooter.id)
-    } else if (shooterId) {
+      athleteIds = squad.members.map((m: { athlete: { id: string } }) => m.athlete.id)
+    } else if (athleteId) {
       // Query for a single shooter
-      shooterIds = [shooterId]
+      athleteIds = [athleteId]
     }
 
     // Fetch existing shoots and scores
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       where: {
         tournamentId,
         disciplineId,
-        shooterId: { in: shooterIds }
+        athleteId: { in: athleteIds }
       },
       include: {
         scores: {
@@ -108,22 +108,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Process each shooter's scores
     for (const shooterScore of scores as Array<{
-      shooterId: string;
+      athleteId: string;
       disciplineId: string;
       date: string;
       rounds: Array<{ station: number; targets: number; totalTargets: number }>;
     }>) {
-      const { shooterId, disciplineId, date, rounds } = shooterScore
+      const { athleteId, disciplineId, date, rounds } = shooterScore
 
-      if (!shooterId || !disciplineId || !date || !Array.isArray(rounds)) {
+      if (!athleteId || !disciplineId || !date || !Array.isArray(rounds)) {
         continue // Skip invalid entries
       }
 
-      // Find or create Shoot record (unique on tournamentId, shooterId, disciplineId)
+      // Find or create Shoot record (unique on tournamentId, athleteId, disciplineId)
       let shoot = await prisma.shoot.findFirst({
         where: {
           tournamentId,
-          shooterId,
+          athleteId,
           disciplineId
         }
       })
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         shoot = await prisma.shoot.create({
           data: {
             tournamentId,
-            shooterId,
+            athleteId,
             disciplineId,
             date: new Date(date)
           }

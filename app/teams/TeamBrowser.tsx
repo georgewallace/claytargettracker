@@ -11,23 +11,23 @@ interface Team {
       name: string
     }
   }>
-  shooters: Array<{
+  athletes: Array<{
     user: {
       name: string
     }
   }>
   _count: {
-    shooters: number
+    athletes: number
   }
 }
 
 interface TeamBrowserProps {
   teams: Team[]
-  currentShooter: { id: string; teamId: string | null } | null
+  currentathlete: { id: string; teamId: string | null } | null
   pendingRequests: Array<{ teamId: string }>
 }
 
-export default function TeamBrowser({ teams, currentShooter, pendingRequests }: TeamBrowserProps) {
+export default function TeamBrowser({ teams, currentathlete, pendingRequests }: TeamBrowserProps) {
   const router = useRouter()
   const [requesting, setRequesting] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -37,12 +37,12 @@ export default function TeamBrowser({ teams, currentShooter, pendingRequests }: 
   const [modalError, setModalError] = useState('')
 
   const handleRequestJoinClick = (teamId: string, teamName: string) => {
-    if (!currentShooter) {
-      setError('You must be a shooter to join a team')
+    if (!currentathlete) {
+      setError('You must be an athlete to join a team')
       return
     }
 
-    if (currentShooter.teamId) {
+    if (currentathlete.teamId) {
       setError('You are already on a team. Leave your current team before joining another.')
       return
     }
@@ -106,43 +106,45 @@ export default function TeamBrowser({ teams, currentShooter, pendingRequests }: 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {teams.map((team) => (
-          <div 
+          <div
             key={team.id}
-            className="border border-gray-200 rounded-lg p-6 hover:border-indigo-300 hover:shadow-md transition"
+            className="border border-gray-200 rounded-lg p-6 hover:border-indigo-300 hover:shadow-md transition flex flex-col"
           >
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {team.name}
-            </h3>
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {team.name}
+              </h3>
 
-            {team.coaches.length > 0 && (
-              <p className="text-sm text-gray-600 mb-3">
-                <span className="font-medium">Coach{team.coaches.length > 1 ? 'es' : ''}:</span> {team.coaches.map(c => c.user.name).join(', ')}
-              </p>
-            )}
-
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">
-                <span className="font-medium">{team._count.shooters}</span> member
-                {team._count.shooters !== 1 ? 's' : ''}
-              </p>
-              
-              {team.shooters.length > 0 && (
-                <div className="space-y-1">
-                  {team.shooters.slice(0, 3).map((shooter, idx) => (
-                    <p key={idx} className="text-xs text-gray-500">
-                      • {shooter.user.name}
-                    </p>
-                  ))}
-                  {team.shooters.length > 3 && (
-                    <p className="text-xs text-gray-400 italic">
-                      +{team.shooters.length - 3} more...
-                    </p>
-                  )}
-                </div>
+              {team.coaches.length > 0 && (
+                <p className="text-sm text-gray-600 mb-3">
+                  <span className="font-medium">Coach{team.coaches.length > 1 ? 'es' : ''}:</span> {team.coaches.map(c => c.user.name).join(', ')}
+                </p>
               )}
+
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  <span className="font-medium">{team._count.athletes}</span> member
+                  {team._count.athletes !== 1 ? 's' : ''}
+                </p>
+
+                {team.athletes.length > 0 && (
+                  <div className="space-y-1">
+                    {team.athletes.slice(0, 3).map((athlete, idx) => (
+                      <p key={idx} className="text-xs text-gray-500">
+                        • {athlete.user.name}
+                      </p>
+                    ))}
+                    {team.athletes.length > 3 && (
+                      <p className="text-xs text-gray-400 italic">
+                        +{team.athletes.length - 3} more...
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {currentShooter && !currentShooter.teamId && (
+            {currentathlete && !currentathlete.teamId && (
               <div className="mt-4 pt-4 border-t border-gray-200">
                 {hasPendingRequest(team.id) ? (
                   <button
@@ -163,7 +165,7 @@ export default function TeamBrowser({ teams, currentShooter, pendingRequests }: 
               </div>
             )}
 
-            {currentShooter?.teamId === team.id && (
+            {currentathlete?.teamId === team.id && (
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <span className="text-sm font-medium text-green-600">
                   ✓ Your Team

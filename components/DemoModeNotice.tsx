@@ -33,7 +33,7 @@ export default function DemoModeNotice() {
             <ul className="text-xs text-white/80 mt-1 space-y-1">
               <li>• <span className="font-mono">admin@demo.com</span> (Admin)</li>
               <li>• <span className="font-mono">coach@demo.com</span> (Coach)</li>
-              <li>• <span className="font-mono">shooter@demo.com</span> (Shooter)</li>
+              <li>• <span className="font-mono">athlete@demo.com</span> (athlete)</li>
             </ul>
             <p className="text-xs text-white/60 mt-2 italic">
               Password: "demo" for all accounts

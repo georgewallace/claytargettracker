@@ -6,14 +6,14 @@ import { requireAuth } from '@/lib/auth'
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
-    const { 
-      name, 
-      location, 
-      startDate, 
-      endDate, 
-      description, 
-      status, 
-      disciplineConfigurations, 
+    const {
+      name,
+      location,
+      startDate,
+      endDate,
+      description,
+      status,
+      disciplineConfigurations,
       disciplineIds,
       // Shoot-off configuration
       enableShootOffs,
@@ -21,7 +21,10 @@ export async function POST(request: NextRequest) {
       shootOffFormat,
       shootOffTargetsPerRound,
       shootOffStartStation,
-      shootOffRequiresPerfect
+      shootOffRequiresPerfect,
+      // Feature toggles
+      enableScores,
+      enableLeaderboard
     } = await request.json()
     
     // Validate input
@@ -70,12 +73,15 @@ export async function POST(request: NextRequest) {
         status: status || 'upcoming',
         createdById: user.id,
         // Shoot-off configuration
-        enableShootOffs: enableShootOffs !== undefined ? enableShootOffs : true,
+        enableShootOffs: enableShootOffs !== undefined ? enableShootOffs : false,
         shootOffTriggers: shootOffTriggers || null,
         shootOffFormat: shootOffFormat || 'sudden_death',
         shootOffTargetsPerRound: shootOffTargetsPerRound !== undefined ? shootOffTargetsPerRound : 2,
         shootOffStartStation: shootOffStartStation || null,
         shootOffRequiresPerfect: shootOffRequiresPerfect !== undefined ? shootOffRequiresPerfect : false,
+        // Feature toggles
+        enableScores: enableScores !== undefined ? enableScores : false,
+        enableLeaderboard: enableLeaderboard !== undefined ? enableLeaderboard : false,
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,

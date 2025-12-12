@@ -33,7 +33,7 @@ export default async function EnterScoresPage({ params }: PageProps) {
   const { id } = await params
   const user = await getCurrentUser()
   
-  if (!user || !user.shooter) {
+  if (!user || !user.athlete) {
     redirect('/login')
   }
   
@@ -47,7 +47,7 @@ export default async function EnterScoresPage({ params }: PageProps) {
       },
       registrations: {
         where: {
-          shooterId: user.shooter.id
+          athleteId: user.athlete.id
         },
         include: {
           disciplines: {
@@ -59,7 +59,7 @@ export default async function EnterScoresPage({ params }: PageProps) {
       },
       shoots: {
         where: {
-          shooterId: user.shooter.id
+          athleteId: user.athlete.id
         },
         include: {
           discipline: true,
@@ -90,7 +90,7 @@ export default async function EnterScoresPage({ params }: PageProps) {
           
           <ScoreEntryForm 
             tournamentId={tournament.id}
-            shooterId={user.shooter.id}
+            athleteId={user.athlete.id}
             disciplines={registeredDisciplines}
             existingShoots={tournament.shoots}
           />

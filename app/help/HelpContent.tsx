@@ -25,7 +25,7 @@ export default function HelpContent() {
     { id: 'squad-management', title: 'Squad Management', icon: '📋' },
     { id: 'score-entry', title: 'Score Entry', icon: '✏️' },
     { id: 'leaderboards', title: 'Leaderboards', icon: '📊' },
-    { id: 'shooter-profiles--history', title: 'Profiles & History', icon: '📈' },
+    { id: 'athlete-profiles--history', title: 'Profiles & History', icon: '📈' },
     { id: 'coach-features', title: 'Coach Features', icon: '🎓' },
     { id: 'admin-features', title: 'Admin Features', icon: '⚙️' },
   ]
@@ -43,7 +43,7 @@ export default function HelpContent() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Help Center</h1>
               <p className="mt-1 text-sm text-gray-600">
-                Everything you need to know about Clay Target Tracker
+                Everything you need to know about COYESS Tournaments
               </p>
             </div>
             <Link
@@ -119,7 +119,7 @@ export default function HelpContent() {
                         <li><strong>Name</strong>: Your full name</li>
                         <li><strong>Email</strong>: Your email address</li>
                         <li><strong>Password</strong>: Choose a secure password</li>
-                        <li><strong>Role</strong>: Select your role (Shooter, Coach, or Admin)</li>
+                        <li><strong>Role</strong>: Select your role (athlete, Coach, or Admin)</li>
                       </ul>
                     </li>
                     <li>Click <strong>"Sign Up"</strong></li>
@@ -143,7 +143,7 @@ export default function HelpContent() {
 
                   <div className="space-y-6">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <h3 className="text-lg font-semibold text-green-900 mb-2">Shooter</h3>
+                      <h3 className="text-lg font-semibold text-green-900 mb-2">athlete</h3>
                       <p className="text-sm text-green-800 mb-2"><strong>Can do:</strong></p>
                       <ul className="list-disc list-inside text-sm text-green-700 space-y-1 ml-4">
                         <li>Register for tournaments</li>
@@ -158,10 +158,10 @@ export default function HelpContent() {
                       <h3 className="text-lg font-semibold text-blue-900 mb-2">Coach</h3>
                       <p className="text-sm text-blue-800 mb-2"><strong>Can do:</strong></p>
                       <ul className="list-disc list-inside text-sm text-blue-700 space-y-1 ml-4">
-                        <li>Everything a shooter can do</li>
-                        <li>Manage their team roster (add/remove shooters)</li>
-                        <li>Bulk register team members for tournaments</li>
-                        <li>Enter scores for all shooters</li>
+                        <li>Everything a athlete can do</li>
+                        <li>Manage their team roster (add/remove athletes)</li>
+                        <li>Bulk register athletes for tournaments</li>
+                        <li>Enter scores for all athletes</li>
                         <li>View team history and statistics</li>
                         <li>Manage squads for tournaments</li>
                       </ul>
@@ -189,7 +189,7 @@ export default function HelpContent() {
                     Tournaments
                   </h2>
                   <p className="text-gray-700 mb-4">
-                    Tournaments are the main events where shooters compete. Admins can create tournaments with multiple disciplines,
+                    Tournaments are the main events where athletes compete. Admins can create tournaments with multiple disciplines,
                     set up schedules, and manage registrations.
                   </p>
                   <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
@@ -222,7 +222,7 @@ export default function HelpContent() {
                         </svg>
                         Trap
                       </h4>
-                      <p className="text-sm text-gray-700">Shooters stand 16 yards behind a trap house. 25 targets per round, up to 4 rounds.</p>
+                      <p className="text-sm text-gray-700">Athletes stand 16 yards behind a trap house. 25 targets per round, up to 4 rounds.</p>
                     </div>
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                       <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
@@ -267,7 +267,7 @@ export default function HelpContent() {
                     Registration
                   </h2>
                   <p className="text-gray-700">
-                    Shooters can register themselves for tournaments, or coaches can register their entire team at once.
+                    Athletes can register themselves for tournaments, or coaches can register their entire team at once.
                     Select which disciplines you want to compete in during registration.
                   </p>
                 </section>
@@ -278,8 +278,8 @@ export default function HelpContent() {
                     Teams
                   </h2>
                   <p className="text-gray-700">
-                    Teams allow shooters to compete together and coaches to manage their roster. Teams can be created by any user,
-                    and shooters can join or leave teams at any time.
+                    Teams allow athletes to compete together and coaches to manage their roster. Teams can be created by any user,
+                    and athletes can join or leave teams at any time.
                   </p>
                 </section>
 
@@ -289,8 +289,8 @@ export default function HelpContent() {
                     Squad Management
                   </h2>
                   <p className="text-gray-700 mb-4">
-                    Squads organize shooters into groups for specific time slots. Coaches and admins can create squads,
-                    assign shooters using drag-and-drop, or use the auto-assign feature.
+                    Squads organize athletes into groups for specific time slots. Coaches and admins can create squads,
+                    assign athletes using drag-and-drop, or use the auto-assign feature.
                   </p>
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 className="font-semibold text-blue-900 mb-2">Auto-Assign Features:</h4>
@@ -299,7 +299,7 @@ export default function HelpContent() {
                       <li>Group by division (skill level)</li>
                       <li>Keep teams close in time slots</li>
                       <li>Respect discipline-specific rules</li>
-                      <li>Include or exclude shooters without teams/divisions</li>
+                      <li>Include or exclude athletes without teams/divisions</li>
                     </ul>
                   </div>
                 </section>
@@ -310,8 +310,8 @@ export default function HelpContent() {
                     Score Entry
                   </h2>
                   <p className="text-gray-700">
-                    Coaches and admins can enter scores for shooters using a spreadsheet-style interface.
-                    Scores are entered by squad, making it easy to record results for multiple shooters at once.
+                    Coaches and admins can enter scores for athletes using a spreadsheet-style interface.
+                    Scores are entered by squad, making it easy to record results for multiple athletes at once.
                   </p>
                 </section>
 
@@ -326,13 +326,13 @@ export default function HelpContent() {
                   </p>
                 </section>
 
-                <section id="shooter-profiles--history" className="mb-12">
+                <section id="athlete-profiles--history" className="mb-12">
                   <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
                     <span className="mr-3">📈</span>
                     Profiles & History
                   </h2>
                   <p className="text-gray-700 mb-4">
-                    Shooters can view their complete shooting history, track performance over time, and update their profile information.
+                    Athletes can view their complete shooting history, track performance over time, and update their profile information.
                     Profiles include statistics, performance graphs, and division comparisons.
                   </p>
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -357,7 +357,7 @@ export default function HelpContent() {
                   <div className="space-y-3">
                     <div className="bg-blue-50 border-l-4 border-blue-500 p-3">
                       <p className="text-sm font-semibold text-blue-900">Team Roster Management</p>
-                      <p className="text-sm text-blue-700">Add and remove shooters from your team roster</p>
+                      <p className="text-sm text-blue-700">Add and remove athletes from your team roster</p>
                     </div>
                     <div className="bg-blue-50 border-l-4 border-blue-500 p-3">
                       <p className="text-sm font-semibold text-blue-900">Bulk Registration</p>
@@ -384,7 +384,7 @@ export default function HelpContent() {
                       <li>Create and edit tournaments with discipline configurations</li>
                       <li>Manage coaches and team assignments</li>
                       <li>Remove registrations and manage scores</li>
-                      <li>Access all coach and shooter features</li>
+                      <li>Access all coach and athlete features</li>
                       <li>Configure tournament schedules and time slots</li>
                     </ul>
                   </div>

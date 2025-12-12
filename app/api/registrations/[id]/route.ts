@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const registration = await prisma.registration.findUnique({
       where: { id },
       include: {
-        shooter: {
+        athlete: {
           include: {
             shoots: {
               where: {
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const shootCount = await prisma.shoot.count({
       where: {
         tournamentId: registration.tournamentId,
-        shooterId: registration.shooterId
+        athleteId: registration.athleteId
       }
     })
 
@@ -99,7 +99,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       where: { id },
       include: {
         tournament: true,
-        shooter: {
+        athlete: {
           include: {
             team: true
           }
@@ -121,7 +121,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       // 2. The shooter is on their team
       const isTournamentCreator = registration.tournament.createdById === user.id
       const { isUserCoachOfTeam: checkCoach } = await import('@/lib/teamHelpers')
-      const isShooterOnTheirTeam = registration.shooter.team ? await checkCoach(user.id, registration.shooter.team.id) : false
+      const isShooterOnTheirTeam = registration.athlete.team ? await checkCoach(user.id, registration.athlete.team.id) : false
       
       if (!isTournamentCreator && !isShooterOnTheirTeam) {
         return NextResponse.json(
@@ -136,7 +136,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       await prisma.shoot.deleteMany({
         where: {
           tournamentId: registration.tournamentId,
-          shooterId: registration.shooterId
+          athleteId: registration.athleteId
         }
       })
     }

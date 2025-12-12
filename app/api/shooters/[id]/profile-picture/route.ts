@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     console.log('[Profile Picture Upload] Shooter ID:', id)
     
     // Fetch the shooter to check permissions
-    const shooter = await prisma.shooter.findUnique({
+    const shooter = await prisma.athlete.findUnique({
       where: { id },
       include: {
         team: true
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     console.log('[Profile Picture Upload] Shooter found:', shooter.id)
 
     // Check if user is the shooter themselves, their coach, or an admin
-    const isOwnProfile = user.shooter?.id === shooter.id
+    const isOwnProfile = user.athlete?.id === shooter.id
     const isCoachOfTeam = shooter.team ? await isUserCoachOfTeam(user.id, shooter.team.id) : false
     const isAdmin = user.role === 'admin'
 
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     
     // Update shooter with profile picture URL
     const profilePictureUrl = `/uploads/profiles/${fileName}`
-    const updatedShooter = await prisma.shooter.update({
+    const updatedShooter = await prisma.athlete.update({
       where: { id },
       data: {
         profilePictureUrl
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       message: 'Profile picture uploaded successfully',
       profilePictureUrl,
-      shooter: updatedShooter
+      athlete: updatedShooter
     }, { status: 200 })
   } catch (error) {
     console.error('[Profile Picture Upload] ERROR:', error)
@@ -156,7 +156,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
     
     // Fetch the shooter to check permissions
-    const shooter = await prisma.shooter.findUnique({
+    const shooter = await prisma.athlete.findUnique({
       where: { id },
       include: {
         team: true
@@ -171,7 +171,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if user is the shooter themselves, their coach, or an admin
-    const isOwnProfile = user.shooter?.id === shooter.id
+    const isOwnProfile = user.athlete?.id === shooter.id
     const isCoachOfTeam = shooter.team ? await isUserCoachOfTeam(user.id, shooter.team.id) : false
     const isAdmin = user.role === 'admin'
 
@@ -183,7 +183,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update shooter to remove profile picture
-    const updatedShooter = await prisma.shooter.update({
+    const updatedShooter = await prisma.athlete.update({
       where: { id },
       data: {
         profilePictureUrl: null
@@ -195,7 +195,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     
     return NextResponse.json({
       message: 'Profile picture removed successfully',
-      shooter: updatedShooter
+      athlete: updatedShooter
     }, { status: 200 })
   } catch (error) {
     console.error('Profile picture deletion error:', error)

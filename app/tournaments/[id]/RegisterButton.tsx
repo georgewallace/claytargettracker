@@ -10,11 +10,11 @@ interface Discipline {
 
 interface RegisterButtonProps {
   tournamentId: string
-  shooterId: string
+  athleteId: string
   tournamentDisciplines: Discipline[]
 }
 
-export default function RegisterButton({ tournamentId, shooterId, tournamentDisciplines }: RegisterButtonProps) {
+export default function RegisterButton({ tournamentId, athleteId, tournamentDisciplines }: RegisterButtonProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -38,7 +38,7 @@ export default function RegisterButton({ tournamentId, shooterId, tournamentDisc
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           tournamentId, 
-          shooterId,
+          athleteId,
           disciplineIds: selectedDisciplines
         })
       })
