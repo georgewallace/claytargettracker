@@ -115,11 +115,8 @@ export default async function TournamentDetailPage({ params }: PageProps) {
       }
     })
   } else if (user?.role === 'admin') {
-    // Admins can only register shooters without a team
+    // Admins can register any shooter
     allShooters = await prisma.shooter.findMany({
-      where: {
-        teamId: null
-      },
       include: {
         user: true,
         team: true

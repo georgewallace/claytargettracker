@@ -135,7 +135,7 @@ export default function CoachRegistration({
       </h2>
       <p className="text-gray-600 mb-6">
         {userRole === 'admin'
-          ? 'Register shooters without a team for this tournament'
+          ? 'Register any shooter for this tournament'
           : 'Register shooters from your team(s) for this tournament'
         }
       </p>
@@ -211,7 +211,7 @@ export default function CoachRegistration({
         {availableShooters.length === 0 ? (
           <div className="text-center py-8 text-gray-600">
             {userRole === 'admin'
-              ? 'No unassigned shooters available. All shooters without a team are already registered.'
+              ? 'All shooters are already registered for this tournament.'
               : 'No shooters available from your team(s). All your team members are already registered.'
             }
           </div>
