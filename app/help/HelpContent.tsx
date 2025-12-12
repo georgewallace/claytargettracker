@@ -43,7 +43,7 @@ export default function HelpContent() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Help Center</h1>
               <p className="mt-1 text-sm text-gray-600">
-                Everything you need to know about Clay Target Tracker
+                Everything you need to know about COYESS Tournaments
               </p>
             </div>
             <Link

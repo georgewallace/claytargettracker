@@ -27,7 +27,7 @@ export default async function Home() {
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Welcome to Clay Target Tracker
+              Welcome to COYESS Tournaments
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Track tournaments, manage scores, and compete with shooters from around the region
@@ -96,7 +96,7 @@ export default async function Home() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome to Clay Target Tracker
+            Welcome to COYESS Tournaments
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Track tournaments, manage scores, and compete with shooters from around the region

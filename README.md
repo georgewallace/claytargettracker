@@ -1,4 +1,4 @@
-# Clay Target Tracker
+# COYESS Tournaments
 
 A comprehensive web application for tracking clay target shooting tournaments, managing scores, and organizing teams.
 
