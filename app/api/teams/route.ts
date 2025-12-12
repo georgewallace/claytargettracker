@@ -60,9 +60,27 @@ export async function POST(request: NextRequest) {
     
     // Create team
     const team = await prisma.team.create({
-      data: { name }
+      data: {
+        name,
+        // If the creator is a coach (not admin), automatically add them to the team
+        ...(user.role === 'coach' && {
+          coaches: {
+            create: {
+              userId: user.id,
+              role: 'coach'
+            }
+          }
+        })
+      },
+      include: {
+        coaches: {
+          include: {
+            user: true
+          }
+        }
+      }
     })
-    
+
     return NextResponse.json(team, { status: 201 })
   } catch (error) {
     console.error('Team creation error:', error)
