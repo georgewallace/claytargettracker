@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { format } from 'date-fns'
@@ -114,21 +114,26 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
       ).sort()
     : []
 
-  // Get all registered athletes
-  let allathletes = tournament.registrations.map(reg => ({
-    ...reg.athlete,
-    registrationId: reg.id,
-    disciplines: reg.disciplines
-  }))
+  // MEMOIZED: Get all registered athletes with team filtering
+  // PERFORMANCE: Only recalculates when registrations, team filters, or user change
+  const allathletes = useMemo(() => {
+    let athletes = tournament.registrations.map(reg => ({
+      ...reg.athlete,
+      registrationId: reg.id,
+      disciplines: reg.disciplines
+    }))
 
-  // Filter by team - coaches can ONLY see their own team's athletes
-  if (userRole === 'coach' && coachedTeamId) {
-    allathletes = allathletes.filter(athlete => athlete.teamId === coachedTeamId)
-  }
-  // Admins can optionally filter by team using the toggle
-  else if (showMyTeamOnly && currentUser?.coachedTeam) {
-    allathletes = allathletes.filter(athlete => athlete.teamId === currentUser.coachedTeam.id)
-  }
+    // Filter by team - coaches can ONLY see their own team's athletes
+    if (userRole === 'coach' && coachedTeamId) {
+      athletes = athletes.filter(athlete => athlete.teamId === coachedTeamId)
+    }
+    // Admins can optionally filter by team using the toggle
+    else if (showMyTeamOnly && currentUser?.coachedTeam) {
+      athletes = athletes.filter(athlete => athlete.teamId === currentUser.coachedTeam.id)
+    }
+
+    return athletes
+  }, [tournament.registrations, userRole, coachedTeamId, showMyTeamOnly, currentUser?.coachedTeam])
 
   // Create a map of athlete ID to registration data for easy lookup
   const athleteRegistrationMap = new Map(
@@ -229,31 +234,37 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
         return slotDateStr >= tournamentStartStr && slotDateStr <= tournamentEndStr
       })
 
-  const sortedTimeSlots = [...filteredTimeSlots].sort((a, b) => {
-    // Compare times first
-    const timeCompare = a.startTime.localeCompare(b.startTime)
-    if (timeCompare !== 0) return timeCompare
-    
-    // Extract numbers from field/station strings for comparison
-    const getNumber = (slot: any) => {
-      const fieldMatch = slot.fieldNumber?.match(/\d+/)
-      const stationMatch = slot.stationNumber?.match(/\d+/)
-      return parseInt(fieldMatch?.[0] || stationMatch?.[0] || '0')
-    }
-    
-    return getNumber(a) - getNumber(b)
-  })
+  // MEMOIZED: Sort and group time slots
+  // PERFORMANCE: Only recalculates when time slots or active discipline changes
+  const { sortedTimeSlots, timeSlotsByDate } = useMemo(() => {
+    const sorted = [...filteredTimeSlots].sort((a, b) => {
+      // Compare times first
+      const timeCompare = a.startTime.localeCompare(b.startTime)
+      if (timeCompare !== 0) return timeCompare
 
-  // Group sorted time slots by date (using ISO string to avoid timezone conversion)
-  const timeSlotsByDate = sortedTimeSlots.reduce((acc, slot) => {
-    // Extract date in YYYY-MM-DD format without timezone conversion
-    const dateKey = new Date(slot.date).toISOString().split('T')[0]
-    if (!acc[dateKey]) {
-      acc[dateKey] = []
-    }
-    acc[dateKey].push(slot)
-    return acc
-  }, {} as Record<string, any[]>)
+      // Extract numbers from field/station strings for comparison
+      const getNumber = (slot: any) => {
+        const fieldMatch = slot.fieldNumber?.match(/\d+/)
+        const stationMatch = slot.stationNumber?.match(/\d+/)
+        return parseInt(fieldMatch?.[0] || stationMatch?.[0] || '0')
+      }
+
+      return getNumber(a) - getNumber(b)
+    })
+
+    // Group sorted time slots by date (using ISO string to avoid timezone conversion)
+    const byDate = sorted.reduce((acc, slot) => {
+      // Extract date in YYYY-MM-DD format without timezone conversion
+      const dateKey = new Date(slot.date).toISOString().split('T')[0]
+      if (!acc[dateKey]) {
+        acc[dateKey] = []
+      }
+      acc[dateKey].push(slot)
+      return acc
+    }, {} as Record<string, any[]>)
+
+    return { sortedTimeSlots: sorted, timeSlotsByDate: byDate }
+  }, [filteredTimeSlots])
 
   const handleDragStart = (event: DragStartEvent) => {
     const activeId = event.active.id as string
@@ -533,10 +544,10 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
       )
 
       // OPTIMISTIC UPDATE: Update local state immediately
-      const previousState = JSON.parse(JSON.stringify(tournament)) // Deep clone for rollback
+      const previousState = structuredClone(tournament) // Fast deep clone for rollback
 
       setTournament(prevTournament => {
-        const newTournament = JSON.parse(JSON.stringify(prevTournament))
+        const newTournament = structuredClone(prevTournament)
 
         // Find and remove athlete from ANY existing squad (across all time slots)
         for (const slot of newTournament.timeSlots) {
@@ -672,21 +683,60 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
   const handleConfirmCreateSquad = async () => {
     if (!pendingSquadCreation || !newSquadName.trim()) return
 
-    const { timeSlotId, athleteId, disciplineId } = pendingSquadCreation
+    const { timeSlotId, athleteId } = pendingSquadCreation
+    const squadName = newSquadName.trim()
+
+    // OPTIMISTIC UPDATE: Add squad and athlete to local state immediately
+    const previousState = structuredClone(tournament)
+    const tempSquadId = `temp-squad-${Date.now()}`
+    const athlete = allathletes.find((a: any) => a.id === athleteId)
+
+    // Create new squad object
+    const newSquad = {
+      id: tempSquadId,
+      name: squadName,
+      capacity: 5,
+      timeSlotId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      members: athlete ? [{
+        id: `temp-member-${Date.now()}`,
+        squadId: tempSquadId,
+        athleteId,
+        athlete,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }] : []
+    }
+
+    // Fast update - only clone/update the specific timeslot, not entire tournament
+    setTournament(prevTournament => ({
+      ...prevTournament,
+      timeSlots: prevTournament.timeSlots.map((slot: any) =>
+        slot.id === timeSlotId
+          ? { ...slot, squads: [...slot.squads, newSquad] }
+          : slot
+      )
+    }))
+
+    // Close modal AFTER optimistic update so UI updates instantly
+    setShowCreateSquadModal(false)
+    setPendingSquadCreation(null)
+    setNewSquadName('')
 
     setLoading(true)
     setError('')
     setSuccess('')
-    setShowCreateSquadModal(false)
 
+    // Background sync with server
     try {
-      // First create the squad
+      // Create the squad
       const createResponse = await fetch(`/api/timeslots/${timeSlotId}/squads`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: newSquadName.trim(),
-          capacity: 5 // Default capacity
+          name: squadName,
+          capacity: 5
         })
       })
 
@@ -697,24 +747,46 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
 
       const newSquad = await createResponse.json()
 
-      // Then add athlete to the new squad
+      // Add athlete to the squad
       const addResponse = await fetch(`/api/squads/${newSquad.id}/members`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ athleteId })
-        })
-        
-        if (!addResponse.ok) {
-          const data = await addResponse.json()
-          throw new Error(data.error || 'Failed to add athlete to squad')
-        }
-        
-        setSuccess(`Squad "${newSquadName}" created and athlete assigned!`)
-        setTimeout(() => setSuccess(''), 3000)
-        setPendingSquadCreation(null)
-        setNewSquadName('')
-        router.refresh()
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ athleteId })
+      })
+
+      if (!addResponse.ok) {
+        const data = await addResponse.json()
+        throw new Error(data.error || 'Failed to add athlete to squad')
+      }
+
+      // Update local state with real IDs from server (fast shallow update)
+      setTournament(prevTournament => ({
+        ...prevTournament,
+        timeSlots: prevTournament.timeSlots.map((slot: any) =>
+          slot.id === timeSlotId
+            ? {
+                ...slot,
+                squads: slot.squads.map((squad: any) =>
+                  squad.id === tempSquadId
+                    ? {
+                        ...squad,
+                        id: newSquad.id,
+                        members: squad.members.map((member: any, idx: number) =>
+                          idx === 0 ? { ...member, squadId: newSquad.id } : member
+                        )
+                      }
+                    : squad
+                )
+              }
+            : slot
+        )
+      }))
+
+      setSuccess(`Squad "${squadName}" created and athlete assigned!`)
+      setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
+      // ROLLBACK: Restore previous state on error
+      setTournament(previousState)
       setError(err.message || 'An error occurred')
       setTimeout(() => setError(''), 5000)
     } finally {

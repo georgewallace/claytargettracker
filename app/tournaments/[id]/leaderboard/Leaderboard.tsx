@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import ShootOffResults from '@/components/ShootOffResults'
 
 interface Tournament {
@@ -55,33 +55,39 @@ interface SquadScore {
 }
 
 interface LeaderboardProps {
-  tournament: Tournament
+  tournament: Tournament  // Initial server-rendered data
   isAdmin?: boolean
 }
 
-export default function Leaderboard({ tournament, isAdmin = false }: LeaderboardProps) {
-  const router = useRouter()
+export default function Leaderboard({ tournament: initialTournament, isAdmin = false }: LeaderboardProps) {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [expandedathlete, setExpandedathlete] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [zoom, setZoom] = useState(100)
-  
+
+  // Fetch leaderboard data with React Query
+  // PERFORMANCE: Uses 1-minute cache + stale-while-revalidate
+  const { data: tournament = initialTournament, isLoading } = useQuery({
+    queryKey: ['leaderboard', initialTournament.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/tournaments/${initialTournament.id}/leaderboard`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch leaderboard data')
+      }
+      return response.json()
+    },
+    initialData: initialTournament,
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: autoRefresh ? 30 * 1000 : false, // Auto-refresh every 30s if enabled
+    refetchOnWindowFocus: false
+  })
+
   // Determine initial view based on tournament status
   const isTournamentComplete = tournament.status === 'completed'
   const [activeView, setActiveView] = useState<'podium' | 'divisions' | 'squads'>(
     isTournamentComplete ? 'podium' : 'divisions'
   )
-
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    if (!autoRefresh) return
-
-    const interval = setInterval(() => {
-      router.refresh()
-    }, 30000)
-
-    return () => clearInterval(interval)
-  }, [autoRefresh, router])
   
   // Fullscreen toggle
   const toggleFullscreen = () => {
@@ -102,178 +108,205 @@ export default function Leaderboard({ tournament, isAdmin = false }: Leaderboard
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
-  // Calculate individual scores
-  const athletescores: Record<string, athletescore> = {}
-  
-  tournament.shoots.forEach(shoot => {
-    const key = shoot.athleteId
-    if (!athletescores[key]) {
-      athletescores[key] = {
-        athleteId: shoot.athleteId,
-        athleteName: shoot.athlete.user.name,
-        teamName: shoot.athlete.team?.name || null,
-        teamLogoUrl: shoot.athlete.team?.logoUrl || null,
-        division: shoot.athlete.division || null,
-        gender: shoot.athlete.gender || null,
-        disciplineScores: {},
-        totalScore: 0,
-        disciplineCount: 0,
-        lastUpdated: null
-      }
-    }
+  // MEMOIZED: Calculate individual scores from shoots
+  // PERFORMANCE: Only recalculates when shoots data changes
+  const allathletes = useMemo(() => {
+    const athletescores: Record<string, athletescore> = {}
 
-    const disciplineTotal = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
-    athletescores[key].disciplineScores[shoot.disciplineId] = disciplineTotal
-    athletescores[key].totalScore += disciplineTotal
-    athletescores[key].disciplineCount++
-    
-    // Track the most recent update
-    const shootUpdated = new Date(shoot.updatedAt)
-    if (!athletescores[key].lastUpdated || shootUpdated > athletescores[key].lastUpdated!) {
-      athletescores[key].lastUpdated = shootUpdated
-    }
-  })
-
-  const allathletes = Object.values(athletescores)
-
-  // Calculate squad scores with completion status
-  const squadScores: SquadScore[] = []
-  
-  tournament.timeSlots.forEach(timeSlot => {
-    timeSlot.squads.forEach((squad: any) => {
-      let squadTotal = 0
-      let membersWithScores = 0
-      
-      squad.members.forEach((member: any) => {
-        const athletescore = athletescores[member.athlete.id]
-        if (athletescore && athletescore.totalScore > 0) {
-          squadTotal += athletescore.totalScore
-          membersWithScores++
+    tournament.shoots.forEach(shoot => {
+      const key = shoot.athleteId
+      if (!athletescores[key]) {
+        athletescores[key] = {
+          athleteId: shoot.athleteId,
+          athleteName: shoot.athlete.user.name,
+          teamName: shoot.athlete.team?.name || null,
+          teamLogoUrl: shoot.athlete.team?.logoUrl || null,
+          division: shoot.athlete.division || null,
+          gender: shoot.athlete.gender || null,
+          disciplineScores: {},
+          totalScore: 0,
+          disciplineCount: 0,
+          lastUpdated: null
         }
-      })
+      }
 
-      const isComplete = membersWithScores === squad.members.length && squad.members.length > 0
+      const disciplineTotal = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
+      athletescores[key].disciplineScores[shoot.disciplineId] = disciplineTotal
+      athletescores[key].totalScore += disciplineTotal
+      athletescores[key].disciplineCount++
 
-      squadScores.push({
-        squadId: squad.id,
-        squadName: squad.name,
-        teamName: squad.members[0]?.athlete.team?.name || null,
-        teamLogoUrl: squad.members[0]?.athlete.team?.logoUrl || null,
-        totalScore: squadTotal,
-        memberCount: squad.members.length,
-        members: squad.members.map((m: any) => m.athlete.user.name),
-        isComplete,
-        completionPercentage: squad.members.length > 0 ? Math.round((membersWithScores / squad.members.length) * 100) : 0
+      // Track the most recent update
+      const shootUpdated = new Date(shoot.updatedAt)
+      if (!athletescores[key].lastUpdated || shootUpdated > athletescores[key].lastUpdated!) {
+        athletescores[key].lastUpdated = shootUpdated
+      }
+    })
+
+    return Object.values(athletescores)
+  }, [tournament.shoots])
+
+  // MEMOIZED: Calculate squad scores with completion status
+  // PERFORMANCE: Only recalculates when timeSlots or athlete scores change
+  const squadScores = useMemo(() => {
+    const scores: SquadScore[] = []
+    const athletescores = allathletes.reduce((acc, athlete) => {
+      acc[athlete.athleteId] = athlete
+      return acc
+    }, {} as Record<string, athletescore>)
+
+    tournament.timeSlots.forEach(timeSlot => {
+      timeSlot.squads.forEach((squad: any) => {
+        let squadTotal = 0
+        let membersWithScores = 0
+
+        squad.members.forEach((member: any) => {
+          const athletescore = athletescores[member.athleteId]
+          if (athletescore && athletescore.totalScore > 0) {
+            squadTotal += athletescore.totalScore
+            membersWithScores++
+          }
+        })
+
+        const isComplete = membersWithScores === squad.members.length && squad.members.length > 0
+
+        scores.push({
+          squadId: squad.id,
+          squadName: squad.name,
+          teamName: null, // Team name not available in optimized query
+          teamLogoUrl: null,
+          totalScore: squadTotal,
+          memberCount: squad.members.length,
+          members: [], // Member names not available in optimized query
+          isComplete,
+          completionPercentage: squad.members.length > 0 ? Math.round((membersWithScores / squad.members.length) * 100) : 0
+        })
       })
     })
-  })
 
-  // Top 3 Overall Individuals
-  const top3Overall = [...allathletes]
-    .sort((a, b) => b.totalScore - a.totalScore)
-    .slice(0, 3)
+    return scores
+  }, [tournament.timeSlots, allathletes])
 
-  // Top 3 Squads
-  const top3Squads = [...squadScores]
-    .sort((a, b) => b.totalScore - a.totalScore)
-    .slice(0, 3)
+  // MEMOIZED: Top 3 Overall Individuals
+  const top3Overall = useMemo(() =>
+    [...allathletes]
+      .sort((a, b) => b.totalScore - a.totalScore)
+      .slice(0, 3),
+    [allathletes]
+  )
 
-  // Parse HAA Core Disciplines from tournament config
-  let coreDisciplines: string[] = []
-  if (tournament.haaCoreDisciplines) {
-    try {
-      coreDisciplines = JSON.parse(tournament.haaCoreDisciplines)
-    } catch (e) {
-      // Fallback to default if parsing fails
-      coreDisciplines = tournament.disciplines
+  // MEMOIZED: Top 3 Squads
+  const top3Squads = useMemo(() =>
+    [...squadScores]
+      .sort((a, b) => b.totalScore - a.totalScore)
+      .slice(0, 3),
+    [squadScores]
+  )
+
+  // MEMOIZED: Parse HAA Core Disciplines from tournament config
+  const coreDisciplines = useMemo(() => {
+    if (tournament.haaCoreDisciplines) {
+      try {
+        return JSON.parse(tournament.haaCoreDisciplines)
+      } catch (e) {
+        // Fallback to default if parsing fails
+        return tournament.disciplines
+          .filter(d => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
+          .map(d => d.disciplineId)
+      }
+    } else {
+      // Default core disciplines
+      return tournament.disciplines
         .filter(d => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
         .map(d => d.disciplineId)
     }
-  } else {
-    // Default core disciplines
-    coreDisciplines = tournament.disciplines
-      .filter(d => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
-      .map(d => d.disciplineId)
-  }
+  }, [tournament.haaCoreDisciplines, tournament.disciplines])
 
-  // HOA (High Over All) - All disciplines combined
-  // Calculate HOA separately by gender if configured
-  let hoaathletes: athletescore[] = []
-  let hoaMaleathletes: athletescore[] = []
-  let hoaFemaleathletes: athletescore[] = []
-  
-  if (tournament.enableHOA) {
-    if (tournament.hoaSeparateGender) {
-      // Separate HOA for males and females
-      hoaMaleathletes = [...allathletes]
-        .filter(s => s.disciplineCount > 0 && s.gender === 'male')
-        .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, 3)
-      
-      hoaFemaleathletes = [...allathletes]
-        .filter(s => s.disciplineCount > 0 && s.gender === 'female')
-        .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, 3)
-    } else {
-      // Combined HOA
-      hoaathletes = [...allathletes]
-        .filter(s => s.disciplineCount > 0)
-        .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, 3)
-    }
-  }
+  // MEMOIZED: HOA (High Over All) - All disciplines combined
+  // PERFORMANCE: Only recalculates when athlete scores or config changes
+  const { hoaathletes, hoaMaleathletes, hoaFemaleathletes, hoaWinnerIds } = useMemo(() => {
+    let hoaathletes: athletescore[] = []
+    let hoaMaleathletes: athletescore[] = []
+    let hoaFemaleathletes: athletescore[] = []
 
-  // Collect all HOA winners for exclusion
-  const hoaWinnerIds = new Set([
-    ...hoaathletes.map(s => s.athleteId),
-    ...hoaMaleathletes.map(s => s.athleteId),
-    ...hoaFemaleathletes.map(s => s.athleteId)
-  ])
+    if (tournament.enableHOA) {
+      if (tournament.hoaSeparateGender) {
+        // Separate HOA for males and females
+        hoaMaleathletes = [...allathletes]
+          .filter(s => s.disciplineCount > 0 && s.gender === 'male')
+          .sort((a, b) => b.totalScore - a.totalScore)
+          .slice(0, 3)
 
-  // HAA (High All-Around) - Specific core disciplines
-  // Only includes athletes who have shot in multiple core disciplines
-  let haaathletes: any[] = []
-  let haaMaleathletes: any[] = []
-  let haaFemaleathletes: any[] = []
-  
-  if (tournament.enableHAA) {
-    const calculateHAA = (athletes: athletescore[]) => {
-      return athletes
-        .map(athlete => {
-          const coreDisciplineScores = Object.entries(athlete.disciplineScores)
-            .filter(([disciplineId]) => coreDisciplines.includes(disciplineId))
-          
-          const haaTotal = coreDisciplineScores.reduce((sum, [, score]) => sum + score, 0)
-          const haaDisciplineCount = coreDisciplineScores.length
-
-          return {
-            ...athlete,
-            haaTotal,
-            haaDisciplineCount
-          }
-        })
-        .filter(s => s.haaDisciplineCount >= 2) // Must shoot at least 2 core disciplines
-        .filter(s => !tournament.hoaExcludesHAA || !hoaWinnerIds.has(s.athleteId)) // Exclude HOA winners if configured
-        .sort((a, b) => b.haaTotal - a.haaTotal)
-        .slice(0, 3)
+        hoaFemaleathletes = [...allathletes]
+          .filter(s => s.disciplineCount > 0 && s.gender === 'female')
+          .sort((a, b) => b.totalScore - a.totalScore)
+          .slice(0, 3)
+      } else {
+        // Combined HOA
+        hoaathletes = [...allathletes]
+          .filter(s => s.disciplineCount > 0)
+          .sort((a, b) => b.totalScore - a.totalScore)
+          .slice(0, 3)
+      }
     }
 
-    if (tournament.hoaSeparateGender) {
-      // Separate HAA for males and females
-      haaMaleathletes = calculateHAA(allathletes.filter(s => s.gender === 'male'))
-      haaFemaleathletes = calculateHAA(allathletes.filter(s => s.gender === 'female'))
-    } else {
-      // Combined HAA
-      haaathletes = calculateHAA(allathletes)
-    }
-  }
+    // Collect all HOA winners for exclusion
+    const hoaWinnerIds = new Set([
+      ...hoaathletes.map(s => s.athleteId),
+      ...hoaMaleathletes.map(s => s.athleteId),
+      ...hoaFemaleathletes.map(s => s.athleteId)
+    ])
 
-  // Collect all HAA winners for exclusion from division leaderboards
-  const haaWinnerIds = new Set([
-    ...haaathletes.map(s => s.athleteId),
-    ...haaMaleathletes.map(s => s.athleteId),
-    ...haaFemaleathletes.map(s => s.athleteId)
-  ])
+    return { hoaathletes, hoaMaleathletes, hoaFemaleathletes, hoaWinnerIds }
+  }, [allathletes, tournament.enableHOA, tournament.hoaSeparateGender])
+
+  // MEMOIZED: HAA (High All-Around) - Specific core disciplines
+  // PERFORMANCE: Only recalculates when scores, core disciplines, or config changes
+  const { haaathletes, haaMaleathletes, haaFemaleathletes, haaWinnerIds } = useMemo(() => {
+    let haaathletes: any[] = []
+    let haaMaleathletes: any[] = []
+    let haaFemaleathletes: any[] = []
+
+    if (tournament.enableHAA) {
+      const calculateHAA = (athletes: athletescore[]) => {
+        return athletes
+          .map(athlete => {
+            const coreDisciplineScores = Object.entries(athlete.disciplineScores)
+              .filter(([disciplineId]) => coreDisciplines.includes(disciplineId))
+
+            const haaTotal = coreDisciplineScores.reduce((sum, [, score]) => sum + score, 0)
+            const haaDisciplineCount = coreDisciplineScores.length
+
+            return {
+              ...athlete,
+              haaTotal,
+              haaDisciplineCount
+            }
+          })
+          .filter(s => s.haaDisciplineCount >= 2) // Must shoot at least 2 core disciplines
+          .filter(s => !tournament.hoaExcludesHAA || !hoaWinnerIds.has(s.athleteId)) // Exclude HOA winners if configured
+          .sort((a, b) => b.haaTotal - a.haaTotal)
+          .slice(0, 3)
+      }
+
+      if (tournament.hoaSeparateGender) {
+        // Separate HAA for males and females
+        haaMaleathletes = calculateHAA(allathletes.filter(s => s.gender === 'male'))
+        haaFemaleathletes = calculateHAA(allathletes.filter(s => s.gender === 'female'))
+      } else {
+        // Combined HAA
+        haaathletes = calculateHAA(allathletes)
+      }
+    }
+
+    // Collect all HAA winners for exclusion from division leaderboards
+    const haaWinnerIds = new Set([
+      ...haaathletes.map(s => s.athleteId),
+      ...haaMaleathletes.map(s => s.athleteId),
+      ...haaFemaleathletes.map(s => s.athleteId)
+    ])
+
+    return { haaathletes, haaMaleathletes, haaFemaleathletes, haaWinnerIds }
+  }, [allathletes, coreDisciplines, tournament.enableHAA, tournament.hoaSeparateGender, tournament.hoaExcludesHAA, hoaWinnerIds])
 
 
   // Get medal emoji

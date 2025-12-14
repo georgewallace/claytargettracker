@@ -8,22 +8,32 @@ import TournamentActionsMenu from '@/components/TournamentActionsMenu'
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
+type PageProps = {
+  searchParams: Promise<{ page?: string }>
+}
+
 // Format date without timezone shifts
 function parseDateSafe(date: Date) {
   const dateStr = new Date(date).toISOString().split('T')[0]
   return new Date(`${dateStr}T12:00:00.000Z`)
 }
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({ searchParams }: PageProps) {
   const user = await getCurrentUser()
-  
+
   if (!user) {
     redirect('/login')
   }
-  
+
   if (user.role !== 'admin') {
     redirect('/')
   }
+
+  // Pagination setup for tournaments table
+  const params = await searchParams
+  const currentPage = parseInt(params.page || '1')
+  const itemsPerPage = 20
+  const skip = (currentPage - 1) * itemsPerPage
   
   // Fetch dashboard statistics
   const [
@@ -33,6 +43,7 @@ export default async function AdminDashboardPage() {
     coachCount,
     recentRegistrations,
     recentScores,
+    tournamentCount,
     allTournaments
   ] = await Promise.all([
     // Tournament statistics
@@ -90,7 +101,9 @@ export default async function AdminDashboardPage() {
         scores: true
       }
     }),
-    // All tournaments for management table
+    // Total tournament count for pagination
+    prisma.tournament.count(),
+    // Paginated tournaments for management table
     prisma.tournament.findMany({
       include: {
         createdBy: true,
@@ -110,9 +123,13 @@ export default async function AdminDashboardPage() {
       },
       orderBy: {
         createdAt: 'desc'
-      }
+      },
+      skip,
+      take: itemsPerPage
     })
   ])
+
+  const totalPages = Math.ceil(tournamentCount / itemsPerPage)
 
   // Calculate tournament counts by status
   const tournamentsByStatus = {
@@ -356,6 +373,91 @@ export default async function AdminDashboardPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-3 sm:px-6 mt-4">
+              <div className="flex flex-1 justify-between sm:hidden">
+                <Link
+                  href={`/admin?page=${Math.max(currentPage - 1, 1)}`}
+                  className={`relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 ${
+                    currentPage === 1 ? 'pointer-events-none opacity-50' : ''
+                  }`}
+                >
+                  Previous
+                </Link>
+                <Link
+                  href={`/admin?page=${Math.min(currentPage + 1, totalPages)}`}
+                  className={`relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 ${
+                    currentPage === totalPages ? 'pointer-events-none opacity-50' : ''
+                  }`}
+                >
+                  Next
+                </Link>
+              </div>
+              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{skip + 1}</span> to{' '}
+                    <span className="font-medium">{Math.min(skip + itemsPerPage, tournamentCount)}</span> of{' '}
+                    <span className="font-medium">{tournamentCount}</span> tournaments
+                  </p>
+                </div>
+                <div>
+                  <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <Link
+                      href={`/admin?page=${Math.max(currentPage - 1, 1)}`}
+                      className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
+                        currentPage === 1 ? 'pointer-events-none opacity-50' : ''
+                      }`}
+                    >
+                      <span className="sr-only">Previous</span>
+                      <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                      </svg>
+                    </Link>
+                    {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => {
+                      // Show first page, last page, current page and 2 pages around it
+                      const page = i + 1
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 2 && page <= currentPage + 2)
+                      ) {
+                        return (
+                          <Link
+                            key={page}
+                            href={`/admin?page=${page}`}
+                            className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                              currentPage === page
+                                ? 'z-10 bg-indigo-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
+                                : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                            }`}
+                          >
+                            {page}
+                          </Link>
+                        )
+                      } else if (page === currentPage - 3 || page === currentPage + 3) {
+                        return <span key={page} className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700">...</span>
+                      }
+                      return null
+                    })}
+                    <Link
+                      href={`/admin?page=${Math.min(currentPage + 1, totalPages)}`}
+                      className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
+                        currentPage === totalPages ? 'pointer-events-none opacity-50' : ''
+                      }`}
+                    >
+                      <span className="sr-only">Next</span>
+                      <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                      </svg>
+                    </Link>
+                  </nav>
+                </div>
+              </div>
             </div>
           )}
         </div>
