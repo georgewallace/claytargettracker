@@ -19,14 +19,14 @@ export function calculateDivision(grade: string | null | undefined): string | nu
     return 'Junior Varsity'
   }
   
-  // Senior: 10th – 12th grade
+  // Varsity: 10th – 12th grade
   if (['10', '11', '12'].includes(gradeNum)) {
-    return 'Senior'
+    return 'Varsity'
   }
-  
-  // College-Trade School
+
+  // Collegiate: College/Trade School
   if (['college', 'trade', 'university', 'college-trade'].includes(gradeNum)) {
-    return 'College-Trade School'
+    return 'Collegiate'
   }
   
   return null
@@ -74,5 +74,32 @@ export function getYearOptions() {
     years.push({ value: year, label: year.toString() })
   }
   return years
+}
+
+// All available division options
+export const divisionOptions = [
+  { value: 'Novice', label: 'Novice' },
+  { value: 'Intermediate', label: 'Intermediate' },
+  { value: 'Junior Varsity', label: 'Junior Varsity' },
+  { value: 'Varsity', label: 'Varsity' },
+  { value: 'Collegiate', label: 'Collegiate' },
+  { value: 'Open', label: 'Open' },
+  { value: 'Unassigned', label: 'Unassigned' }
+]
+
+// Team affiliation options
+export const affiliationOptions = [
+  { value: 'USAYESS', label: 'USAYESS' },
+  { value: 'SCTP', label: 'SCTP' },
+  { value: 'High School', label: 'High School Clay Target Team' },
+  { value: 'Other', label: 'Other' }
+]
+
+// Get the effective division (override takes precedence over calculated)
+export function getEffectiveDivision(
+  calculatedDivision: string | null,
+  divisionOverride: string | null
+): string | null {
+  return divisionOverride || calculatedDivision
 }
 

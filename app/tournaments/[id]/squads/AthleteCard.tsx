@@ -15,14 +15,16 @@ interface athleteCardProps {
 // Convert division names to acronyms
 const getDivisionAcronym = (division: string): string => {
   const acronyms: Record<string, string> = {
-    'Senior': 'Sr',
-    'Junior': 'Jr',
+    'Varsity': 'Var',
     'Junior Varsity': 'JV',
     'Novice': 'Nov',
     'Intermediate': 'Int',
-    'Veteran': 'Vet',
-    'Master': 'Mst',
-    'Sub-Junior': 'Sub-Jr',
+    'Collegiate': 'Col',
+    'Open': 'Open',
+    'Unassigned': 'Unass',
+    // Legacy support (should not appear after migration)
+    'Senior': 'Var',
+    'College-Trade School': 'Col',
   }
   return acronyms[division] || division
 }

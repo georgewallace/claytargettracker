@@ -26,11 +26,12 @@ model User {
 }
 
 model Team {
-  id        String   @id @default(cuid())
-  name      String
-  logoUrl   String?  // URL/path to team logo
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  logoUrl     String?  // URL/path to team logo
+  affiliation String?  // USAYESS, SCTP, High School Clay Target Team, Other
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   coaches      TeamCoach[] // Many-to-many relationship for coaches
   athletes     Athlete[]
@@ -83,7 +84,9 @@ model Athlete {
   ataClass          String?  // ATA classification
   nssaClass         String?  // NSSA classification
   grade             String?  // "6", "7", "8", "9", "10", "11", "12", "College"
-  division          String?  // Auto-calculated: Novice, Intermediate, JV, Senior, College
+  division          String?  // Auto-calculated: Novice, Intermediate, Junior Varsity, Varsity, Collegiate, Open, Unassigned
+  divisionOverride  String?  // Coach can manually override auto-calculated division
+  isActive          Boolean  @default(true) // Active athletes can compete; inactive are aged out or transferred
   ataNumber         String?  // ATA membership number
   nscaNumber        String?  // NSCA membership number
   nssaNumber        String?  // NSSA membership number
