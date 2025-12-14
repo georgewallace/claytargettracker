@@ -198,14 +198,28 @@ Updated `getPreferenceRank` in `TimeSlotSelector.tsx` to:
 **Files Modified:**
 - `app/tournaments/[id]/TimeSlotSelector.tsx`: Fixed preference rank calculation
 
-### 11. Squad Position Validation (Item #16)
+### 11. Squad Position Validation (Item #16) ✅ COMPLETED
 **Rule:** Squads must be completely filled (can't have 2 of 3 positions)
 
+**Status:** Completed with visual indicators and warnings
 **Tasks:**
-- [ ] Add validation on squad save: all positions filled or none
-- [ ] Show warning when trying to save partial squad
-- [ ] Update UI to indicate required positions
-- [ ] Consider "draft" vs "finalized" squad status
+- [x] Add validation on squad save: all positions filled or none *(Soft warnings instead of hard blocks)*
+- [x] Show warning when trying to save partial squad
+- [x] Update UI to indicate required positions
+- [ ] Consider "draft" vs "finalized" squad status *(Future enhancement)*
+
+**Implementation:**
+- **SquadCard.tsx:**
+  - Added visual status indicators: green checkmark for full squads, amber warning for partial
+  - Shows "⚠ Incomplete" badge on partially filled squads
+  - Color-coded member count (green=full, amber=partial, gray=empty)
+- **SquadManager.tsx:**
+  - Added banner warning showing count of incomplete squads
+  - Banner displays for current discipline view
+  - Provides guidance that squads should be filled to capacity before tournament
+
+**Approach:**
+Used soft validation (warnings) rather than hard blocks since squads need to be filled gradually during the assignment process. Coaches can see at a glance which squads need attention.
 
 ### 12. Individual Shooters (Item #20)
 **Requirement:** Support athletes competing without a team

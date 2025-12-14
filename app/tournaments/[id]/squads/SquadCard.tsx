@@ -35,6 +35,8 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate,
 
   const availableCapacity = getSquadAvailableCapacity(squad)
   const isFull = availableCapacity === 0
+  const isPartial = squad.members.length > 0 && !isFull
+  const isEmpty = squad.members.length === 0
 
   // Classify the squad
   const classification = classifySquad(squad.members)
@@ -270,10 +272,17 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate,
               </>
             )}
 
-            <p className={`text-xs ${isFull ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
-              {squad.members.length}/{squad.capacity}
-              {isFull && ' (Full)'}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className={`text-xs ${isFull ? 'text-green-600 font-medium' : isPartial ? 'text-amber-600 font-medium' : 'text-gray-600'}`}>
+                {squad.members.length}/{squad.capacity}
+                {isFull && ' ✓'}
+              </p>
+              {isPartial && (
+                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded text-xs font-medium" title="Squad is not completely filled">
+                  ⚠ Incomplete
+                </span>
+              )}
+            </div>
           </div>
           {canDeleteSquad() && (
             <button
