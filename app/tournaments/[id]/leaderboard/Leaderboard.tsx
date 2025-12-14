@@ -322,7 +322,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
   // Get discipline name by ID
   const getDisciplineName = (disciplineId: string) => {
-    const discipline = tournament.disciplines.find(d => d.disciplineId === disciplineId)
+    const discipline = tournament.disciplines.find((d: any) => d.disciplineId === disciplineId)
     return discipline?.discipline.displayName || 'Unknown'
   }
 
