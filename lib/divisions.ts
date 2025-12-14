@@ -103,3 +103,47 @@ export function getEffectiveDivision(
   return divisionOverride || calculatedDivision
 }
 
+// Predefined squad names (Division + Number format)
+export const squadNameOptions = [
+  // Collegiate squads
+  { value: 'Collegiate 1', label: 'Collegiate 1', division: 'Collegiate' },
+  { value: 'Collegiate 2', label: 'Collegiate 2', division: 'Collegiate' },
+  { value: 'Collegiate 3', label: 'Collegiate 3', division: 'Collegiate' },
+
+  // Intermediate squads
+  { value: 'Intermediate 1', label: 'Intermediate 1', division: 'Intermediate' },
+  { value: 'Intermediate 2', label: 'Intermediate 2', division: 'Intermediate' },
+  { value: 'Intermediate 3', label: 'Intermediate 3', division: 'Intermediate' },
+
+  // Junior Varsity squads
+  { value: 'Junior Varsity 1', label: 'Junior Varsity 1', division: 'Junior Varsity' },
+  { value: 'Junior Varsity 2', label: 'Junior Varsity 2', division: 'Junior Varsity' },
+  { value: 'Junior Varsity 3', label: 'Junior Varsity 3', division: 'Junior Varsity' },
+
+  // Novice squads
+  { value: 'Novice 1', label: 'Novice 1', division: 'Novice' },
+  { value: 'Novice 2', label: 'Novice 2', division: 'Novice' },
+  { value: 'Novice 3', label: 'Novice 3', division: 'Novice' },
+
+  // Open squads
+  { value: 'Open 1', label: 'Open 1', division: 'Open' },
+  { value: 'Open 2', label: 'Open 2', division: 'Open' },
+  { value: 'Open 3', label: 'Open 3', division: 'Open' },
+
+  // Unassigned squads
+  { value: 'Unassigned 1', label: 'Unassigned 1', division: 'Unassigned' },
+  { value: 'Unassigned 2', label: 'Unassigned 2', division: 'Unassigned' },
+  { value: 'Unassigned 3', label: 'Unassigned 3', division: 'Unassigned' },
+
+  // Varsity squads
+  { value: 'Varsity 1', label: 'Varsity 1', division: 'Varsity' },
+  { value: 'Varsity 2', label: 'Varsity 2', division: 'Varsity' },
+  { value: 'Varsity 3', label: 'Varsity 3', division: 'Varsity' },
+]
+
+// Get squad names filtered by division
+export function getSquadNamesByDivision(division: string | null): typeof squadNameOptions {
+  if (!division) return squadNameOptions
+  return squadNameOptions.filter(squad => squad.division === division)
+}
+

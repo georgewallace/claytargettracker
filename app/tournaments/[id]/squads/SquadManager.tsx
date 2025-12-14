@@ -6,6 +6,7 @@ import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, u
 import { format } from 'date-fns'
 import Link from 'next/link'
 import { getDivisionColor, formatTimeSlotLabel, isAthleteAssigned } from '@/lib/squadUtils'
+import { squadNameOptions } from '@/lib/divisions'
 import Unassignedathletes from './UnassignedAthletes'
 import TimeSlotSection from './TimeSlotSection'
 import AthleteCard from './AthleteCard'
@@ -1412,19 +1413,22 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Squad Name
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={newSquadName}
                     onChange={(e) => setNewSquadName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newSquadName.trim()) {
-                        handleConfirmCreateSquad()
-                      }
-                    }}
-                    placeholder="e.g., Squad 1, Team A, etc."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     autoFocus
-                  />
+                  >
+                    <option value="">Select a squad name...</option>
+                    {squadNameOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Squad names follow the format: Division + Number
+                  </p>
                 </div>
               </div>
 
