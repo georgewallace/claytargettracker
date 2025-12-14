@@ -92,13 +92,34 @@ export default function TimeSlotSelector({
   }
 
   const getPreferenceRank = (timeSlotIds: string[]): number | null => {
-    // Find the first ID that's in the selection and use its index
-    for (const id of timeSlotIds) {
-      const index = selectedTimeSlots.indexOf(id)
-      if (index >= 0) {
-        return index + 1
+    // Check if this time slot is selected
+    const isSelected = timeSlotIds.some(id => selectedTimeSlots.includes(id))
+    if (!isSelected) return null
+
+    // Count how many unique time slots were selected before this one
+    // by grouping the selected IDs back into their time slots
+    let rank = 0
+    const processedIds = new Set<string>()
+
+    for (const id of selectedTimeSlots) {
+      if (processedIds.has(id)) continue
+
+      // Find which time slot this ID belongs to
+      const matchingSlot = timeSlots.find(slot => slot.timeSlotIds.includes(id))
+      if (!matchingSlot) continue
+
+      // Mark all IDs from this time slot as processed
+      matchingSlot.timeSlotIds.forEach(slotId => processedIds.add(slotId))
+
+      // Increment rank
+      rank++
+
+      // If this is the target time slot, return the rank
+      if (matchingSlot.timeSlotIds.some(slotId => timeSlotIds.includes(slotId))) {
+        return rank
       }
     }
+
     return null
   }
 

@@ -176,14 +176,27 @@ This document organizes the 20 feedback items from appfeedback.md into actionabl
 - [ ] Display duration as "1h 15min" format
 - [ ] Validate end time calculations
 
-### 10. Time Slot Preference Bug (Item #4)
+### 10. Time Slot Preference Bug (Item #4) ✅ COMPLETED
 **Issue:** Selection goes 1st → 5th → 9th instead of 1st → 2nd → 3rd
 
+**Status:** Fixed
 **Tasks:**
-- [ ] Investigate time slot preference component
-- [ ] Fix numbering/ordering logic
-- [ ] Test preference selection flow
-- [ ] Add validation to prevent duplicate preferences
+- [x] Investigate time slot preference component
+- [x] Fix numbering/ordering logic
+- [ ] Test preference selection flow *(Requires user testing)*
+- [ ] Add validation to prevent duplicate preferences *(Future enhancement)*
+
+**Root Cause:**
+The `getPreferenceRank` function was calculating rank based on array index position. When time slots have multiple IDs (multiple fields at same time), all IDs were added to the array, causing incorrect indexing.
+
+**Solution:**
+Updated `getPreferenceRank` in `TimeSlotSelector.tsx` to:
+1. Group selected IDs back into their time slots
+2. Count unique time slots in selection order
+3. Return correct rank (1st, 2nd, 3rd) regardless of ID count per slot
+
+**Files Modified:**
+- `app/tournaments/[id]/TimeSlotSelector.tsx`: Fixed preference rank calculation
 
 ### 11. Squad Position Validation (Item #16)
 **Rule:** Squads must be completely filled (can't have 2 of 3 positions)
