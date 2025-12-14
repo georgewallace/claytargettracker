@@ -36,8 +36,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
-    const { name } = await request.json()
-    
+    const { name, affiliation } = await request.json()
+
     // Validate input
     if (!name) {
       return NextResponse.json(
@@ -45,23 +45,24 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    
+
     // Check if team name already exists
     const existing = await prisma.team.findFirst({
       where: { name }
     })
-    
+
     if (existing) {
       return NextResponse.json(
         { error: 'Team name already exists' },
         { status: 400 }
       )
     }
-    
+
     // Create team
     const team = await prisma.team.create({
       data: {
         name,
+        affiliation: affiliation || null,
         // If the creator is a coach (not admin), automatically add them to the team
         ...(user.role === 'coach' && {
           coaches: {

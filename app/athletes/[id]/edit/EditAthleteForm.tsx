@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { gradeOptions, monthOptions, getYearOptions, calculateDivision } from '@/lib/divisions'
+import { gradeOptions, monthOptions, getYearOptions, calculateDivision, divisionOptions } from '@/lib/divisions'
 
 interface Athlete {
   id: string
@@ -13,6 +13,7 @@ interface Athlete {
   ataClass: string | null
   grade: string | null
   division: string | null
+  divisionOverride: string | null
   profilePictureUrl: string | null
   user: {
     name: string
@@ -35,7 +36,8 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
     birthYear: athlete.birthYear?.toString() || '',
     nscaClass: athlete.nscaClass || '',
     ataClass: athlete.ataClass || '',
-    grade: athlete.grade || ''
+    grade: athlete.grade || '',
+    divisionOverride: athlete.divisionOverride || ''
   })
   
   const [calculatedDivision, setCalculatedDivision] = useState<string | null>(athlete.division)
@@ -353,6 +355,35 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
         </div>
       )}
 
+      {/* Division Override */}
+      <div>
+        <label htmlFor="divisionOverride" className="block text-sm font-medium text-gray-700 mb-2">
+          Division Override (Optional)
+        </label>
+        <select
+          id="divisionOverride"
+          name="divisionOverride"
+          value={formData.divisionOverride}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">Use Auto-calculated Division</option>
+          {divisionOptions.map(division => (
+            <option key={division.value} value={division.value}>
+              {division.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-500 mt-1">
+          Manually override the auto-calculated division. Leave empty to use the auto-calculated value.
+          {formData.divisionOverride && (
+            <span className="text-orange-600 font-medium ml-1">
+              (Using override: {formData.divisionOverride})
+            </span>
+          )}
+        </p>
+      </div>
+
       {/* NSCA Class */}
       <div>
         <label htmlFor="nscaClass" className="block text-sm font-medium text-gray-700 mb-2">
@@ -394,8 +425,9 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
           <li>• <span className="font-medium">Novice:</span> 6th grade and below</li>
           <li>• <span className="font-medium">Intermediate:</span> 7th – 8th grade</li>
           <li>• <span className="font-medium">Junior Varsity:</span> 9th grade</li>
-          <li>• <span className="font-medium">Senior:</span> 10th – 12th grade</li>
-          <li>• <span className="font-medium">College-Trade School:</span> Post-high school</li>
+          <li>• <span className="font-medium">Varsity:</span> 10th – 12th grade</li>
+          <li>• <span className="font-medium">Collegiate:</span> Post-high school</li>
+          <li className="text-xs text-gray-500 italic mt-2">• <span className="font-medium">Open/Unassigned:</span> For squadding purposes only</li>
         </ul>
       </div>
 
