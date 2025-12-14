@@ -6,6 +6,13 @@ import TeamHistoryViewer from './TeamHistoryViewer'
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
+interface PageProps {
+  searchParams: Promise<{
+    page?: string
+    months?: string
+  }>
+}
+
 async function getUserFirstCoachedTeam(userId: string) {
   const team = await prisma.team.findFirst({
     where: {
@@ -20,12 +27,18 @@ async function getUserFirstCoachedTeam(userId: string) {
       name: true
     }
   })
-  
+
   return team
 }
 
-export default async function TeamHistoryPage() {
+export default async function TeamHistoryPage({ searchParams }: PageProps) {
   const user = await getCurrentUser()
+
+  // Get pagination and filter parameters
+  const params = await searchParams
+  const currentPage = parseInt(params.page || '1')
+  const monthsBack = parseInt(params.months || '6') // Default to 6 months
+  const itemsPerPage = 10
   
   if (!user) {
     redirect('/login')
@@ -61,7 +74,23 @@ export default async function TeamHistoryPage() {
     )
   }
 
-  // Get team athletes with their history
+  // PERFORMANCE OPTIMIZATION: Calculate date cutoff for filtering
+  const cutoffDate = new Date()
+  cutoffDate.setMonth(cutoffDate.getMonth() - monthsBack)
+
+  // PERFORMANCE OPTIMIZATION: Get total count for pagination
+  const totalAthletes = await prisma.athlete.count({
+    where: {
+      teamId: team.id
+    }
+  })
+
+  const totalPages = Math.ceil(totalAthletes / itemsPerPage)
+  const skip = (currentPage - 1) * itemsPerPage
+
+  // PERFORMANCE OPTIMIZATION: Get paginated athletes with date-filtered shoots
+  // Previously: Loaded ALL athletes with ALL shoots (could be 500+ shoot records)
+  // Now: Loads 10 athletes per page with shoots from last 6 months only
   const teamathletes = await prisma.athlete.findMany({
     where: {
       teamId: team.id
@@ -69,6 +98,11 @@ export default async function TeamHistoryPage() {
     include: {
       user: true,
       shoots: {
+        where: {
+          date: {
+            gte: cutoffDate // Only get shoots from last N months
+          }
+        },
         include: {
           tournament: true,
           discipline: true,
@@ -85,7 +119,9 @@ export default async function TeamHistoryPage() {
       user: {
         name: 'asc'
       }
-    }
+    },
+    skip,
+    take: itemsPerPage
   })
 
   // Calculate totals and percentages for each shoot
@@ -171,9 +207,13 @@ export default async function TeamHistoryPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <TeamHistoryViewer 
+        <TeamHistoryViewer
           teamName={team.name}
           athletes={athletesWithHistory}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalAthletes={totalAthletes}
+          monthsBack={monthsBack}
         />
       </div>
     </div>

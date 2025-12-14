@@ -7,13 +7,31 @@ import TeamBrowser from './TeamBrowser'
 // Force dynamic rendering (required for getCurrentUser)
 export const dynamic = 'force-dynamic'
 
-export default async function TeamsPage() {
+interface PageProps {
+  searchParams: Promise<{
+    page?: string
+  }>
+}
+
+export default async function TeamsPage({ searchParams }: PageProps) {
   const user = await getCurrentUser()
-  
+
   if (!user) {
     redirect('/login')
   }
 
+  // PERFORMANCE OPTIMIZATION: Pagination setup
+  const search = await searchParams
+  const currentPage = parseInt(search.page || '1')
+  const itemsPerPage = 20
+  const skip = (currentPage - 1) * itemsPerPage
+
+  // PERFORMANCE OPTIMIZATION: Get total count for pagination
+  const totalTeams = await prisma.team.count()
+  const totalPages = Math.ceil(totalTeams / itemsPerPage)
+
+  // PERFORMANCE OPTIMIZATION: Load paginated teams
+  // Note: Athlete list is still fully loaded per team, but only for displayed teams
   const teams = await prisma.team.findMany({
     include: {
       coaches: {
@@ -34,7 +52,9 @@ export default async function TeamsPage() {
     },
     orderBy: {
       name: 'asc'
-    }
+    },
+    skip,
+    take: itemsPerPage
   })
 
   // Get join requests for this athlete if they are an athlete
@@ -182,16 +202,19 @@ export default async function TeamsPage() {
         {/* Team Browser */}
         <div className="bg-white rounded-lg shadow-md p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            {canCreateTeam ? `All Teams (${teams.length})` : 'Browse Teams'}
+            {canCreateTeam ? `All Teams (${totalTeams})` : 'Browse Teams'}
           </h2>
-          
+
           {teams.length === 0 ? (
             <p className="text-gray-600">No teams yet. Be the first to create one!</p>
           ) : (
-            <TeamBrowser 
-              teams={teams} 
+            <TeamBrowser
+              teams={teams}
               currentathlete={user.athlete || null}
               pendingRequests={joinRequests.filter(r => r.status === 'pending')}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalTeams={totalTeams}
             />
           )}
         </div>

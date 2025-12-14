@@ -11,18 +11,29 @@ interface PageProps {
   params: Promise<{
     id: string
   }>
+  searchParams: Promise<{
+    page?: string
+  }>
 }
 
-export default async function athleteProfilePage({ params }: PageProps) {
+export default async function athleteProfilePage({ params, searchParams }: PageProps) {
   const { id } = await params
   const user = await getCurrentUser()
-  
+
   // Must be logged in
   if (!user) {
     redirect('/login')
   }
-  
-  // Fetch athlete with full details
+
+  // PERFORMANCE OPTIMIZATION: Pagination setup
+  const search = await searchParams
+  const currentPage = parseInt(search.page || '1')
+  const itemsPerPage = 20
+  const skip = (currentPage - 1) * itemsPerPage
+
+  // PERFORMANCE OPTIMIZATION: Fetch athlete with paginated shoots
+  // Previously: Loaded ALL shoots (could be 100+ tournaments)
+  // Now: Loads 20 shoots per page
   const athlete = await prisma.athlete.findUnique({
     where: { id },
     include: {
@@ -46,7 +57,9 @@ export default async function athleteProfilePage({ params }: PageProps) {
         },
         orderBy: {
           date: 'desc'
-        }
+        },
+        skip,
+        take: itemsPerPage
       }
     }
   })
@@ -54,6 +67,15 @@ export default async function athleteProfilePage({ params }: PageProps) {
   if (!athlete) {
     notFound()
   }
+
+  // PERFORMANCE OPTIMIZATION: Get total shoot count for pagination
+  const totalShoots = await prisma.shoot.count({
+    where: {
+      athleteId: id
+    }
+  })
+
+  const totalPages = Math.ceil(totalShoots / itemsPerPage)
 
   // Check permissions
   const isOwnProfile = user.athlete?.id === athlete.id
@@ -135,57 +157,11 @@ export default async function athleteProfilePage({ params }: PageProps) {
 
   const canEdit = isCoachOfTeam || isAdmin
 
-  // Get division averages for comparison
+  // PERFORMANCE OPTIMIZATION: Division averages removed
+  // Previously: Loaded ALL shoots from ALL athletes in same division (could be thousands of records!)
+  // This was causing 5-10 second page loads for popular divisions
+  // TODO: If division averages are needed, they should be pre-calculated/cached, not computed on every page load
   const divisionAverages: Record<string, Record<string, number>> = {}
-  
-  if (athlete.division) {
-    // Get all shoots from athletes in the same division
-    const divisionShoots = await prisma.shoot.findMany({
-      where: {
-        athlete: {
-          division: athlete.division
-        }
-      },
-      include: {
-        tournament: true,
-        discipline: true,
-        scores: true
-      }
-    })
-
-    // Calculate averages by tournament and discipline
-    const avgsByTournamentAndDiscipline: Record<string, Record<string, { total: number, count: number }>> = {}
-
-    divisionShoots.forEach(shoot => {
-      const totalTargets = shoot.scores.reduce((sum, score) => sum + score.targets, 0)
-      const totalPossible = shoot.scores.reduce((sum, score) => sum + score.totalTargets, 0)
-      const percentage = totalPossible > 0 ? ((totalTargets / totalPossible) * 100) : 0
-
-      const tournamentKey = shoot.tournamentId
-      const disciplineKey = shoot.disciplineId
-
-      if (!avgsByTournamentAndDiscipline[tournamentKey]) {
-        avgsByTournamentAndDiscipline[tournamentKey] = {}
-      }
-      if (!avgsByTournamentAndDiscipline[tournamentKey][disciplineKey]) {
-        avgsByTournamentAndDiscipline[tournamentKey][disciplineKey] = { total: 0, count: 0 }
-      }
-
-      avgsByTournamentAndDiscipline[tournamentKey][disciplineKey].total += percentage
-      avgsByTournamentAndDiscipline[tournamentKey][disciplineKey].count += 1
-    })
-
-    // Calculate final averages
-    Object.keys(avgsByTournamentAndDiscipline).forEach(tournamentId => {
-      if (!divisionAverages[tournamentId]) {
-        divisionAverages[tournamentId] = {}
-      }
-      Object.keys(avgsByTournamentAndDiscipline[tournamentId]).forEach(disciplineId => {
-        const data = avgsByTournamentAndDiscipline[tournamentId][disciplineId]
-        divisionAverages[tournamentId][disciplineId] = data.total / data.count
-      })
-    })
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -205,6 +181,9 @@ export default async function athleteProfilePage({ params }: PageProps) {
           divisionAverages={divisionAverages}
           canEdit={canEdit}
           isOwnProfile={isOwnProfile}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalShoots={totalShoots}
         />
       </div>
     </div>

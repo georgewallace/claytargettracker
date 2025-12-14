@@ -99,7 +99,9 @@ export default async function ShootOffsPage({ params }: PageProps) {
     )
   }
 
-  // Fetch athlete scores for tie detection
+  // PERFORMANCE OPTIMIZATION: Fetch athlete scores efficiently for tie detection
+  // Previously: Loaded ALL shoots with nested athlete/user/team/scores (very heavy query)
+  // Now: Only select essential fields, calculate scores in application layer efficiently
   interface athletescore {
     athleteId: string
     athleteName: string
@@ -108,25 +110,42 @@ export default async function ShootOffsPage({ params }: PageProps) {
     disciplineCount: number
   }
 
+  // PERFORMANCE OPTIMIZATION: Use optimized select to reduce data transfer
+  // Only get the fields we need for tie detection, not all nested relationships
   const shoots = await prisma.shoot.findMany({
     where: { tournamentId: id },
-    include: {
+    select: {
+      id: true,
+      athleteId: true,
       athlete: {
-        include: {
-          user: true,
-          team: true
+        select: {
+          id: true,
+          user: {
+            select: {
+              name: true
+            }
+          },
+          team: {
+            select: {
+              name: true
+            }
+          }
         }
       },
-      scores: true
+      scores: {
+        select: {
+          targets: true
+        }
+      }
     }
   })
 
-  // Calculate total scores
+  // Calculate total scores (same logic, but with optimized data)
   const athletescores = new Map<string, athletescore>()
-  shoots.forEach(shoot => {
-    const athleteId = shoot.athlete.id
-    const totalForShoot = shoot.scores.reduce((sum, score) => sum + score.targets, 0)
-    
+  shoots.forEach((shoot: any) => {
+    const athleteId = shoot.athleteId
+    const totalForShoot = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
+
     if (!athletescores.has(athleteId)) {
       athletescores.set(athleteId, {
         athleteId,
@@ -136,7 +155,7 @@ export default async function ShootOffsPage({ params }: PageProps) {
         disciplineCount: 0
       })
     }
-    
+
     const athleteData = athletescores.get(athleteId)!
     athleteData.totalScore += totalForShoot
     athleteData.disciplineCount += 1

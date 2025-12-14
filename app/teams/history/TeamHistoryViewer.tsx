@@ -52,9 +52,20 @@ interface athlete {
 interface TeamHistoryViewerProps {
   teamName: string
   athletes: athlete[]
+  currentPage: number
+  totalPages: number
+  totalAthletes: number
+  monthsBack: number
 }
 
-export default function TeamHistoryViewer({ teamName, athletes }: TeamHistoryViewerProps) {
+export default function TeamHistoryViewer({
+  teamName,
+  athletes,
+  currentPage,
+  totalPages,
+  totalAthletes,
+  monthsBack
+}: TeamHistoryViewerProps) {
   const [selectedathleteId, setSelectedathleteId] = useState<string>('all')
   const [selectedDiscipline, setSelectedDiscipline] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<string>('all') // 30, 90, 180, all
@@ -550,6 +561,97 @@ export default function TeamHistoryViewer({ teamName, athletes }: TeamHistoryVie
       {filteredathletes.length === 0 && (
         <div className="bg-white rounded-lg shadow-md p-12 text-center">
           <p className="text-gray-500 text-lg">No athletes found matching your filters.</p>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="mt-6 bg-white rounded-lg shadow-md p-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Pagination Info */}
+            <div className="text-sm text-gray-600">
+              Showing {((currentPage - 1) * 10) + 1}-{Math.min(currentPage * 10, totalAthletes)} of {totalAthletes} athletes
+              <span className="ml-2 text-gray-500">
+                (last {monthsBack} months of data)
+              </span>
+            </div>
+
+            {/* Page Controls */}
+            <div className="flex items-center gap-2">
+              <a
+                href={`?page=${currentPage - 1}&months=${monthsBack}`}
+                className={`px-3 py-2 border border-gray-300 rounded-md text-sm font-medium transition ${
+                  currentPage === 1
+                    ? 'opacity-50 cursor-not-allowed text-gray-400'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+                {...(currentPage === 1 ? { 'aria-disabled': 'true', onClick: (e: any) => e.preventDefault() } : {})}
+              >
+                Previous
+              </a>
+
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum
+                  if (totalPages <= 5) {
+                    pageNum = i + 1
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i
+                  } else {
+                    pageNum = currentPage - 2 + i
+                  }
+
+                  return (
+                    <a
+                      key={pageNum}
+                      href={`?page=${pageNum}&months=${monthsBack}`}
+                      className={`px-3 py-2 border rounded-md text-sm font-medium transition ${
+                        currentPage === pageNum
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </a>
+                  )
+                })}
+              </div>
+
+              <a
+                href={`?page=${currentPage + 1}&months=${monthsBack}`}
+                className={`px-3 py-2 border border-gray-300 rounded-md text-sm font-medium transition ${
+                  currentPage === totalPages
+                    ? 'opacity-50 cursor-not-allowed text-gray-400'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+                {...(currentPage === totalPages ? { 'aria-disabled': 'true', onClick: (e: any) => e.preventDefault() } : {})}
+              >
+                Next
+              </a>
+            </div>
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Show data from last:</span>
+              {[3, 6, 12, 24].map(months => (
+                <a
+                  key={months}
+                  href={`?page=1&months=${months}`}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+                    monthsBack === months
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {months} months
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
