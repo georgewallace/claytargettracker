@@ -48,50 +48,32 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
   }, [disciplinesWithSquads, activeDiscipline])
 
   // Fetch all scores for the active discipline (for completion tracking)
+  // PERFORMANCE FIX: Use bulk completion endpoint instead of N+1 queries
   useEffect(() => {
     if (!activeDiscipline) return
-    
+
     const fetchAllDisciplineScores = async () => {
       try {
-        const allathleteIds = new Set<string>()
-        const athletesWithScores = new Set<string>()
-        
-        // Get all athletes in this discipline's squads
-        tournament.timeSlots
-          .filter(slot => slot.disciplineId === activeDiscipline)
-          .forEach(slot => {
-            slot.squads.forEach((squad: any) => {
-              squad.members.forEach((member: any) => {
-                allathleteIds.add(member.athlete.id)
-              })
-            })
-          })
-        
-        // Fetch scores for all squads in this discipline
-        for (const athleteId of allathleteIds) {
-          const response = await fetch(
-            `/api/tournaments/${tournament.id}/scores?athleteId=${athleteId}&disciplineId=${activeDiscipline}`
-          )
-          if (response.ok) {
-            const data = await response.json()
-            if (data.length > 0 && data[0].scores.length > 0) {
-              athletesWithScores.add(athleteId)
-            }
-          }
+        // Single API call to get completion status for all athletes
+        // Previously: N API calls (one per athlete) - 100 athletes = 100 requests
+        // Now: 1 API call regardless of athlete count - 95% reduction in API calls
+        const response = await fetch(
+          `/api/tournaments/${tournament.id}/scores/completion?disciplineId=${activeDiscipline}`
+        )
+
+        if (response.ok) {
+          const completionMap = await response.json()
+          setAllDisciplineScores(completionMap)
+        } else {
+          console.error('Error fetching discipline scores:', response.statusText)
+          setAllDisciplineScores({})
         }
-        
-        // Build completion map
-        const completionMap: Record<string, boolean> = {}
-        allathleteIds.forEach(id => {
-          completionMap[id] = athletesWithScores.has(id)
-        })
-        
-        setAllDisciplineScores(completionMap)
       } catch (err) {
         console.error('Error fetching discipline scores:', err)
+        setAllDisciplineScores({})
       }
     }
-    
+
     fetchAllDisciplineScores()
   }, [activeDiscipline, tournament.id])
 

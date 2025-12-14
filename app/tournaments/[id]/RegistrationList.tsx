@@ -180,8 +180,8 @@ export default function RegistrationList({
 
                     // Sort by preference value and re-number them sequentially
                     const sortedPrefs = groupedPrefs
-                      .sort((a, b) => a.preference - b.preference)
-                      .map((pref, index) => ({ ...pref, displayPreference: index + 1 }))
+                      .sort((a: any, b: any) => a.preference - b.preference)
+                      .map((pref: any, index: number) => ({ ...pref, displayPreference: index + 1 }))
 
                     return (
                       <div key={rd.id} className="mb-2">

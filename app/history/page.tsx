@@ -7,14 +7,33 @@ import Link from 'next/link'
 // Force dynamic rendering (required for getCurrentUser)
 export const dynamic = 'force-dynamic'
 
-export default async function athleteHistoryPage() {
+type PageProps = {
+  searchParams: Promise<{ page?: string }>
+}
+
+export default async function athleteHistoryPage({ searchParams }: PageProps) {
   const user = await getCurrentUser()
-  
+
   if (!user || !user.athlete) {
     redirect('/login')
   }
 
-  // Get all shoots for this athlete
+  // Pagination setup
+  const params = await searchParams
+  const currentPage = parseInt(params.page || '1')
+  const itemsPerPage = 20
+  const skip = (currentPage - 1) * itemsPerPage
+
+  // Get total count for pagination
+  const totalCount = await prisma.shoot.count({
+    where: {
+      athleteId: user.athlete.id
+    }
+  })
+
+  const totalPages = Math.ceil(totalCount / itemsPerPage)
+
+  // Get paginated shoots for this athlete
   const shoots = await prisma.shoot.findMany({
     where: {
       athleteId: user.athlete.id
@@ -28,7 +47,9 @@ export default async function athleteHistoryPage() {
     },
     orderBy: {
       date: 'desc'
-    }
+    },
+    skip,
+    take: itemsPerPage
   })
 
   // Calculate totals for each shoot
@@ -200,6 +221,78 @@ export default async function athleteHistoryPage() {
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-6 rounded-lg shadow-md">
+            <div className="flex flex-1 justify-between sm:hidden">
+              <Link
+                href={`/history?page=${Math.max(currentPage - 1, 1)}`}
+                className={`relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 ${
+                  currentPage === 1 ? 'pointer-events-none opacity-50' : ''
+                }`}
+              >
+                Previous
+              </Link>
+              <Link
+                href={`/history?page=${Math.min(currentPage + 1, totalPages)}`}
+                className={`relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 ${
+                  currentPage === totalPages ? 'pointer-events-none opacity-50' : ''
+                }`}
+              >
+                Next
+              </Link>
+            </div>
+            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{skip + 1}</span> to{' '}
+                  <span className="font-medium">{Math.min(skip + itemsPerPage, totalCount)}</span> of{' '}
+                  <span className="font-medium">{totalCount}</span> shoots
+                </p>
+              </div>
+              <div>
+                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                  <Link
+                    href={`/history?page=${Math.max(currentPage - 1, 1)}`}
+                    className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
+                      currentPage === 1 ? 'pointer-events-none opacity-50' : ''
+                    }`}
+                  >
+                    <span className="sr-only">Previous</span>
+                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                    </svg>
+                  </Link>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <Link
+                      key={page}
+                      href={`/history?page=${page}`}
+                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                        currentPage === page
+                          ? 'z-10 bg-indigo-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
+                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                      }`}
+                    >
+                      {page}
+                    </Link>
+                  ))}
+                  <Link
+                    href={`/history?page=${Math.min(currentPage + 1, totalPages)}`}
+                    className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
+                      currentPage === totalPages ? 'pointer-events-none opacity-50' : ''
+                    }`}
+                  >
+                    <span className="sr-only">Next</span>
+                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                    </svg>
+                  </Link>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
