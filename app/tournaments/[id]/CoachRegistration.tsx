@@ -173,8 +173,8 @@ export default function CoachRegistration({
         }
       </p>
 
-      {/* Register Team Button - Coach Only */}
-      {userRole === 'coach' && !isTeamRegistered && (
+      {/* Register Team Button - For coaches and admins who coach */}
+      {!isTeamRegistered && allathletes.length > 0 && allathletes.some(a => a.team) && (
         <div className="mb-6">
           <button
             type="button"
@@ -190,8 +190,8 @@ export default function CoachRegistration({
         </div>
       )}
 
-      {/* Team Already Registered Message - Coach Only */}
-      {userRole === 'coach' && isTeamRegistered && (
+      {/* Team Already Registered Message - For coaches and admins who coach */}
+      {isTeamRegistered && (
         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
           <p className="text-green-800 text-center font-medium">
             ✓ Your team is registered for this tournament

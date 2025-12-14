@@ -158,8 +158,9 @@ export default async function TournamentDetailPage({ params }: PageProps) {
   const isAdmin = user?.role === 'admin'
 
   // Check if coach's team is registered for this tournament
+  // Include admins who also coach a team
   let isTeamRegistered = false
-  if (user?.role === 'coach') {
+  if (user?.role === 'coach' || user?.role === 'admin') {
     const coachedTeams = await prisma.teamCoach.findMany({
       where: { userId: user.id },
       select: { teamId: true }
