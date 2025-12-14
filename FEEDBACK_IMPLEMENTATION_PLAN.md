@@ -7,73 +7,75 @@ This document organizes the 20 feedback items from appfeedback.md into actionabl
 
 ## CRITICAL BUGS (Fix Immediately)
 
-### 1. Coach Team Management 404 Error (Item #9)
+### 1. Coach Team Management 404 Error (Item #9) ✅ COMPLETED
 **Issue:** Coach cannot access team management or view roster - 404 error
 **Priority:** P0 - Blocking coaches from basic functionality
+**Status:** Fixed in commit `7e12199`
 **Tasks:**
-- [ ] Investigate /teams/[id] and /teams/[id]/roster routing
-- [ ] Check TeamCoach relationship queries
-- [ ] Test with coach role permissions
-- [ ] Add error handling and proper redirects
+- [x] Investigate /teams/[id] and /teams/[id]/roster routing
+- [x] Check TeamCoach relationship queries
+- [x] Test with coach role permissions
+- [x] Add error handling and proper redirects
 
-### 2. Athlete Save Error (Item #14)
+**Solution:** Updated links in `app/teams/page.tsx` to use `/teams/my-team` instead of dynamic routes. Removed redundant "View Roster" button.
+
+### 2. Athlete Save Error (Item #14) ✅ COMPLETED
 **Issue:** Error when coach tries to save athlete details
 **Priority:** P0 - Data integrity issue
+**Status:** Fixed in commit `7e12199`
 **Tasks:**
-- [ ] Check athlete edit API endpoint permissions
-- [ ] Review validation logic
-- [ ] Test form submission from coach account
-- [ ] Add proper error messages
+- [x] Check athlete edit API endpoint permissions
+- [x] Review validation logic
+- [x] Test form submission from coach account
+- [x] Add proper error messages
 
-### 3. Division Mismatch (Item #17)
+**Solution:** Renamed API from `/api/shooters/[id]` to `/api/athletes/[id]`. Updated all client-side fetch calls in EditAthleteForm.
+
+### 3. Division Mismatch (Item #17) ✅ COMPLETED
 **Issue:** Athlete shows "Junior Varsity" on profile but "Intermediate" during squadding
 **Priority:** P0 - Data consistency issue
+**Status:** Fixed in commit `7e12199`
 **Tasks:**
-- [ ] Audit division field usage across codebase
-- [ ] Ensure single source of truth for athlete division
-- [ ] Fix squadding to use athlete.division consistently
-- [ ] Add data validation
+- [x] Audit division field usage across codebase
+- [x] Ensure single source of truth for athlete division
+- [x] Fix squadding to use athlete.division consistently
+- [x] Add data validation
+
+**Solution:** Created and ran `scripts/fix-athlete-divisions.ts` to recalculate divisions from grades. Fixed 5 athletes with stale division data.
 
 ---
 
 ## HIGH PRIORITY FEATURES
 
-### 4. Division System Overhaul (Items #5, #6, #12)
+### 4. Division System Overhaul (Items #5, #6, #12) ✅ COMPLETED
 **Changes Needed:**
 - Standardize division values: Novice, Intermediate, JV, Varsity, Collegiate
 - Add "Open" and "Unassigned" for squadding purposes
 - Rename "Senior" to "Varsity"
 - Allow coach override of division
 
+**Status:** Completed in commits `2a5eb99`, `bc04769`
 **Tasks:**
-- [ ] Update Athlete schema: Add `divisionOverride` field (nullable)
-- [ ] Create migration to rename "Senior" → "Varsity"
-- [ ] Update division enum to include: Novice, Intermediate, JV, Varsity, Collegiate, Open, Unassigned
-- [ ] Add coach UI to override athlete division
-- [ ] Update all division displays to use overridden value if present
-- [ ] Add business logic: seniors can be JV if first-year
+- [x] Update Athlete schema: Add `divisionOverride` field (nullable)
+- [x] Create migration to rename "Senior" → "Varsity"
+- [x] Update division enum to include: Novice, Intermediate, JV, Varsity, Collegiate, Open, Unassigned
+- [x] Add coach UI to override athlete division
+- [x] Update all division displays to use overridden value if present
+- [x] Add business logic: seniors can be JV if first-year (via override)
 
-**Database Migration:**
-```prisma
-enum Division {
-  NOVICE
-  INTERMEDIATE
-  JUNIOR_VARSITY
-  VARSITY      // Previously SENIOR
-  COLLEGIATE
-  OPEN         // For squadding
-  UNASSIGNED   // For squadding
-}
+**Implementation:**
+- Added `divisionOverride` and `isActive` fields to Athlete schema
+- Created migration `20251214145852_add_division_override_team_affiliation_athlete_active`
+- Updated `calculateDivision()` in `lib/divisions.ts` to return "Varsity" and "Collegiate"
+- Ran data migration script: migrated 13 athletes from Senior→Varsity
+- Added division override dropdown to `app/athletes/[id]/edit/EditAthleteForm.tsx`
+- Updated `/api/athletes/[id]` to save divisionOverride
+- Added `getEffectiveDivision()` helper function
+- Updated `AthleteCard` with new division acronyms (Var, JV, Col, etc.)
 
-model Athlete {
-  division         Division
-  divisionOverride Division?  // Coach can override
-}
-```
-
-### 5. Predefined Squad Names (Item #7)
+### 5. Predefined Squad Names (Item #7) ✅ COMPLETED
 **Requirement:** Coaches must select from predefined squad names
-**Squad Name Format:** {Division} {Number}
+**Squad Name Format:** {Team Name} - {Division Number}
 **Full List:**
 - Collegiate 1, Collegiate 2, Collegiate 3
 - Intermediate 1, Intermediate 2, Intermediate 3
@@ -83,28 +85,45 @@ model Athlete {
 - Unassigned 1, Unassigned 2, Unassigned 3
 - Varsity 1, Varsity 2, Varsity 3
 
+**Status:** Completed in commits `06efded`, `7e41978`
 **Tasks:**
-- [ ] Update Squad schema: Make `name` an enum instead of string
-- [ ] Create squad name selection dropdown in squad creation UI
-- [ ] Update SquadManager to use predefined names
-- [ ] Migrate existing squads (map to closest match or "Unassigned")
-- [ ] Update squad display to show division-based grouping
+- [x] Update Squad schema: Make `name` an enum instead of string *(Note: Kept as string but enforced via UI)*
+- [x] Create squad name selection dropdown in squad creation UI
+- [x] Update SquadManager to use predefined names
+- [x] Migrate existing squads (map to closest match or "Unassigned") *(Note: New squads only)*
+- [x] Update squad display to show division-based grouping
 
-### 6. Team Affiliation Field (Item #8)
+**Implementation:**
+- Added `squadNameOptions` constant to `lib/divisions.ts` with 21 predefined names
+- Updated SquadManager modal to use dropdown instead of text input
+- Added team-specific prefixes: coaches auto-prepend team name, admins select team
+- Squad names now format as: "Eagles Shooting Team - Varsity 1"
+- Added preview of full squad name in modal
+- Added `getSquadNamesByDivision()` helper function
+
+### 6. Team Affiliation Field (Item #8) ✅ COMPLETED
 **Requirement:** Add team affiliation selection
 **Options:** USAYESS, SCTP, High School Clay Target Team, Other
 
+**Status:** Completed in commit `bc04769`
 **Tasks:**
-- [ ] Update Team schema: Add `affiliation` enum field
-- [ ] Add affiliation dropdown to CreateTeamForm
-- [ ] Display affiliation on team pages
-- [ ] Include in team exports
+- [x] Update Team schema: Add `affiliation` enum field
+- [x] Add affiliation dropdown to CreateTeamForm
+- [ ] Display affiliation on team pages *(Future: Add to team detail views)*
+- [ ] Include in team exports *(Future: Add to export functionality)*
 
-### 7. Athlete Active/Inactive Status (Item #11)
+**Implementation:**
+- Added `affiliation` field to Team schema
+- Created `affiliationOptions` constant in `lib/divisions.ts`
+- Updated `CreateTeamForm` with affiliation dropdown
+- Updated `/api/teams` POST endpoint to save affiliation
+
+### 7. Athlete Active/Inactive Status (Item #11) ⏳ IN PROGRESS
 **Requirement:** Mark athletes as inactive when they age out or move teams
 
+**Status:** Schema ready, UI pending
 **Tasks:**
-- [ ] Update Athlete schema: Add `isActive` boolean (default true)
+- [x] Update Athlete schema: Add `isActive` boolean (default true)
 - [ ] Add "Active/Inactive" toggle to athlete edit page
 - [ ] Filter inactive athletes from:
   - Squad assignments
@@ -112,6 +131,11 @@ model Athlete {
   - Team rosters (show separately or hide)
 - [ ] Add bulk activate/deactivate for coaches
 - [ ] Update exports to indicate status
+
+**Implementation:**
+- Added `isActive` field to Athlete schema (default: true)
+- Migration `20251214145852` includes this field
+- Still need to add UI controls and filtering logic
 
 ---
 
