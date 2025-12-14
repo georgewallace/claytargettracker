@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import TimeSlotSelector from './TimeSlotSelector'
 
 interface Discipline {
@@ -18,7 +17,6 @@ interface RegisterButtonProps {
 type RegistrationStep = 'disciplines' | 'timeslots'
 
 export default function RegisterButton({ tournamentId, athleteId, tournamentDisciplines }: RegisterButtonProps) {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -131,8 +129,9 @@ export default function RegisterButton({ tournamentId, athleteId, tournamentDisc
       }
 
       // Success - registration confirmed on server
-      // Trigger a soft refresh to update server data (doesn't reload whole page)
-      router.refresh()
+      // PERFORMANCE FIX: Removed router.refresh() to prevent pagination reset in RegistrationList
+      // The optimistic "Registered!" state provides sufficient user feedback
+      // The registration list will update on next page navigation
     } catch (error) {
       // ROLLBACK: Reset registration state on error
       setIsRegistered(false)

@@ -261,6 +261,9 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
   // MEMOIZED: HAA (High All-Around) - Specific core disciplines
   // PERFORMANCE: Only recalculates when scores, core disciplines, or config changes
+  // PERFORMANCE FIX: Removed hoaWinnerIds from dependencies to avoid circular dependency
+  // hoaWinnerIds is a new Set instance on each HOA memoization, causing unnecessary recalculations
+  // Instead, depend on the underlying data (allathletes, tournament config) that determines HOA winners
   const { haaathletes, haaMaleathletes, haaFemaleathletes, haaWinnerIds } = useMemo(() => {
     let haaathletes: any[] = []
     let haaMaleathletes: any[] = []
@@ -306,7 +309,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     ])
 
     return { haaathletes, haaMaleathletes, haaFemaleathletes, haaWinnerIds }
-  }, [allathletes, coreDisciplines, tournament.enableHAA, tournament.hoaSeparateGender, tournament.hoaExcludesHAA, hoaWinnerIds])
+  }, [allathletes, coreDisciplines, tournament.enableHAA, tournament.enableHOA, tournament.hoaSeparateGender, tournament.hoaExcludesHAA])
 
 
   // Get medal emoji

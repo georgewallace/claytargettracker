@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import TeamLogo from '@/components/TeamLogo'
 import RemoveRegistrationButton from './RemoveRegistrationButton'
@@ -27,6 +27,20 @@ export default function RegistrationList({
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
   const endIndex = startIndex + ITEMS_PER_PAGE
   const currentRegistrations = registrations.slice(startIndex, endIndex)
+
+  // Reset pagination when registrations change
+  // PERFORMANCE FIX: Reset to page 1 when:
+  // 1. Number of registrations changes (new registration, removal, or filtering)
+  // 2. Current page exceeds total pages (e.g., if registrations are removed)
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages)
+    } else if (currentPage > 1) {
+      // Reset to page 1 when registrations.length changes
+      // This ensures users see the latest registration or updates
+      setCurrentPage(1)
+    }
+  }, [registrations.length, totalPages])
 
   const parseDateSafe = (date: Date) => {
     const dateStr = new Date(date).toISOString().split('T')[0]
