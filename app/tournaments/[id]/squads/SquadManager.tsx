@@ -21,9 +21,11 @@ interface Tournament {
 
 interface SquadManagerProps {
   tournament: Tournament
+  userRole: string
+  coachedTeamId?: string | null
 }
 
-export default function SquadManager({ tournament }: SquadManagerProps) {
+export default function SquadManager({ tournament, userRole, coachedTeamId }: SquadManagerProps) {
   const router = useRouter()
   const [draggedathlete, setDraggedathlete] = useState<any | null>(null)
   const [draggedSquad, setDraggedSquad] = useState<any | null>(null)
@@ -45,6 +47,13 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
     autoAssignAcrossDisciplines: false
   })
   const [showAddTimeSlot, setShowAddTimeSlot] = useState(false)
+  const [showCreateSquadModal, setShowCreateSquadModal] = useState(false)
+  const [newSquadName, setNewSquadName] = useState('')
+  const [pendingSquadCreation, setPendingSquadCreation] = useState<{
+    timeSlotId: string
+    athleteId: string
+    disciplineId: string
+  } | null>(null)
   const [newTimeSlot, setNewTimeSlot] = useState({
     date: '',
     startTime: '',
@@ -105,10 +114,19 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
     disciplines: reg.disciplines
   }))
 
-  // Filter by team if toggle is on
-  if (showMyTeamOnly && currentUser?.coachedTeam) {
+  // Filter by team - coaches can ONLY see their own team's athletes
+  if (userRole === 'coach' && coachedTeamId) {
+    allathletes = allathletes.filter(athlete => athlete.teamId === coachedTeamId)
+  }
+  // Admins can optionally filter by team using the toggle
+  else if (showMyTeamOnly && currentUser?.coachedTeam) {
     allathletes = allathletes.filter(athlete => athlete.teamId === currentUser.coachedTeam.id)
   }
+
+  // Create a map of athlete ID to registration data for easy lookup
+  const athleteRegistrationMap = new Map(
+    tournament.registrations.map(reg => [reg.athlete.id, reg.disciplines])
+  )
 
   // Helper function to check if athlete is assigned in this discipline
   const isAthleteAssignedInDiscipline = (athleteId: string, disciplineId: string) => {
@@ -454,47 +472,85 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
     // Check if dropping on a squad
     if (targetId.startsWith('squad-')) {
       const squadId = targetId.replace('squad-', '')
-      
+
       // Find the time slot for this squad
-      const timeSlot = tournament.timeSlots.find(slot => 
+      const timeSlot = tournament.timeSlots.find(slot =>
         slot.squads.some((s: any) => s.id === squadId)
       )
-      
+
       if (timeSlot) {
         // Check for time overlaps - block if conflict exists
         const overlapCheck = hasTimeOverlap(athleteId, timeSlot)
-        
+
         if (overlapCheck.hasOverlap) {
-          const overlapInfo = overlapCheck.overlappingSlots.map(info => {
-            const slot = info.timeSlot
-            return `• ${slot.discipline.displayName} - ${slot.startTime} to ${slot.endTime} (${info.name})`
-          }).join('\n')
-          
-          const errorMsg = `❌ CANNOT ASSIGN - TIME CONFLICT\n\nThis athlete is already assigned to:\n${overlapInfo}\n\nThese times overlap with ${timeSlot.startTime} to ${timeSlot.endTime}.\n\nPlease remove the athlete from the conflicting squad first.`
-          
-          alert(errorMsg)
-          return
+          // Filter out overlaps that are in the same time slot (allow moving within same time slot)
+          const realConflicts = overlapCheck.overlappingSlots.filter(info => {
+            const existingSlot = info.timeSlot
+            // Check if this is the exact same time slot (same date and time)
+            const existingDateStr = new Date(existingSlot.date).toISOString().split('T')[0]
+            const targetDateStr = new Date(timeSlot.date).toISOString().split('T')[0]
+
+            const isSameTime =
+              existingDateStr === targetDateStr &&
+              existingSlot.startTime === timeSlot.startTime &&
+              existingSlot.endTime === timeSlot.endTime
+
+            // Only include this as a conflict if it's NOT the same time slot
+            return !isSameTime
+          })
+
+          // Only show error if there are real conflicts (not just moving within same time slot)
+          if (realConflicts.length > 0) {
+            const overlapInfo = realConflicts.map(info => {
+              const slot = info.timeSlot
+              return `• ${slot.discipline.displayName} - ${slot.startTime} to ${slot.endTime} (${info.name})`
+            }).join('\n')
+
+            const errorMsg = `❌ CANNOT ASSIGN - TIME CONFLICT\n\nThis athlete is already assigned to:\n${overlapInfo}\n\nThese times overlap with ${timeSlot.startTime} to ${timeSlot.endTime}.\n\nPlease remove the athlete from the conflicting squad first.`
+
+            alert(errorMsg)
+            return
+          }
         }
       }
       
-      // Add athlete to squad
+      // Check if athlete is already in a squad at this time slot and remove them first
+      const existingSquadAtThisTime = timeSlot.squads.find((squad: any) =>
+        squad.members.some((member: any) => member.athleteId === athleteId)
+      )
+
       setLoading(true)
       setError('')
       setSuccess('')
-      
+
       try {
+        // If athlete is in another squad at this time slot, remove them first
+        if (existingSquadAtThisTime && existingSquadAtThisTime.id !== squadId) {
+          const removeResponse = await fetch(`/api/squads/${existingSquadAtThisTime.id}/members`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ athleteId })
+          })
+
+          if (!removeResponse.ok) {
+            const data = await removeResponse.json()
+            throw new Error(data.error || 'Failed to remove athlete from previous squad')
+          }
+        }
+
+        // Add athlete to new squad
         const response = await fetch(`/api/squads/${squadId}/members`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ athleteId })
         })
-        
+
         const data = await response.json()
-        
+
         if (!response.ok) {
           throw new Error(data.error || 'Failed to assign athlete')
         }
-        
+
         setSuccess(`Athlete assigned successfully!`)
         setTimeout(() => setSuccess(''), 3000)
         router.refresh()
@@ -510,54 +566,88 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
     // Check if dropping on a time slot (to create new squad)
     if (targetId.startsWith('timeslot-')) {
       const timeSlotId = targetId.replace('timeslot-', '')
-      
+
       // Find the time slot
       const timeSlot = tournament.timeSlots.find(slot => slot.id === timeSlotId)
-      
+
       if (timeSlot) {
         // Check for time overlaps - block if conflict exists
         const overlapCheck = hasTimeOverlap(athleteId, timeSlot)
-        
+
         if (overlapCheck.hasOverlap) {
-          const overlapInfo = overlapCheck.overlappingSlots.map(info => {
-            const slot = info.timeSlot
-            return `• ${slot.discipline.displayName} - ${slot.startTime} to ${slot.endTime} (${info.name})`
-          }).join('\n')
-          
-          const errorMsg = `❌ CANNOT ASSIGN - TIME CONFLICT\n\nThis athlete is already assigned to:\n${overlapInfo}\n\nThese times overlap with ${timeSlot.startTime} to ${timeSlot.endTime}.\n\nPlease remove the athlete from the conflicting squad first.`
-          
-          alert(errorMsg)
-          return
+          // Filter out overlaps that are in the same time slot (allow moving within same time slot)
+          const realConflicts = overlapCheck.overlappingSlots.filter(info => {
+            const existingSlot = info.timeSlot
+            // Check if this is the exact same time slot (same date and time)
+            const existingDateStr = new Date(existingSlot.date).toISOString().split('T')[0]
+            const targetDateStr = new Date(timeSlot.date).toISOString().split('T')[0]
+
+            const isSameTime =
+              existingDateStr === targetDateStr &&
+              existingSlot.startTime === timeSlot.startTime &&
+              existingSlot.endTime === timeSlot.endTime
+
+            // Only include this as a conflict if it's NOT the same time slot
+            return !isSameTime
+          })
+
+          // Only show error if there are real conflicts (not just moving within same time slot)
+          if (realConflicts.length > 0) {
+            const overlapInfo = realConflicts.map(info => {
+              const slot = info.timeSlot
+              return `• ${slot.discipline.displayName} - ${slot.startTime} to ${slot.endTime} (${info.name})`
+            }).join('\n')
+
+            const errorMsg = `❌ CANNOT ASSIGN - TIME CONFLICT\n\nThis athlete is already assigned to:\n${overlapInfo}\n\nThese times overlap with ${timeSlot.startTime} to ${timeSlot.endTime}.\n\nPlease remove the athlete from the conflicting squad first.`
+
+            alert(errorMsg)
+            return
+          }
         }
       }
-      
-      const squadName = prompt('Create a new squad for this athlete.\n\nSquad name:')
-      if (!squadName) return
-      
-      setLoading(true)
-      setError('')
-      setSuccess('')
-      
-      try {
-        // First create the squad
-        const createResponse = await fetch(`/api/timeslots/${timeSlotId}/squads`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            name: squadName.trim(),
-            capacity: 5 // Default capacity
-          })
+
+      // Store pending squad creation data and show modal
+      setPendingSquadCreation({
+        timeSlotId,
+        athleteId,
+        disciplineId: timeSlot.disciplineId
+      })
+      setNewSquadName('')
+      setShowCreateSquadModal(true)
+      return
+    }
+  }
+
+  const handleConfirmCreateSquad = async () => {
+    if (!pendingSquadCreation || !newSquadName.trim()) return
+
+    const { timeSlotId, athleteId, disciplineId } = pendingSquadCreation
+
+    setLoading(true)
+    setError('')
+    setSuccess('')
+    setShowCreateSquadModal(false)
+
+    try {
+      // First create the squad
+      const createResponse = await fetch(`/api/timeslots/${timeSlotId}/squads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newSquadName.trim(),
+          capacity: 5 // Default capacity
         })
-        
-        if (!createResponse.ok) {
-          const data = await createResponse.json()
-          throw new Error(data.error || 'Failed to create squad')
-        }
-        
-        const newSquad = await createResponse.json()
-        
-        // Then add athlete to the new squad
-        const addResponse = await fetch(`/api/squads/${newSquad.id}/members`, {
+      })
+
+      if (!createResponse.ok) {
+        const data = await createResponse.json()
+        throw new Error(data.error || 'Failed to create squad')
+      }
+
+      const newSquad = await createResponse.json()
+
+      // Then add athlete to the new squad
+      const addResponse = await fetch(`/api/squads/${newSquad.id}/members`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ athleteId })
@@ -568,16 +658,23 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
           throw new Error(data.error || 'Failed to add athlete to squad')
         }
         
-        setSuccess(`Squad "${squadName}" created and athlete assigned!`)
+        setSuccess(`Squad "${newSquadName}" created and athlete assigned!`)
         setTimeout(() => setSuccess(''), 3000)
+        setPendingSquadCreation(null)
+        setNewSquadName('')
         router.refresh()
-      } catch (err: any) {
-        setError(err.message || 'An error occurred')
-        setTimeout(() => setError(''), 5000)
-      } finally {
-        setLoading(false)
-      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred')
+      setTimeout(() => setError(''), 5000)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  const handleCancelCreateSquad = () => {
+    setShowCreateSquadModal(false)
+    setPendingSquadCreation(null)
+    setNewSquadName('')
   }
 
   return (
@@ -683,8 +780,8 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                 )}
               </button>
 
-              {/* Team Filter Toggle (Coaches only) */}
-              {currentUser?.coachedTeam && (
+              {/* Team Filter Toggle (Admins only - coaches always see only their team) */}
+              {userRole === 'admin' && currentUser?.coachedTeam && (
                 <label className="flex items-center cursor-pointer">
                   <input
                     type="checkbox"
@@ -706,7 +803,7 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
       <div className="grid grid-cols-12 gap-4">
         {/* Unassigned athletes - Left Sidebar */}
         <div className="col-span-3">
-          <Unassignedathletes athletes={unassignedathletes} />
+          <Unassignedathletes athletes={unassignedathletes} currentDisciplineId={activeDiscipline} />
         </div>
 
         {/* Time Slots & Squads - Main Area */}
@@ -886,14 +983,33 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                   {format(new Date(`${date}T12:00:00.000Z`), 'EEEE, MMMM d, yyyy')}
                 </h2>
                 <div className="space-y-3">
-                  {(slots as any[]).map((timeSlot: any) => (
-                    <TimeSlotSection 
-                      key={timeSlot.id} 
-                      timeSlot={timeSlot}
-                      tournamentId={tournament.id}
-                      onUpdate={() => router.refresh()}
-                    />
-                  ))}
+                  {(slots as any[]).map((timeSlot: any) => {
+                    // Attach registration data to squad athletes
+                    const enhancedTimeSlot = {
+                      ...timeSlot,
+                      squads: timeSlot.squads.map((squad: any) => ({
+                        ...squad,
+                        members: squad.members.map((member: any) => ({
+                          ...member,
+                          athlete: {
+                            ...member.athlete,
+                            disciplines: athleteRegistrationMap.get(member.athlete.id) || []
+                          }
+                        }))
+                      }))
+                    }
+
+                    return (
+                      <TimeSlotSection
+                        key={timeSlot.id}
+                        timeSlot={enhancedTimeSlot}
+                        tournamentId={tournament.id}
+                        onUpdate={() => router.refresh()}
+                        userRole={userRole}
+                        coachedTeamId={coachedTeamId}
+                      />
+                    )
+                  })}
                 </div>
               </div>
             ))
@@ -1126,6 +1242,72 @@ export default function SquadManager({ tournament }: SquadManagerProps) {
                   ) : (
                     'Confirm & Assign'
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Squad Modal */}
+      {showCreateSquadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">
+                  Create New Squad
+                </h3>
+                <button
+                  onClick={handleCancelCreateSquad}
+                  className="text-gray-400 hover:text-gray-600 transition"
+                  disabled={loading}
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-gray-700 mb-4">
+                  Enter a name for the new squad. The athlete will be automatically assigned to this squad.
+                </p>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Squad Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newSquadName}
+                    onChange={(e) => setNewSquadName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newSquadName.trim()) {
+                        handleConfirmCreateSquad()
+                      }
+                    }}
+                    placeholder="e.g., Squad 1, Team A, etc."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelCreateSquad}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmCreateSquad}
+                  disabled={loading || !newSquadName.trim()}
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {loading ? 'Creating...' : 'Create Squad'}
                 </button>
               </div>
             </div>

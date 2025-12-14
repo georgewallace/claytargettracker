@@ -12,11 +12,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id: timeSlotId } = await params
-    
-    // Only coaches and admins can delete time slots
-    if (user.role !== 'coach' && user.role !== 'admin') {
+
+    // Only admins can delete time slots
+    if (user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Only administrators can delete time slots' },
         { status: 403 }
       )
     }

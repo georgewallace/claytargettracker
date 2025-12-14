@@ -86,7 +86,19 @@ export default async function TournamentSquadsPage({ params }: PageProps) {
           },
           disciplines: {
             include: {
-              discipline: true
+              discipline: true,
+              timeSlotPreferences: {
+                include: {
+                  timeSlot: {
+                    include: {
+                      discipline: true
+                    }
+                  }
+                },
+                orderBy: {
+                  preference: 'asc'
+                }
+              }
             }
           }
         }
@@ -98,10 +110,20 @@ export default async function TournamentSquadsPage({ params }: PageProps) {
     notFound()
   }
 
+  // Get coach's team if user is a coach
+  let coachedTeamId: string | null = null
+  if (user.role === 'coach') {
+    const teamCoach = await prisma.teamCoach.findFirst({
+      where: { userId: user.id },
+      select: { teamId: true }
+    })
+    coachedTeamId = teamCoach?.teamId || null
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-4">
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-        <SquadManager tournament={tournament} />
+        <SquadManager tournament={tournament} userRole={user.role} coachedTeamId={coachedTeamId} />
       </div>
     </div>
   )

@@ -44,8 +44,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     if (action === 'approve') {
-      // Get full shooter details
-      const shooter = await prisma.athlete.findUnique({
+      // Get full athlete details
+      const athlete = await prisma.athlete.findUnique({
         where: { id: joinRequest.athleteId },
         include: {
           user: true,
@@ -53,30 +53,30 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
       })
 
-      if (!shooter) {
+      if (!athlete) {
         return NextResponse.json(
-          { error: 'Shooter not found' },
+          { error: 'Athlete not found' },
           { status: 404 }
         )
       }
 
-      // RULE: Coaches cannot be shooters
-      if (shooter.user.role === 'coach' || shooter.user.role === 'admin') {
+      // RULE: Coaches cannot be athletes
+      if (athlete.user.role === 'coach' || athlete.user.role === 'admin') {
         return NextResponse.json(
-          { error: 'Coaches and admins cannot be shooters on a team' },
+          { error: 'Coaches and admins cannot be athletes on a team' },
           { status: 400 }
         )
       }
 
-      // RULE: Shooters can only be on one team
-      if (shooter.teamId) {
+      // RULE: Athletes can only be on one team
+      if (athlete.teamId) {
         return NextResponse.json(
-          { error: `This shooter is already on another team (${shooter.team?.name}). Shooters can only be on one team.` },
+          { error: `This athlete is already on another team (${athlete.team?.name}). Athletes can only be on one team.` },
           { status: 400 }
         )
       }
 
-      // Approve: Add shooter to team and update request status
+      // Approve: Add athlete to team and update request status
       await prisma.$transaction([
         prisma.athlete.update({
           where: { id: joinRequest.athleteId },
@@ -109,7 +109,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE: Delete a join request (shooter can cancel their own request)
+// DELETE: Delete a join request (athlete can cancel their own request)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
@@ -127,7 +127,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Join request not found' }, { status: 404 })
     }
 
-    // Check authorization: shooter who made the request, team coach, or admin
+    // Check authorization: athlete who made the request, team coach, or admin
     const isRequester = user.athlete && joinRequest.athleteId === user.athlete.id
     const isCoach = await isUserCoachOfTeam(user.id, joinRequest.team.id)
     const isAdmin = user.role === 'admin'

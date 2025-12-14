@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Validate role
-    const validRoles = ['shooter', 'coach', 'admin']
-    const userRole = role && validRoles.includes(role) ? role : 'shooter'
+    const validRoles = ['athlete', 'coach', 'admin']
+    const userRole = role && validRoles.includes(role) ? role : 'athlete'
     
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         name: sanitizedName,
         role: userRole,
-        // Only create shooter profile for shooter role
-        ...(userRole === 'shooter' && {
+        // Only create athlete profile for athlete role
+        ...(userRole === 'athlete' && {
           athlete: {
             create: {}
           }

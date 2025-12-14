@@ -135,7 +135,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       prisma.shootOff.update({
         where: { id: shootOffId },
         data: {
-          winnerId: winner.athleteId, // Use shooter ID, not participant ID
+          winnerId: winner.athleteId, // Use athlete ID, not participant ID
           status: 'completed',
           completedAt: new Date()
         }

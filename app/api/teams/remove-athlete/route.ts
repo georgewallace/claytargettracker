@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     // Validate input
     if (!athleteId) {
       return NextResponse.json(
-        { error: 'Shooter ID is required' },
+        { error: 'Athlete ID is required' },
         { status: 400 }
       )
     }
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     // Verify the user is a coach or admin
     if (user.role !== 'coach' && user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Only coaches can remove shooters from teams' },
+        { error: 'Only coaches can remove athletes from teams' },
         { status: 403 }
       )
     }
@@ -35,20 +35,20 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Verify shooter is on this coach's team
-    const shooter = await prisma.athlete.findUnique({
+    // Verify athlete is on this coach's team
+    const athlete = await prisma.athlete.findUnique({
       where: { id: athleteId }
     })
     
-    if (!shooter || shooter.teamId !== team.id) {
+    if (!athlete || athlete.teamId !== team.id) {
       return NextResponse.json(
-        { error: 'This shooter is not on your team' },
+        { error: 'This athlete is not on your team' },
         { status: 400 }
       )
     }
     
-    // Remove shooter from team
-    const updatedShooter = await prisma.athlete.update({
+    // Remove athlete from team
+    const updatedAthlete = await prisma.athlete.update({
       where: { id: athleteId },
       data: { teamId: null },
       include: {
@@ -56,9 +56,9 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    return NextResponse.json(updatedShooter)
+    return NextResponse.json(updatedAthlete)
   } catch (error) {
-    console.error('Remove shooter error:', error)
+    console.error('Remove athlete error:', error)
     
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json(

@@ -31,10 +31,11 @@ model Team {
   logoUrl   String?  // URL/path to team logo
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   coaches      TeamCoach[] // Many-to-many relationship for coaches
   athletes     Athlete[]
   joinRequests TeamJoinRequest[]
+  tournamentRegistrations TeamTournamentRegistration[]
 }
 
 model TeamCoach {
@@ -158,6 +159,23 @@ model Tournament {
   shoots        Shoot[]
   timeSlots     TimeSlot[]
   shootOffs     ShootOff[]
+  teamRegistrations TeamTournamentRegistration[]
+}
+
+model TeamTournamentRegistration {
+  id           String   @id @default(cuid())
+  teamId       String
+  tournamentId String
+  registeredBy String   // userId of coach who registered the team
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, tournamentId]) // A team can only be registered once per tournament
+  @@index([teamId])
+  @@index([tournamentId])
 }
 
 model TimeSlot {
@@ -173,11 +191,12 @@ model TimeSlot {
   notes        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
+
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   discipline Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
   squads     Squad[]
-  
+  preferences TimeSlotPreference[]
+
   @@index([tournamentId, date])
   @@index([disciplineId])
 }
@@ -263,11 +282,27 @@ model RegistrationDiscipline {
   registrationId String
   disciplineId   String
   assignedBy     String? // userId of coach who assigned this (null if self-selected)
-  
+
   registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   discipline   Discipline   @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
-  
+  timeSlotPreferences TimeSlotPreference[]
+
   @@unique([registrationId, disciplineId])
+}
+
+model TimeSlotPreference {
+  id                     String   @id @default(cuid())
+  registrationDisciplineId String
+  timeSlotId             String
+  preference             Int      @default(1) // 1 = first choice, 2 = second choice, etc.
+  createdAt              DateTime @default(now())
+
+  registrationDiscipline RegistrationDiscipline @relation(fields: [registrationDisciplineId], references: [id], onDelete: Cascade)
+  timeSlot               TimeSlot @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationDisciplineId, timeSlotId])
+  @@index([registrationDisciplineId])
+  @@index([timeSlotId])
 }
 
 model Shoot {

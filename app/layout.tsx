@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "COYESS Tournaments",
+  title: "Clay Target Tournaments",
   description: "Track clay target tournaments, scores, and Athletes",
 };
 

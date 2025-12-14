@@ -15,6 +15,7 @@ export default async function Home() {
     const tournamentsWithStatus = demoTournaments.map((tournament: any) => ({
       ...tournament,
       isRegistered: false,
+      isTeamRegistered: true,
       _count: {
         registrations: tournament.registrations?.length || 0,
         shoots: tournament.shoots?.length || 0
@@ -27,10 +28,10 @@ export default async function Home() {
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Welcome to COYESS Tournaments
+              Welcome to Clay Target Tournaments
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Register for COYESS Tournaments
+              Register for Clay Target Tournaments
             </p>
           </div>
 
@@ -47,7 +48,7 @@ export default async function Home() {
           </div>
 
           {/* Tournament List */}
-          <TournamentList tournaments={tournamentsWithStatus} isathlete={false} />
+          <TournamentList tournaments={tournamentsWithStatus} isathlete={false} athleteId={undefined} />
         </div>
       </div>
     )
@@ -59,7 +60,12 @@ export default async function Home() {
       createdBy: true,
       disciplines: {
         include: {
-          discipline: true
+          discipline: {
+            select: {
+              id: true,
+              displayName: true
+            }
+          }
         }
       },
       registrations: user?.athlete ? {
@@ -79,12 +85,34 @@ export default async function Home() {
     }
   })
 
-  // Add registration status to each tournament
+  // Get team registration status for all tournaments if athlete has a team
+  let teamRegistrationsByTournament: { [tournamentId: string]: boolean } = {}
+  if (user?.athlete?.teamId) {
+    const teamRegistrations = await prisma.teamTournamentRegistration.findMany({
+      where: {
+        teamId: user.athlete.teamId,
+        tournamentId: { in: tournaments.map(t => t.id) }
+      },
+      select: {
+        tournamentId: true
+      }
+    })
+
+    teamRegistrationsByTournament = teamRegistrations.reduce((acc, reg) => {
+      acc[reg.tournamentId] = true
+      return acc
+    }, {} as { [tournamentId: string]: boolean })
+  }
+
+  // Add registration status and team registration status to each tournament
   const tournamentsWithStatus = tournaments.map((tournament: any) => ({
     ...tournament,
-    isRegistered: user?.athlete && Array.isArray(tournament.registrations) 
-      ? tournament.registrations.length > 0 
-      : false
+    isRegistered: user?.athlete && Array.isArray(tournament.registrations)
+      ? tournament.registrations.length > 0
+      : false,
+    isTeamRegistered: user?.athlete?.teamId
+      ? teamRegistrationsByTournament[tournament.id] || false
+      : true // If no team, treat as "team registered" (solo athlete)
   }))
 
   // Only allow coaches and admins to create tournaments
@@ -96,10 +124,10 @@ export default async function Home() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome to COYESS Tournaments
+            Welcome to Clay Target Tournaments
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Register for COYESS Tournaments
+            Register for Clay Target Tournaments
           </p>
         </div>
 
@@ -129,9 +157,10 @@ export default async function Home() {
             )}
           </div>
         ) : (
-          <TournamentList 
-            tournaments={tournamentsWithStatus} 
+          <TournamentList
+            tournaments={tournamentsWithStatus}
             isathlete={!!user?.athlete}
+            athleteId={user?.athlete?.id}
           />
         )}
       </div>

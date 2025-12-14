@@ -9,15 +9,15 @@ export async function POST(request: NextRequest) {
     const user = await requireAuth()
     const { teamId, message } = await request.json()
 
-    // Must be a shooter to join a team
+    // Must be a athlete to join a team
     if (!user.athlete) {
       return NextResponse.json(
-        { error: 'Only shooters can join teams' },
+        { error: 'Only athletes can join teams' },
         { status: 403 }
       )
     }
 
-    // Check if shooter is already on a team
+    // Check if athlete is already on a team
     if (user.athlete.teamId) {
       return NextResponse.json(
         { error: 'You are already on a team' },

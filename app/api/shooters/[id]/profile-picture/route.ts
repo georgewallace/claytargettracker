@@ -20,29 +20,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     console.log('[Profile Picture Upload] User authenticated:', user.id)
     
     const { id } = await params
-    console.log('[Profile Picture Upload] Shooter ID:', id)
+    console.log('[Profile Picture Upload] Athlete ID:', id)
     
-    // Fetch the shooter to check permissions
-    const shooter = await prisma.athlete.findUnique({
+    // Fetch the athlete to check permissions
+    const athlete = await prisma.athlete.findUnique({
       where: { id },
       include: {
         team: true
       }
     })
 
-    if (!shooter) {
-      console.log('[Profile Picture Upload] Shooter not found')
+    if (!athlete) {
+      console.log('[Profile Picture Upload] Athlete not found')
       return NextResponse.json(
-        { error: 'Shooter not found' },
+        { error: 'Athlete not found' },
         { status: 404 }
       )
     }
 
-    console.log('[Profile Picture Upload] Shooter found:', shooter.id)
+    console.log('[Profile Picture Upload] Athlete found:', athlete.id)
 
-    // Check if user is the shooter themselves, their coach, or an admin
-    const isOwnProfile = user.athlete?.id === shooter.id
-    const isCoachOfTeam = shooter.team ? await isUserCoachOfTeam(user.id, shooter.team.id) : false
+    // Check if user is the athlete themselves, their coach, or an admin
+    const isOwnProfile = user.athlete?.id === athlete.id
+    const isCoachOfTeam = athlete.team ? await isUserCoachOfTeam(user.id, athlete.team.id) : false
     const isAdmin = user.role === 'admin'
 
     console.log('[Profile Picture Upload] Permissions check:', { isOwnProfile, isCoachOfTeam, isAdmin })
@@ -113,9 +113,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     
     console.log('[Profile Picture Upload] File saved successfully')
     
-    // Update shooter with profile picture URL
+    // Update athlete with profile picture URL
     const profilePictureUrl = `/uploads/profiles/${fileName}`
-    const updatedShooter = await prisma.athlete.update({
+    const updatedAthlete = await prisma.athlete.update({
       where: { id },
       data: {
         profilePictureUrl
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       message: 'Profile picture uploaded successfully',
       profilePictureUrl,
-      athlete: updatedShooter
+      athlete: updatedAthlete
     }, { status: 200 })
   } catch (error) {
     console.error('[Profile Picture Upload] ERROR:', error)
@@ -155,24 +155,24 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const user = await requireAuth()
     const { id } = await params
     
-    // Fetch the shooter to check permissions
-    const shooter = await prisma.athlete.findUnique({
+    // Fetch the athlete to check permissions
+    const athlete = await prisma.athlete.findUnique({
       where: { id },
       include: {
         team: true
       }
     })
 
-    if (!shooter) {
+    if (!athlete) {
       return NextResponse.json(
-        { error: 'Shooter not found' },
+        { error: 'Athlete not found' },
         { status: 404 }
       )
     }
 
-    // Check if user is the shooter themselves, their coach, or an admin
-    const isOwnProfile = user.athlete?.id === shooter.id
-    const isCoachOfTeam = shooter.team ? await isUserCoachOfTeam(user.id, shooter.team.id) : false
+    // Check if user is the athlete themselves, their coach, or an admin
+    const isOwnProfile = user.athlete?.id === athlete.id
+    const isCoachOfTeam = athlete.team ? await isUserCoachOfTeam(user.id, athlete.team.id) : false
     const isAdmin = user.role === 'admin'
 
     if (!isOwnProfile && !isCoachOfTeam && !isAdmin) {
@@ -182,8 +182,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Update shooter to remove profile picture
-    const updatedShooter = await prisma.athlete.update({
+    // Update athlete to remove profile picture
+    const updatedAthlete = await prisma.athlete.update({
       where: { id },
       data: {
         profilePictureUrl: null
@@ -195,7 +195,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     
     return NextResponse.json({
       message: 'Profile picture removed successfully',
-      athlete: updatedShooter
+      athlete: updatedAthlete
     }, { status: 200 })
   } catch (error) {
     console.error('Profile picture deletion error:', error)

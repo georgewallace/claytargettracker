@@ -13,7 +13,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Get shooter profile
+    // Get athlete profile
     const shooter = await prisma.athlete.findUnique({
       where: { userId: user.id }
     })
@@ -61,7 +61,7 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Update shooter profile
+    // Update athlete profile
     const updatedShooter = await prisma.athlete.update({
       where: { id: shooter.id },
       data: {

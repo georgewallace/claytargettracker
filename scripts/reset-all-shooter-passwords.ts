@@ -4,60 +4,57 @@ import bcrypt from 'bcrypt'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🔐 Resetting all shooter passwords to "demo"...\n')
+  console.log('🔐 Resetting all athlete passwords to "demo"...\n')
 
-  // Get all users with shooter role
-  const shooters = await prisma.user.findMany({
+  // Get all users with athlete role
+  const athletes = await prisma.user.findMany({
     where: {
-      role: 'shooter',
-      shooter: {
+      role: 'athlete',
+      athlete: {
         isNot: null
       }
-    },
-    include: {
-      shooter: true
     },
     orderBy: {
       name: 'asc'
     }
   })
 
-  if (shooters.length === 0) {
-    console.log('❌ No shooters found in the database.')
+  if (athletes.length === 0) {
+    console.log('❌ No athletes found in the database.')
     return
   }
 
-  console.log(`📊 Found ${shooters.length} shooters\n`)
+  console.log(`📊 Found ${athletes.length} athletes\n`)
 
   // Hash the new password once
   const newPassword = 'demo'
   const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-  // Update all shooter passwords
+  // Update all athlete passwords
   let successCount = 0
   let errorCount = 0
 
-  for (const shooter of shooters) {
+  for (const athlete of athletes) {
     try {
       await prisma.user.update({
-        where: { id: shooter.id },
+        where: { id: athlete.id },
         data: {
           password: hashedPassword
         }
       })
-      console.log(`✅ Reset password for: ${shooter.name} (${shooter.email})`)
+      console.log(`✅ Reset password for: ${athlete.name} (${athlete.email})`)
       successCount++
     } catch (error) {
-      console.log(`❌ Failed to reset password for: ${shooter.name} (${shooter.email})`)
+      console.log(`❌ Failed to reset password for: ${athlete.name} (${athlete.email})`)
       errorCount++
     }
   }
 
   console.log('\n✅ Password reset complete!')
   console.log(`\n📊 Summary:`)
-  console.log(`   - Success: ${successCount} shooters`)
-  console.log(`   - Failed: ${errorCount} shooters`)
-  console.log(`\n🔑 All shooters can now login with:`)
+  console.log(`   - Success: ${successCount} athletes`)
+  console.log(`   - Failed: ${errorCount} athletes`)
+  console.log(`\n🔑 All athletes can now login with:`)
   console.log(`   Password: demo`)
 }
 

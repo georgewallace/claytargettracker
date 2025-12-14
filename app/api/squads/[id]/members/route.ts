@@ -10,7 +10,7 @@ interface RouteParams {
   }>
 }
 
-// POST: Add shooter to squad
+// POST: Add athlete to squad
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Check if shooter is already in this squad
+    // Check if athlete is already in this squad
     const existing = await prisma.squadMember.findUnique({
       where: {
         squadId_athleteId: {
@@ -64,15 +64,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (existing) {
       return NextResponse.json(
-        { error: 'Shooter is already in this squad' },
+        { error: 'Athlete is already in this squad' },
         { status: 400 }
       )
     }
 
     // If squad is team-only, enforce team requirement
     if (squad.teamOnly && squad.members.length > 0) {
-      // Get the shooter being added
-      const newShooter = await prisma.athlete.findUnique({
+      // Get the athlete being added
+      const newAthlete = await prisma.athlete.findUnique({
         where: { id: athleteId },
         include: { team: true }
       })
@@ -81,27 +81,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const existingTeamIds = squad.members.map((m: { athlete: { teamId: string | null } }) => m.athlete.teamId).filter(Boolean)
       const firstTeamId = existingTeamIds[0]
 
-      // Check if new shooter is from the same team
-      if (newShooter && newShooter.teamId !== firstTeamId) {
+      // Check if new athlete is from the same team
+      if (newAthlete && newAthlete.teamId !== firstTeamId) {
         const firstTeamName = squad.members[0]?.athlete.team?.name || 'the existing team'
         return NextResponse.json(
           { 
-            error: `This is a team-only squad for ${firstTeamName}. Only shooters from ${firstTeamName} can be added.` 
+            error: `This is a team-only squad for ${firstTeamName}. Only athletes from ${firstTeamName} can be added.` 
           },
           { status: 400 }
         )
       }
 
-      // Check if shooter has no team
-      if (!newShooter || !newShooter.teamId) {
+      // Check if athlete has no team
+      if (!newAthlete || !newAthlete.teamId) {
         return NextResponse.json(
-          { error: 'This is a team-only squad. This shooter must be on a team to join.' },
+          { error: 'This is a team-only squad. This athlete must be on a team to join.' },
           { status: 400 }
         )
       }
     }
 
-    // Add shooter to squad
+    // Add athlete to squad
     const member = await prisma.squadMember.create({
       data: {
         squadId,
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(member, { status: 201 })
   } catch (error) {
-    console.error('Error adding shooter to squad:', error)
+    console.error('Error adding athlete to squad:', error)
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE: Remove shooter from squad
+// DELETE: Remove athlete from squad
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
@@ -152,9 +152,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
     })
 
-    return NextResponse.json({ message: 'Shooter removed from squad' }, { status: 200 })
+    return NextResponse.json({ message: 'Athlete removed from squad' }, { status: 200 })
   } catch (error) {
-    console.error('Error removing shooter from squad:', error)
+    console.error('Error removing athlete from squad:', error)
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Verify the shooter belongs to the current user or user is admin
+    // Verify the athlete belongs to the current user or user is admin
     if (!user.athlete || (user.athlete.id !== athleteId && user.role !== 'admin')) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Check if shooter is registered for the tournament
+    // Check if athlete is registered for the tournament
     const registration = await prisma.registration.findUnique({
       where: {
         tournamentId_athleteId: {
@@ -39,19 +39,19 @@ export async function POST(request: NextRequest) {
     
     if (!registration) {
       return NextResponse.json(
-        { error: 'Shooter is not registered for this tournament' },
+        { error: 'Athlete is not registered for this tournament' },
         { status: 400 }
       )
     }
     
-    // Check if shooter is registered for this discipline
+    // Check if athlete is registered for this discipline
     const isRegisteredForDiscipline = registration.disciplines.some(
       (d: { disciplineId: string }) => d.disciplineId === disciplineId
     )
     
     if (!isRegisteredForDiscipline) {
       return NextResponse.json(
-        { error: 'Shooter is not registered for this discipline' },
+        { error: 'Athlete is not registered for this discipline' },
         { status: 400 }
       )
     }

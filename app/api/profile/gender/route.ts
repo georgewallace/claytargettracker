@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// Update shooter's own gender
+// Update athlete's own gender
 export async function PUT(request: NextRequest) {
   try {
     const user = await requireAuth()
@@ -16,7 +16,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Get shooter profile
+    // Get athlete profile
     const shooter = await prisma.athlete.findUnique({
       where: { userId: user.id }
     })

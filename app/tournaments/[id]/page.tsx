@@ -59,12 +59,33 @@ export default async function TournamentDetailPage({ params }: PageProps) {
           athlete: {
             include: {
               user: true,
-              team: true
+              team: true,
+              squadMembers: {
+                include: {
+                  squad: {
+                    include: {
+                      timeSlot: {
+                        include: {
+                          discipline: true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
           },
           disciplines: {
             include: {
-              discipline: true
+              discipline: true,
+              timeSlotPreferences: {
+                include: {
+                  timeSlot: true
+                },
+                orderBy: {
+                  preference: 'asc'
+                }
+              }
             }
           }
         }
@@ -131,11 +152,46 @@ export default async function TournamentDetailPage({ params }: PageProps) {
 
   const registeredathleteIds = tournament.registrations.map(r => r.athleteId)
   const isCoach = user?.role === 'coach' || user?.role === 'admin'
+  const isAdmin = user?.role === 'admin'
+
+  // Check if coach's team is registered for this tournament
+  let isTeamRegistered = false
+  if (user?.role === 'coach') {
+    const coachedTeams = await prisma.teamCoach.findMany({
+      where: { userId: user.id },
+      select: { teamId: true }
+    })
+
+    if (coachedTeams.length > 0) {
+      const firstTeamId = coachedTeams[0].teamId
+      const teamRegistration = await prisma.teamTournamentRegistration.findUnique({
+        where: {
+          teamId_tournamentId: {
+            teamId: firstTeamId,
+            tournamentId: tournament.id
+          }
+        }
+      })
+      isTeamRegistered = !!teamRegistration
+    }
+  }
 
   // Check if current user is registered
   const isRegistered = user?.athlete && tournament.registrations.some(
     reg => reg.athleteId === user.athlete?.id
   )
+
+  // Filter registrations based on role
+  // Coaches only see their team's athletes, admins see all
+  const visibleRegistrations = user?.role === 'admin'
+    ? tournament.registrations
+    : user?.role === 'coach'
+    ? tournament.registrations.filter(reg => {
+        // Get coach's team IDs
+        const coachedTeams = allathletes.map(a => a.teamId).filter(Boolean)
+        return reg.athlete.teamId && coachedTeams.includes(reg.athlete.teamId)
+      })
+    : [] // Athletes see none (they have their own view)
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -147,9 +203,59 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     return badges[status as keyof typeof badges] || badges.upcoming
   }
 
+  // Get athlete's registration if they are registered
+  const athleteRegistration = user?.athlete
+    ? tournament.registrations.find(reg => reg.athleteId === user.athlete?.id)
+    : null
+
+  // Get athlete's squad assignments
+  const athleteSquads = athleteRegistration && user?.athlete
+    ? await prisma.squadMember.findMany({
+        where: {
+          athleteId: user.athlete.id,
+          squad: {
+            timeSlot: {
+              tournamentId: tournament.id
+            }
+          }
+        },
+        include: {
+          squad: {
+            include: {
+              timeSlot: {
+                include: {
+                  discipline: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: {
+          squad: {
+            timeSlot: {
+              date: 'asc'
+            }
+          }
+        }
+      })
+    : []
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Back to Tournaments Button */}
+        <div className="mb-4">
+          <Link
+            href="/"
+            className="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium"
+          >
+            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Tournaments
+          </Link>
+        </div>
+
         {/* Coach Registration */}
         {isCoach && tournament.status === 'upcoming' && (
           <CoachRegistration
@@ -158,6 +264,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
             registeredathleteIds={registeredathleteIds}
             tournamentDisciplines={tournament.disciplines.map(td => td.discipline)}
             userRole={user?.role as 'coach' | 'admin'}
+            isTeamRegistered={isTeamRegistered}
           />
         )}
 
@@ -236,9 +343,9 @@ export default async function TournamentDetailPage({ params }: PageProps) {
               )}
               
               {/* Register button for athletes */}
-              {user && user.athlete && !isRegistered && tournament.status === 'upcoming' && (
-                <RegisterButton 
-                  tournamentId={tournament.id} 
+              {user && user.athlete && !isRegistered && (tournament.status === 'upcoming' || tournament.status === 'active') && (
+                <RegisterButton
+                  tournamentId={tournament.id}
                   athleteId={user.athlete.id}
                   tournamentDisciplines={tournament.disciplines.map(td => td.discipline)}
                 />
@@ -278,17 +385,154 @@ export default async function TournamentDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Registered athletes */}
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Registered athletes ({tournament.registrations.length})
-          </h2>
-          
-          {tournament.registrations.length === 0 ? (
-            <p className="text-gray-600">No athletes registered yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {tournament.registrations.map((registration) => (
+        {/* Athlete Registration View - Only for registered athletes */}
+        {user?.athlete && athleteRegistration && (
+          <div className="bg-white rounded-lg shadow-md p-8 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Your Registration</h2>
+              <span className="bg-green-100 text-green-800 px-4 py-2 rounded-full font-medium">
+                ✓ Registered
+              </span>
+            </div>
+
+            {/* Registered Disciplines */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Disciplines</h3>
+              <div className="flex flex-wrap gap-2">
+                {athleteRegistration.disciplines.map((rd) => (
+                  <span
+                    key={rd.id}
+                    className="px-4 py-2 bg-indigo-100 text-indigo-800 rounded-lg font-medium"
+                  >
+                    {rd.discipline.displayName}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Time Slot Preferences */}
+            {athleteRegistration.disciplines.some(d => d.timeSlotPreferences && d.timeSlotPreferences.length > 0) && (
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-gray-900 mb-2">Time Preferences</h3>
+                {athleteRegistration.disciplines.map((rd) => {
+                  if (!rd.timeSlotPreferences || rd.timeSlotPreferences.length === 0) return null
+
+                  // Group preferences by time and get the lowest preference value for each time
+                  const groupedPrefs = rd.timeSlotPreferences.reduce((acc: any[], pref: any) => {
+                    const key = `${pref.timeSlot.date}_${pref.timeSlot.startTime}_${pref.timeSlot.endTime}`
+                    const existing = acc.find(p =>
+                      `${p.timeSlot.date}_${p.timeSlot.startTime}_${p.timeSlot.endTime}` === key
+                    )
+                    // Keep the one with the lowest preference value (in case of old data with ungrouped preferences)
+                    if (!existing) {
+                      acc.push(pref)
+                    } else if (pref.preference < existing.preference) {
+                      // Replace with lower preference
+                      const index = acc.indexOf(existing)
+                      acc[index] = pref
+                    }
+                    return acc
+                  }, [])
+
+                  // Sort by preference value and re-number them
+                  const sortedPrefs = groupedPrefs
+                    .sort((a, b) => a.preference - b.preference)
+                    .map((pref, index) => ({ ...pref, displayPreference: index + 1 }))
+
+                  return (
+                    <div key={rd.id} className="mb-3">
+                      <h4 className="text-sm font-medium text-gray-700 mb-1.5">{rd.discipline.displayName}</h4>
+                      <div className="space-y-1.5">
+                        {sortedPrefs.map((pref) => (
+                          <div
+                            key={pref.id}
+                            className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-lg"
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              {format(parseDateSafe(pref.timeSlot.date), 'EEE, MMM d')} • {pref.timeSlot.startTime} - {pref.timeSlot.endTime}
+                            </div>
+                            <span className="text-xs font-medium text-blue-600 flex-shrink-0 ml-2">
+                              {pref.displayPreference === 1 && '1st'}
+                              {pref.displayPreference === 2 && '2nd'}
+                              {pref.displayPreference === 3 && '3rd'}
+                              {pref.displayPreference > 3 && `${pref.displayPreference}th`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Assigned Squads */}
+            {athleteSquads.length > 0 ? (
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 mb-2">Assigned Squads</h3>
+                <div className="space-y-2">
+                  {athleteSquads.map((squadMember) => (
+                    <div
+                      key={squadMember.id}
+                      className="p-2 bg-green-50 border border-green-200 rounded-lg"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="text-sm font-semibold text-gray-900">
+                            {squadMember.squad.timeSlot.discipline.displayName}
+                          </div>
+                          <div className="text-sm text-gray-700">
+                            {format(parseDateSafe(squadMember.squad.timeSlot.date), 'EEE, MMM d')} • {squadMember.squad.timeSlot.startTime} - {squadMember.squad.timeSlot.endTime}
+                          </div>
+                          <div className="text-xs text-gray-600 mt-0.5">
+                            {squadMember.squad.timeSlot.fieldNumber || squadMember.squad.timeSlot.stationNumber} • Squad {squadMember.squad.name}
+                            {squadMember.position && ` • Pos ${squadMember.position}`}
+                          </div>
+                        </div>
+                        <span className="bg-green-600 text-white px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0">
+                          Confirmed
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <svg className="h-5 w-5 text-yellow-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <div className="ml-3">
+                    <h4 className="text-sm font-medium text-yellow-800">Squad Assignment Pending</h4>
+                    <p className="mt-1 text-sm text-yellow-700">
+                      Your coach will assign you to a squad soon. Check back later for your shooting times.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6 text-sm text-gray-500">
+              Registered on {format(new Date(athleteRegistration.createdAt), 'PPP')}
+            </div>
+          </div>
+        )}
+
+        {/* Registered athletes - Only visible to coaches and admins */}
+        {isCoach && (
+          <div className="bg-white rounded-lg shadow-md p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              {isAdmin ? 'Registered Athletes' : 'Your Team Athletes'} ({visibleRegistrations.length})
+            </h2>
+
+            {visibleRegistrations.length === 0 ? (
+              <p className="text-gray-600">
+                {isAdmin ? 'No athletes registered yet.' : 'No athletes from your team(s) are registered yet.'}
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {visibleRegistrations.map((registration) => (
                 <div
                   key={registration.id}
                   className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition"
@@ -306,9 +550,9 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                         {registration.athlete.user.name}
                       </div>
                     </div>
-                    {/* Remove button for coaches/admins */}
-                    {isCoach && (
-                      <RemoveRegistrationButton 
+                    {/* Remove button for admins or coaches (for their own team) */}
+                    {(isAdmin || (user?.role === 'coach' && registration.athlete.teamId && allathletes.some(a => a.id === registration.athleteId))) && (
+                      <RemoveRegistrationButton
                         registrationId={registration.id}
                         athleteName={registration.athlete.user.name}
                         isCompact={true}
@@ -349,15 +593,111 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                       </div>
                     </div>
                   )}
-                  
+
+                  {/* Time Slot Preferences */}
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="text-xs text-gray-500 mb-1.5">Time Preferences:</div>
+                    {registration.disciplines.some((d: any) => d.timeSlotPreferences && d.timeSlotPreferences.length > 0) ? (
+                      <>
+                        {registration.disciplines.map((rd: any) => {
+                          if (!rd.timeSlotPreferences || rd.timeSlotPreferences.length === 0) return null
+
+                          // Group preferences by time and get the lowest preference value for each time
+                          const groupedPrefs = rd.timeSlotPreferences.reduce((acc: any[], pref: any) => {
+                            const key = `${pref.timeSlot.date}_${pref.timeSlot.startTime}_${pref.timeSlot.endTime}`
+                            const existing = acc.find(p =>
+                              `${p.timeSlot.date}_${p.timeSlot.startTime}_${p.timeSlot.endTime}` === key
+                            )
+                            // Keep the one with the lowest preference value (in case of old data with ungrouped preferences)
+                            if (!existing) {
+                              acc.push(pref)
+                            } else if (pref.preference < existing.preference) {
+                              // Replace with lower preference
+                              const index = acc.indexOf(existing)
+                              acc[index] = pref
+                            }
+                            return acc
+                          }, [])
+
+                          return (
+                            <div key={rd.id} className="mb-2">
+                              <div className="text-xs font-medium text-gray-700 mb-1">{rd.discipline.displayName}</div>
+                              <div className="space-y-1">
+                                {groupedPrefs.map((pref: any) => (
+                                  <div key={pref.id} className="text-xs bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className="font-medium text-blue-900">
+                                          {format(parseDateSafe(pref.timeSlot.date), 'EEE, MMM d')} • {pref.timeSlot.startTime} - {pref.timeSlot.endTime}
+                                        </div>
+                                      </div>
+                                      <span className="text-xs font-semibold text-blue-700">
+                                        {pref.preference === 1 && '1st'}
+                                        {pref.preference === 2 && '2nd'}
+                                        {pref.preference === 3 && '3rd'}
+                                        {pref.preference > 3 && `${pref.preference}th`}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </>
+                    ) : (
+                      <div className="text-xs text-gray-400 italic">None selected</div>
+                    )}
+                  </div>
+
+                  {/* Squad Assignments */}
+                  {(() => {
+                    const tournamentSquads = registration.athlete.squadMembers?.filter(
+                      (sm: any) => sm.squad.timeSlot.tournamentId === tournament.id
+                    ) || []
+
+                    if (tournamentSquads.length > 0) {
+                      return (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="text-xs text-gray-500 mb-1.5">Assigned Squads:</div>
+                          <div className="space-y-1.5">
+                            {tournamentSquads.map((sm: any) => (
+                              <div key={sm.id} className="text-xs bg-green-50 border border-green-200 rounded px-2 py-1.5">
+                                <div className="font-medium text-green-900">
+                                  {sm.squad.timeSlot.discipline.displayName}
+                                </div>
+                                <div className="text-green-700 mt-0.5">
+                                  {format(parseDateSafe(sm.squad.timeSlot.date), 'EEE, MMM d')} • {sm.squad.timeSlot.startTime} - {sm.squad.timeSlot.endTime}
+                                </div>
+                                <div className="text-green-600">
+                                  {sm.squad.timeSlot.fieldNumber || sm.squad.timeSlot.stationNumber} • Squad {sm.squad.name}
+                                  {sm.position && ` • Pos ${sm.position}`}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    } else {
+                      return (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 rounded px-2 py-1.5">
+                            ⚠ No squad assigned yet
+                          </div>
+                        </div>
+                      )
+                    }
+                  })()}
+
                   <div className="text-xs text-gray-500 mt-2">
                     Registered: {format(new Date(registration.createdAt), 'PP')}
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
