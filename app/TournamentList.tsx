@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
+import RegisterButton from './tournaments/[id]/RegisterButton'
 
 interface Tournament {
   id: string
@@ -13,6 +14,7 @@ interface Tournament {
   status: string
   description: string | null
   isRegistered: boolean
+  isTeamRegistered: boolean
   createdBy: {
     name: string
   }
@@ -20,6 +22,7 @@ interface Tournament {
     id: string
     discipline: {
       displayName: string
+      id: string
     }
   }>
   _count: {
@@ -31,9 +34,10 @@ interface Tournament {
 interface TournamentListProps {
   tournaments: Tournament[]
   isathlete: boolean
+  athleteId?: string
 }
 
-export default function TournamentList({ tournaments, isathlete }: TournamentListProps) {
+export default function TournamentList({ tournaments, isathlete, athleteId }: TournamentListProps) {
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
 
   const getStatusBadge = (status: string) => {
@@ -85,75 +89,133 @@ export default function TournamentList({ tournaments, isathlete }: TournamentLis
       {/* Card View */}
       {viewMode === 'card' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tournaments.map((tournament) => (
-            <Link
-              key={tournament.id}
-              href={`/tournaments/${tournament.id}`}
-              className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6 border border-gray-200 hover:border-indigo-300 relative"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="text-xl font-semibold text-gray-900 flex-1 mr-4">
-                  {tournament.name}
-                </h3>
-                <div className="flex flex-col gap-2 items-end flex-shrink-0">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(tournament.status)}`}>
-                    {tournament.status}
-                  </span>
-                  {/* Registration Badge for athletes */}
-                  {isathlete && tournament.isRegistered && (
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full border border-green-300">
-                      ✓ Registered
+          {tournaments.map((tournament) => {
+            // Check if tournament is in the past
+            const tournamentEndDate = new Date(tournament.endDate)
+            const isPast = tournamentEndDate < new Date()
+
+            const isEligibleForRegistration = isathlete &&
+              !tournament.isRegistered &&
+              (tournament.status === 'upcoming' || tournament.status === 'active') &&
+              !isPast &&
+              athleteId
+
+            const canRegister = isEligibleForRegistration && tournament.isTeamRegistered
+            const showDisabledButton = isEligibleForRegistration && !tournament.isTeamRegistered
+
+            return (
+              <div
+                key={tournament.id}
+                className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6 border border-gray-200 hover:border-indigo-300 relative flex flex-col"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <Link href={`/tournaments/${tournament.id}`}>
+                    <h3 className="text-xl font-semibold text-gray-900 hover:text-indigo-600 transition cursor-pointer flex-1 mr-4">
+                      {tournament.name}
+                    </h3>
+                  </Link>
+                  <div className="flex flex-col gap-2 items-end flex-shrink-0">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(tournament.status)}`}>
+                      {tournament.status}
                     </span>
-                  )}
+                    {/* Registration Badge for athletes */}
+                    {isathlete && tournament.isRegistered && (
+                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full border border-green-300">
+                        ✓ Registered
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div className="flex items-center">
+                    <span className="font-medium mr-2">📍</span>
+                    {tournament.location}
+                  </div>
+                  <div className="flex items-center">
+                    <span className="font-medium mr-2">📅</span>
+                    {format(new Date(tournament.startDate), 'PPP')}
+                    {tournament.startDate !== tournament.endDate && (
+                      <> - {format(new Date(tournament.endDate), 'PPP')}</>
+                    )}
+                  </div>
+                  <div className="flex items-center">
+                    <span className="font-medium mr-2">👥</span>
+                    {tournament._count.registrations} registered athletes
+                  </div>
+                  <div className="flex items-center flex-wrap gap-2 mt-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 flex-shrink-0" style={{color: 'rgb(255, 107, 53)'}}>
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <circle cx="12" cy="12" r="6"></circle>
+                      <circle cx="12" cy="12" r="2"></circle>
+                    </svg>
+                    {tournament.disciplines.map(td => (
+                      <span
+                        key={td.id}
+                        className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs font-medium"
+                      >
+                        {td.discipline.displayName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {tournament.description && (
+                  <p className="mt-3 text-sm text-gray-500 line-clamp-2">
+                    {tournament.description}
+                  </p>
+                )}
+
+                <div className="mt-auto pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">
+                      Created by {tournament.createdBy.name}
+                    </p>
+
+                    {/* Register Button - Enabled */}
+                    {canRegister && (
+                      <div className="flex-shrink-0">
+                        <RegisterButton
+                          tournamentId={tournament.id}
+                          athleteId={athleteId}
+                          tournamentDisciplines={tournament.disciplines.map(td => ({
+                            id: td.discipline.id,
+                            displayName: td.discipline.displayName
+                          }))}
+                        />
+                      </div>
+                    )}
+
+                    {/* Register Button - Disabled (Team Not Registered) */}
+                    {showDisabledButton && (
+                      <div className="flex-shrink-0 group relative">
+                        <button
+                          disabled
+                          className="bg-gray-400 text-white px-3 py-1.5 text-sm rounded-md cursor-not-allowed opacity-60"
+                          title="Your team must be registered first"
+                        >
+                          Register
+                        </button>
+                        <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                          Team not registered yet
+                        </div>
+                      </div>
+                    )}
+
+                    {/* View Details Link */}
+                    {!canRegister && !showDisabledButton && (
+                      <Link
+                        href={`/tournaments/${tournament.id}`}
+                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium ml-auto"
+                      >
+                        View Details →
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              <div className="space-y-2 text-sm text-gray-600">
-                <div className="flex items-center">
-                  <span className="font-medium mr-2">📍</span>
-                  {tournament.location}
-                </div>
-                <div className="flex items-center">
-                  <span className="font-medium mr-2">📅</span>
-                  {format(new Date(tournament.startDate), 'PPP')}
-                  {tournament.startDate !== tournament.endDate && (
-                    <> - {format(new Date(tournament.endDate), 'PPP')}</>
-                  )}
-                </div>
-                <div className="flex items-center">
-                  <span className="font-medium mr-2">👥</span>
-                  {tournament._count.registrations} registered athletes
-                </div>
-                <div className="flex items-center flex-wrap gap-2 mt-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 flex-shrink-0" style={{color: 'rgb(255, 107, 53)'}}>
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <circle cx="12" cy="12" r="6"></circle>
-                    <circle cx="12" cy="12" r="2"></circle>
-                  </svg>
-                  {tournament.disciplines.map(td => (
-                    <span 
-                      key={td.id}
-                      className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs font-medium"
-                    >
-                      {td.discipline.displayName}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {tournament.description && (
-                <p className="mt-3 text-sm text-gray-500 line-clamp-2">
-                  {tournament.description}
-                </p>
-              )}
-
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-500">
-                  Created by {tournament.createdBy.name}
-                </p>
-              </div>
-            </Link>
-          ))}
+            )
+          })}
         </div>
       )}
 

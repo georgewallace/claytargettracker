@@ -14,8 +14,8 @@ interface AutoAssignOptions {
   keepDivisionsTogether: boolean
   keepTeamsCloseInTime: boolean
   deleteExistingSquads: boolean
-  includeShootersWithoutTeams: boolean
-  includeShootersWithoutDivisions: boolean
+  includeAthletesWithoutTeams: boolean
+  includeAthletesWithoutDivisions: boolean
   activeDisciplineId?: string | null
 }
 
@@ -38,27 +38,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       keepDivisionsTogether: true,
       keepTeamsCloseInTime: false,
       deleteExistingSquads: false,
-      includeShootersWithoutTeams: false,
-      includeShootersWithoutDivisions: false
+      includeAthletesWithoutTeams: false,
+      includeAthletesWithoutDivisions: false
     }))
 
-    // Get all registered shooters (filter by team/division based on options)
+    // Get all registered athletes (filter by team/division based on options)
     const whereClause: any = {
       tournamentId
     }
     
-    // Build shooter filter based on options
-    const shooterFilter: any = {}
-    if (!options.includeShootersWithoutTeams) {
-      shooterFilter.teamId = { not: null }
+    // Build athlete filter based on options
+    const athleteFilter: any = {}
+    if (!options.includeAthletesWithoutTeams) {
+      athleteFilter.teamId = { not: null }
     }
-    if (!options.includeShootersWithoutDivisions) {
-      shooterFilter.division = { not: null }
+    if (!options.includeAthletesWithoutDivisions) {
+      athleteFilter.division = { not: null }
     }
     
-    // Only apply shooter filter if there are conditions
-    if (Object.keys(shooterFilter).length > 0) {
-      whereClause.athlete = shooterFilter
+    // Only apply athlete filter if there are conditions
+    if (Object.keys(athleteFilter).length > 0) {
+      whereClause.athlete = athleteFilter
     }
     
     const registrations = await prisma.registration.findMany({
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (registrations.length === 0) {
       return NextResponse.json(
-        { error: 'No registered shooters with teams found' },
+        { error: 'No registered athletes with teams found' },
         { status: 400 }
       )
     }
@@ -157,13 +157,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     let assignmentsMade = 0
     const assignments: any[] = []
-    const unassignedReasons: Record<string, { shooterName: string, teamName: string, reason: string }[]> = {}
+    const unassignedReasons: Record<string, { athleteName: string, teamName: string, reason: string }[]> = {}
 
-    // Helper function to check if assigning a shooter to a time slot would create a time conflict
+    // Helper function to check if assigning a athlete to a time slot would create a time conflict
     const hasTimeConflict = (athleteId: string, targetTimeSlot: any, existingAssignments: any[]): boolean => {
-      const shooterAssignments = existingAssignments.filter(a => a.athleteId === athleteId)
+      const athleteAssignments = existingAssignments.filter(a => a.athleteId === athleteId)
       
-      for (const assignment of shooterAssignments) {
+      for (const assignment of athleteAssignments) {
         const assignedSlot = timeSlots.find(ts => ts.id === assignment.timeSlotId)
         if (!assignedSlot) continue
         
@@ -191,8 +191,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return false
     }
 
-    // Helper to check if shooter is already assigned (from DB or temp assignments)
-    const isShooterAssigned = async (athleteId: string, disciplineId: string): Promise<boolean> => {
+    // Helper to check if athlete is already assigned (from DB or temp assignments)
+    const isAthleteAssigned = async (athleteId: string, disciplineId: string): Promise<boolean> => {
       if (assignments.find(a => a.athleteId === athleteId && a.disciplineId === disciplineId)) {
         return true
       }
@@ -215,14 +215,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return false
     }
 
-    // Group shooters by discipline, then by team/division based on options
-    interface ShooterGroup {
+    // Group athletes by discipline, then by team/division based on options
+    interface AthleteGroup {
       key: string
       athletes: any[]
       teamId: string | null
       division: string | null
     }
-    const shooterGroups: Record<string, ShooterGroup[]> = {}
+    const athleteGroups: Record<string, AthleteGroup[]> = {}
     
     for (const reg of registrations) {
       for (const regDisc of reg.disciplines) {
@@ -233,16 +233,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           continue
         }
         
-        if (!shooterGroups[disciplineId]) {
-          shooterGroups[disciplineId] = []
+        if (!athleteGroups[disciplineId]) {
+          athleteGroups[disciplineId] = []
         }
         
         // Skip if already assigned
-        if (await isShooterAssigned(reg.athlete.id, disciplineId)) {
+        if (await isAthleteAssigned(reg.athlete.id, disciplineId)) {
           continue
         }
         
-        // Find the appropriate group for this shooter
+        // Find the appropriate group for this athlete
         let groupKey = 'default'
         if (options.keepTeamsTogether && options.keepDivisionsTogether) {
           groupKey = `${reg.athlete.teamId || 'noteam'}_${reg.athlete.division || 'nodiv'}`
@@ -253,10 +253,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
         
         // Find or create the group
-        let group = shooterGroups[disciplineId].find(g => g.key === groupKey)
+        let group = athleteGroups[disciplineId].find(g => g.key === groupKey)
         if (!group) {
           group = { key: groupKey, athletes: [], teamId: reg.athlete.teamId, division: reg.athlete.division }
-          shooterGroups[disciplineId].push(group)
+          athleteGroups[disciplineId].push(group)
         }
         
         group.athletes.push(reg.athlete)
@@ -264,7 +264,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // For each discipline, assign groups to time slots
-    for (const [disciplineId, groups] of Object.entries(shooterGroups)) {
+    for (const [disciplineId, groups] of Object.entries(athleteGroups)) {
       // Get time slots for this discipline
       let disciplineTimeSlots = timeSlots.filter(ts => ts.disciplineId === disciplineId)
       
@@ -301,7 +301,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           for (let tsIndex = timeSlotIndex; tsIndex < disciplineTimeSlots.length; tsIndex++) {
             const timeSlot = disciplineTimeSlots[tsIndex]
             
-            // Check if all shooters in group can be assigned to this time slot (no time conflicts)
+            // Check if all athletes in group can be assigned to this time slot (no time conflicts)
             const allCanAssign = group.athletes.every((athlete: any) =>
               !hasTimeConflict(athlete.id, timeSlot, assignments)
             )
@@ -355,11 +355,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 return false
               }
               
-              // If squad is team-only, check if all shooters in group are from the same team
+              // If squad is team-only, check if all athletes in group are from the same team
               if (s.teamOnly && s.members.length > 0) {
                 // Get the team ID of the first member in the squad
                 const squadTeamId = s.members[0]?.athlete?.teamId
-                // Check if all shooters in the group match this team
+                // Check if all athletes in the group match this team
                 const allMatch = group.athletes.every((athlete: any) => athlete.teamId === squadTeamId)
                 if (!allMatch) {
                   failureReason = 'All available squads are team-only for different teams'
@@ -403,18 +403,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               })
             }
 
-            // Assign all shooters in the group to this squad
-            for (const shooter of group.athletes) {
+            // Assign all athletes in the group to this squad
+            for (const athlete of group.athletes) {
               await prisma.squadMember.create({
                 data: {
                   squadId: targetSquad.id,
-                  athleteId: shooter.id,
+                  athleteId: athlete.id,
                   position: targetSquad.members.length + 1
                 }
               })
 
               assignments.push({
-                athleteId: shooter.id,
+                athleteId: athlete.id,
                 disciplineId,
                 squadId: targetSquad.id,
                 timeSlotId: timeSlot.id
@@ -430,16 +430,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             break
           }
           
-          // Track unassigned shooters
+          // Track unassigned athletes
           if (!groupAssigned) {
             const disciplineName = disciplineTimeSlots[0]?.discipline?.displayName || disciplineId
             if (!unassignedReasons[disciplineName]) {
               unassignedReasons[disciplineName] = []
             }
-            for (const shooter of group.athletes) {
+            for (const athlete of group.athletes) {
               unassignedReasons[disciplineName].push({
-                shooterName: shooter.user.name,
-                teamName: shooter.team?.name || 'No Team',
+                athleteName: athlete.user.name,
+                teamName: athlete.team?.name || 'No Team',
                 reason: failureReason || 'No available time slots'
               })
             }
@@ -447,12 +447,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           
           // If group couldn't be assigned as a unit and we're not strict, assign individually
           if (!groupAssigned && !options.keepTeamsTogether && !options.keepDivisionsTogether) {
-            for (const shooter of group.athletes) {
-              // Try to assign this individual shooter
+            for (const athlete of group.athletes) {
+              // Try to assign this individual athletes
               for (let tsIndex = 0; tsIndex < disciplineTimeSlots.length; tsIndex++) {
                 const timeSlot = disciplineTimeSlots[tsIndex]
                 
-                if (hasTimeConflict(shooter.id, timeSlot, assignments)) continue
+                if (hasTimeConflict(athlete.id, timeSlot, assignments)) continue
 
                 let existingSquads = await prisma.squad.findMany({
                   where: { timeSlotId: timeSlot.id },
@@ -481,13 +481,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 await prisma.squadMember.create({
                   data: {
                     squadId: targetSquad.id,
-                    athleteId: shooter.id,
+                    athleteId: athlete.id,
                     position: targetSquad.members.length + 1
                   }
                 })
 
                 assignments.push({
-                  athleteId: shooter.id,
+                  athleteId: athlete.id,
                   disciplineId,
                   squadId: targetSquad.id,
                   timeSlotId: timeSlot.id
@@ -500,11 +500,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           }
         } else {
           // Not keeping teams/divisions together, assign individually
-          for (const shooter of group.athletes) {
+          for (const athlete of group.athletes) {
             for (let tsIndex = 0; tsIndex < disciplineTimeSlots.length; tsIndex++) {
               const timeSlot = disciplineTimeSlots[tsIndex]
               
-              if (hasTimeConflict(shooter.id, timeSlot, assignments)) continue
+              if (hasTimeConflict(athlete.id, timeSlot, assignments)) continue
 
               let existingSquads = await prisma.squad.findMany({
                 where: { timeSlotId: timeSlot.id },
@@ -533,13 +533,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               await prisma.squadMember.create({
                 data: {
                   squadId: targetSquad.id,
-                  athleteId: shooter.id,
+                  athleteId: athlete.id,
                   position: targetSquad.members.length + 1
                 }
               })
 
               assignments.push({
-                athleteId: shooter.id,
+                athleteId: athlete.id,
                 disciplineId,
                 squadId: targetSquad.id,
                 timeSlotId: timeSlot.id
@@ -554,18 +554,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Build detailed response message
-    let responseMessage = `Successfully assigned ${assignmentsMade} shooter${assignmentsMade !== 1 ? 's' : ''} to squads`
+    let responseMessage = `Successfully assigned ${assignmentsMade} athlete${assignmentsMade !== 1 ? 's' : ''} to squads`
     const unassignedCount = Object.values(unassignedReasons).reduce((sum, arr) => sum + arr.length, 0)
     
     if (unassignedCount > 0) {
-      responseMessage += `. ${unassignedCount} shooter${unassignedCount !== 1 ? 's' : ''} could not be assigned.`
+      responseMessage += `. ${unassignedCount} athlete${unassignedCount !== 1 ? 's' : ''} could not be assigned.`
     }
 
     return NextResponse.json({
       message: responseMessage,
       assignmentsMade,
       squadsCreated: assignments.length,
-      unassignedShooters: unassignedReasons,
+      unassignedAthletes: unassignedReasons,
       hasUnassigned: unassignedCount > 0
     }, { status: 200 })
 

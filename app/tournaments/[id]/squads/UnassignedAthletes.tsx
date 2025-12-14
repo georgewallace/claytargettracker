@@ -6,9 +6,10 @@ import AthleteCard from './AthleteCard'
 
 interface UnassignedathletesProps {
   athletes: any[]
+  currentDisciplineId?: string | null
 }
 
-export default function Unassignedathletes({ athletes }: UnassignedathletesProps) {
+export default function Unassignedathletes({ athletes, currentDisciplineId }: UnassignedathletesProps) {
   // Group by division
   const byDivision = athletes.reduce((acc, athlete) => {
     const division = athlete.division || 'No Division'
@@ -47,7 +48,7 @@ export default function Unassignedathletes({ athletes }: UnassignedathletesProps
               </div>
               <div className="space-y-2">
                 {byDivision[division].map((athlete: any) => (
-                  <Draggableathlete key={athlete.id} athlete={athlete} />
+                  <Draggableathlete key={athlete.id} athlete={athlete} currentDisciplineId={currentDisciplineId} />
                 ))}
               </div>
             </div>
@@ -64,7 +65,7 @@ export default function Unassignedathletes({ athletes }: UnassignedathletesProps
   )
 }
 
-function Draggableathlete({ athlete }: { athlete: any }) {
+function Draggableathlete({ athlete, currentDisciplineId }: { athlete: any; currentDisciplineId?: string | null }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: athlete.id
   })
@@ -83,7 +84,7 @@ function Draggableathlete({ athlete }: { athlete: any }) {
       {...attributes}
       className={isDragging ? 'opacity-50' : ''}
     >
-      <AthleteCard athlete={athlete} isDragging={isDragging} />
+      <AthleteCard athlete={athlete} isDragging={isDragging} currentDisciplineId={currentDisciplineId || undefined} />
     </div>
   )
 }

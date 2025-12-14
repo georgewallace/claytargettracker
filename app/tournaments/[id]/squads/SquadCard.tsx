@@ -10,9 +10,11 @@ interface SquadCardProps {
   tournamentId: string
   disciplineId: string
   onUpdate: () => void
+  userRole?: string
+  coachedTeamId?: string | null
 }
 
-export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate }: SquadCardProps) {
+export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate, userRole, coachedTeamId }: SquadCardProps) {
   const [removing, setRemoving] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [updatingTeamOnly, setUpdatingTeamOnly] = useState(false)
@@ -33,9 +35,29 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
 
   const availableCapacity = getSquadAvailableCapacity(squad)
   const isFull = availableCapacity === 0
-  
+
   // Classify the squad
   const classification = classifySquad(squad.members)
+
+  // Determine if the user can delete this squad
+  const canDeleteSquad = () => {
+    // Admins can delete any squad
+    if (userRole === 'admin') return true
+
+    // Coaches can only delete squads where all members are from their team
+    if (userRole === 'coach' && coachedTeamId) {
+      // Empty squads can be deleted by coaches
+      if (squad.members.length === 0) return true
+
+      // Check if all members are from the coach's team
+      const allMembersFromCoachTeam = squad.members.every(
+        (member: any) => member.athlete?.teamId === coachedTeamId
+      )
+      return allMembersFromCoachTeam
+    }
+
+    return false
+  }
 
   const handleRemoveClick = (athlete: any) => {
     setathleteToRemove(athlete)
@@ -174,8 +196,8 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
   return (
     <div
       ref={setRefs}
-      className={`border-2 rounded-lg p-4 transition ${
-        isDragging 
+      className={`border rounded-lg p-2 transition ${
+        isDragging
           ? 'opacity-50 border-indigo-400 bg-indigo-100'
           : isOver && !isFull
           ? 'border-indigo-500 bg-indigo-50'
@@ -185,24 +207,24 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
       }`}
     >
       {/* Squad Header */}
-      <div className="mb-3 pb-3 border-b border-gray-200 space-y-2">
+      <div className="mb-2 pb-2 border-b border-gray-200 space-y-1.5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1">
+          <div className="flex items-center gap-2 flex-1">
             {/* Drag Handle */}
             <button
               {...attributes}
               {...listeners}
-              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition"
+              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 p-0.5 rounded hover:bg-gray-100 transition"
               title="Drag to move entire squad to another time slot"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
               </svg>
             </button>
-            
+
             {/* Squad Name - Editable */}
             {isRenaming ? (
-              <div className="flex items-center gap-2 flex-1">
+              <div className="flex items-center gap-1 flex-1">
                 <input
                   type="text"
                   value={newName}
@@ -211,58 +233,60 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
                     if (e.key === 'Enter') handleRenameSubmit()
                     if (e.key === 'Escape') handleRenameCancel()
                   }}
-                  className="px-2 py-1 border border-indigo-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-semibold"
+                  className="px-2 py-0.5 border border-indigo-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-semibold"
                   autoFocus
                 />
                 <button
                   onClick={handleRenameSubmit}
-                  className="text-green-600 hover:text-green-700 p-1 rounded hover:bg-green-50 transition"
+                  className="text-green-600 hover:text-green-700 p-0.5 rounded hover:bg-green-50 transition"
                   title="Save"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </button>
                 <button
                   onClick={handleRenameCancel}
-                  className="text-gray-600 hover:text-gray-700 p-1 rounded hover:bg-gray-100 transition"
+                  className="text-gray-600 hover:text-gray-700 p-0.5 rounded hover:bg-gray-100 transition"
                   title="Cancel"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
             ) : (
               <>
-                <h4 className="font-semibold text-gray-900">{squad.name}</h4>
+                <h4 className="text-sm font-semibold text-gray-900">{squad.name}</h4>
                 <button
                   onClick={() => setIsRenaming(true)}
-                  className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition"
+                  className="text-gray-400 hover:text-gray-600 p-0.5 rounded hover:bg-gray-100 transition"
                   title="Rename squad"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                 </button>
               </>
             )}
-            
-            <p className={`text-sm ${isFull ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+
+            <p className={`text-xs ${isFull ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
               {squad.members.length}/{squad.capacity}
               {isFull && ' (Full)'}
             </p>
           </div>
-          <button
-            onClick={handleDeleteClick}
-            disabled={deleting}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded transition text-sm"
-            title="Delete squad"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+          {canDeleteSquad() && (
+            <button
+              onClick={handleDeleteClick}
+              disabled={deleting}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 p-0.5 rounded transition text-sm"
+              title="Delete squad"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
         </div>
         
         {/* Rename Error */}
@@ -309,12 +333,14 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
       </div>
 
       {/* Squad Members - Horizontal Layout */}
-      <div className="flex items-start gap-3 flex-wrap min-h-[100px]">
+      <div className="flex items-start gap-2 flex-wrap min-h-[60px]">
         {squad.members.length > 0 ? (
           squad.members.map((member: any) => (
-            <div key={member.id} className="flex-shrink-0 w-[180px]">
+            <div key={member.id} className="flex-shrink-0 w-[175px]">
               <AthleteCard
                 athlete={member.athlete}
+                currentDisciplineId={disciplineId}
+                currentTimeSlotId={squad.timeSlotId}
                 onRemove={
                   removing === member.athleteId
                     ? undefined
@@ -324,7 +350,7 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
             </div>
           ))
         ) : (
-          <div className="flex-1 text-center py-6 text-gray-400 text-sm">
+          <div className="flex-1 text-center py-3 text-gray-400 text-xs">
             {isOver ? (
               <span className="text-indigo-600 font-medium">Drop athlete here</span>
             ) : (
@@ -335,14 +361,14 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate 
 
         {/* Drop Zone Indicator - Shows as a card slot */}
         {isOver && !isFull && squad.members.length > 0 && (
-          <div className="flex-shrink-0 w-[180px] border-2 border-dashed border-indigo-400 rounded-md p-3 text-center text-indigo-600 text-sm font-medium flex items-center justify-center min-h-[80px]">
+          <div className="flex-shrink-0 w-[175px] border-2 border-dashed border-indigo-400 rounded-md p-2 text-center text-indigo-600 text-xs font-medium flex items-center justify-center min-h-[60px]">
             Drop here
           </div>
         )}
 
         {/* Full Indicator */}
         {isFull && isOver && (
-          <div className="flex-1 border-2 border-dashed border-red-400 rounded-md p-3 text-center text-red-600 text-sm font-medium flex items-center justify-center">
+          <div className="flex-1 border-2 border-dashed border-red-400 rounded-md p-2 text-center text-red-600 text-xs font-medium flex items-center justify-center">
             Squad is full
           </div>
         )}

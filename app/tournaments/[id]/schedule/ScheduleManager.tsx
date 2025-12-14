@@ -55,9 +55,10 @@ interface Tournament {
 
 interface ScheduleManagerProps {
   tournament: Tournament
+  userRole: string
 }
 
-export default function ScheduleManager({ tournament }: ScheduleManagerProps) {
+export default function ScheduleManager({ tournament, userRole }: ScheduleManagerProps) {
   const router = useRouter()
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -231,7 +232,7 @@ export default function ScheduleManager({ tournament }: ScheduleManagerProps) {
               <h3 className="text-xl font-bold text-gray-900 mb-4">{disciplineName}</h3>
               <div className="space-y-4">
                 {slots.map(slot => (
-                  <TimeSlotCard key={slot.id} timeSlot={slot} onUpdate={() => router.refresh()} />
+                  <TimeSlotCard key={slot.id} timeSlot={slot} onUpdate={() => router.refresh()} userRole={userRole} />
                 ))}
               </div>
             </div>

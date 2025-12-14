@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Check which shooters are already registered
+    // Check which athletes are already registered
     const existingRegistrations = await prisma.registration.findMany({
       where: {
         tournamentId,
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const existingShooterIds = existingRegistrations.map((r: { athleteId: string }) => r.athleteId)
     const newShooterIds = athleteIds.filter((id: string) => !existingShooterIds.includes(id))
     
-    // Create registrations for shooters who aren't already registered with disciplines
+    // Create registrations for athletes who aren't already registered with disciplines
     let successCount = 0
     for (const athleteId of newShooterIds) {
       try {

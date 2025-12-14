@@ -9,9 +9,11 @@ interface TimeSlotSectionProps {
   timeSlot: any
   tournamentId: string
   onUpdate: () => void
+  userRole?: string
+  coachedTeamId?: string | null
 }
 
-export default function TimeSlotSection({ timeSlot, tournamentId, onUpdate }: TimeSlotSectionProps) {
+export default function TimeSlotSection({ timeSlot, tournamentId, onUpdate, userRole, coachedTeamId }: TimeSlotSectionProps) {
   const [deleting, setDeleting] = useState(false)
   
   // Make the time slot droppable (can have multiple squads)
@@ -44,30 +46,27 @@ export default function TimeSlotSection({ timeSlot, tournamentId, onUpdate }: Ti
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4">
+    <div className="bg-white rounded-lg shadow-md p-2">
       {/* Time Slot Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">
+          <h3 className="text-sm font-semibold text-gray-900">
             {formatTimeSlotLabel(timeSlot)}
           </h3>
-          <p className="text-xs text-gray-600 mt-0.5">
-            {timeSlot.discipline.displayName} • Capacity: {timeSlot.squadCapacity} per squad
+          <p className="text-xs text-gray-500 mt-0.5">
+            {timeSlot.discipline.displayName} • Cap: {timeSlot.squadCapacity}/squad • {timeSlot.squads.length} squad{timeSlot.squads.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-sm text-gray-600">
-            {timeSlot.squads.length} squad{timeSlot.squads.length !== 1 ? 's' : ''}
-          </div>
-          {/* Delete button for empty time slots */}
-          {timeSlot.squads.length === 0 && (
+        <div className="flex items-center gap-2">
+          {/* Delete button for empty time slots - admins only */}
+          {timeSlot.squads.length === 0 && userRole === 'admin' && (
             <button
               onClick={handleDeleteTimeSlot}
               disabled={deleting}
-              className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md border border-red-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md border border-red-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
               title="Delete this empty time slot"
             >
-              {deleting ? 'Deleting...' : 'Delete Slot'}
+              {deleting ? 'Deleting...' : 'Delete'}
             </button>
           )}
         </div>
@@ -75,14 +74,16 @@ export default function TimeSlotSection({ timeSlot, tournamentId, onUpdate }: Ti
 
       {/* Squads Grid */}
       {timeSlot.squads.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-2">
           {timeSlot.squads.map((squad: any) => (
-            <SquadCard 
-              key={squad.id} 
-              squad={squad} 
+            <SquadCard
+              key={squad.id}
+              squad={squad}
               tournamentId={tournamentId}
               disciplineId={timeSlot.disciplineId}
               onUpdate={onUpdate}
+              userRole={userRole}
+              coachedTeamId={coachedTeamId}
             />
           ))}
         </div>

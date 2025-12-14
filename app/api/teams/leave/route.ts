@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
     
-    // Check if user has a shooter profile
+    // Check if user has a athlete profile
     if (!user.athlete) {
       return NextResponse.json(
         { error: 'User does not have a shooter profile' },
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Remove shooter from team
+    // Remove athlete from team
     const updatedShooter = await prisma.athlete.update({
       where: { id: user.athlete.id },
       data: { teamId: null }

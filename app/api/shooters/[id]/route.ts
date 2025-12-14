@@ -26,7 +26,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Fetch the shooter to check team association
+    // Fetch the athlete to check team association
     const shooter = await prisma.athlete.findUnique({
       where: { id },
       include: {
@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // If user is a coach (not admin), verify they coach this shooter's team
+    // If user is a coach (not admin), verify they coach this athlete's team
     if (user.role === 'coach') {
       if (!shooter.team || !(await isUserCoachOfTeam(user.id, shooter.team.id))) {
         return NextResponse.json(
@@ -73,7 +73,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
     
-    // Update shooter
+    // Update athlete
     const updatedShooter = await prisma.athlete.update({
       where: { id },
       data: {

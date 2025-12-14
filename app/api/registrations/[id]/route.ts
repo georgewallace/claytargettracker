@@ -49,7 +49,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Count shoots for this tournament and shooter
+    // Count shoots for this tournament and athlete
     const shootCount = await prisma.shoot.count({
       where: {
         tournamentId: registration.tournamentId,
@@ -118,7 +118,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (user.role === 'coach') {
       // Coach can remove if:
       // 1. They're the tournament creator, OR
-      // 2. The shooter is on their team
+      // 2. The athlete is on their team
       const isTournamentCreator = registration.tournament.createdById === user.id
       const { isUserCoachOfTeam: checkCoach } = await import('@/lib/teamHelpers')
       const isShooterOnTheirTeam = registration.athlete.team ? await checkCoach(user.id, registration.athlete.team.id) : false

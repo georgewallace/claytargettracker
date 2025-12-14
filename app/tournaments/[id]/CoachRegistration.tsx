@@ -25,6 +25,7 @@ interface CoachRegistrationProps {
   registeredathleteIds: string[]
   tournamentDisciplines: Discipline[]
   userRole?: 'coach' | 'admin'
+  isTeamRegistered?: boolean
 }
 
 export default function CoachRegistration({
@@ -32,7 +33,8 @@ export default function CoachRegistration({
   allathletes,
   registeredathleteIds,
   tournamentDisciplines,
-  userRole
+  userRole,
+  isTeamRegistered = false
 }: CoachRegistrationProps) {
   const router = useRouter()
   const [selectedathleteIds, setSelectedathleteIds] = useState<string[]>([])
@@ -43,6 +45,7 @@ export default function CoachRegistration({
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [teamRegistering, setTeamRegistering] = useState(false)
 
   // Filter out already registered athletes
   const availableathletes = allathletes.filter(
@@ -80,11 +83,41 @@ export default function CoachRegistration({
     )
   }
 
+  const handleRegisterTeam = async () => {
+    setTeamRegistering(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const response = await fetch(`/api/tournaments/${tournamentId}/register-team`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to register team')
+        return
+      }
+
+      setSuccess(data.message)
+      setTimeout(() => {
+        router.refresh()
+        setSuccess('')
+      }, 3000)
+    } catch (error) {
+      setError('An error occurred. Please try again.')
+    } finally {
+      setTeamRegistering(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (selectedathleteIds.length === 0) {
-      setError('Please select at least one athlete')
+      setError('Please select at least one athlete to mark your team as registered for this tournament')
       return
     }
 
@@ -115,7 +148,7 @@ export default function CoachRegistration({
         return
       }
 
-      setSuccess(data.message)
+      setSuccess(data.message + ' Other team athletes can now self-register!')
       setSelectedathleteIds([])
       setTimeout(() => {
         router.refresh()
@@ -133,12 +166,50 @@ export default function CoachRegistration({
       <h2 className="text-2xl font-bold text-gray-900 mb-4">
         {userRole === 'admin' ? 'Admin Registration' : 'Coach Registration'}
       </h2>
-      <p className="text-gray-600 mb-6">
+      <p className="text-gray-600 mb-4">
         {userRole === 'admin'
           ? 'Register any athlete for this tournament'
-          : 'Register athletes from your team(s) for this tournament'
+          : 'Register your team and/or individual athletes for this tournament'
         }
       </p>
+
+      {/* Register Team Button - Coach Only */}
+      {userRole === 'coach' && !isTeamRegistered && (
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={handleRegisterTeam}
+            disabled={teamRegistering}
+            className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+          >
+            {teamRegistering ? 'Registering Team...' : '✓ Register Team (Athletes Can Then Self-Register)'}
+          </button>
+          <p className="text-sm text-gray-600 mt-2 text-center">
+            This marks your team as registered. Athletes can then register themselves without selecting times first.
+          </p>
+        </div>
+      )}
+
+      {/* Team Already Registered Message - Coach Only */}
+      {userRole === 'coach' && isTeamRegistered && (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+          <p className="text-green-800 text-center font-medium">
+            ✓ Your team is registered for this tournament
+          </p>
+          <p className="text-sm text-green-700 mt-2 text-center">
+            Athletes can now self-register for this tournament
+          </p>
+        </div>
+      )}
+
+      <div className="relative mb-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-300"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white text-gray-500">OR register specific athletes below</span>
+        </div>
+      </div>
 
       {error && (
         <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">

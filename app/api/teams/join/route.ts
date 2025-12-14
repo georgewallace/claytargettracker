@@ -16,15 +16,15 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Check if user has a shooter profile
+    // Check if user has a athlete profile
     if (!user.athlete) {
       return NextResponse.json(
-        { error: 'User does not have a shooter profile' },
+        { error: 'User does not have a athlete profile' },
         { status: 400 }
       )
     }
     
-    // Update shooter's team
+    // Update athlete's team
     const updatedShooter = await prisma.athlete.update({
       where: { id: user.athlete.id },
       data: { teamId }

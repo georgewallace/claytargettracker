@@ -17,7 +17,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Validate input
     if (!position || !Array.isArray(athleteIds) || athleteIds.length < 2) {
       return NextResponse.json(
-        { error: 'Invalid shoot-off data. Must include position and at least 2 shooters' },
+        { error: 'Invalid shoot-off data. Must include position and at least 2 athletes' },
         { status: 400 }
       )
     }
@@ -43,8 +43,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Get shooter scores to determine tied score
-    const shooters = await prisma.athlete.findMany({
+    // Get athlete scores to determine tied score
+    const athletes = await prisma.athlete.findMany({
       where: {
         id: { in: athleteIds }
       },
@@ -62,20 +62,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     // Calculate total scores
-    const shooterScores = shooters.map(shooter => {
-      const totalScore = shooter.shoots.reduce((sum, shoot) => {
+    const athleteScores = athletes.map(athlete => {
+      const totalScore = athlete.shoots.reduce((sum, shoot) => {
         const shootScore = shoot.scores.reduce((s, score) => s + score.targets, 0)
         return sum + shootScore
       }, 0)
-      return { shooter, totalScore }
+      return { athlete, totalScore }
     })
 
     // Verify they're actually tied
-    const scores = shooterScores.map(s => s.totalScore)
+    const scores = athleteScores.map(s => s.totalScore)
     const allSameScore = scores.every(score => score === scores[0])
     if (!allSameScore) {
       return NextResponse.json(
-        { error: 'Selected shooters do not have tied scores' },
+        { error: 'Selected athletes do not have tied scores' },
         { status: 400 }
       )
     }
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         position,
         status: 'pending',
         format: tournament.shootOffFormat,
-        description: `${positionName} Shoot-Off - ${shooters.length} shooters tied at ${tiedScore} points`,
+        description: `${positionName} Shoot-Off - ${athletes.length} athletes tied at ${tiedScore} points`,
         participants: {
           create: athleteIds.map(athleteId => ({
             athleteId,

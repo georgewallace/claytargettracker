@@ -10,7 +10,7 @@ type RouteParams = {
   }>
 }
 
-// GET: Fetch existing scores for a squad or shooter
+// GET: Fetch existing scores for a squad or athlete
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
       athleteIds = squad.members.map((m: { athlete: { id: string } }) => m.athlete.id)
     } else if (athleteId) {
-      // Query for a single shooter
+      // Query for a single athlete
       athleteIds = [athleteId]
     }
 
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// POST: Save scores for shooters
+// POST: Save scores for athletes
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
@@ -106,14 +106,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Process each shooter's scores
-    for (const shooterScore of scores as Array<{
+    // Process each athlete's scores
+    for (const athleteScore of scores as Array<{
       athleteId: string;
       disciplineId: string;
       date: string;
       rounds: Array<{ station: number; targets: number; totalTargets: number }>;
     }>) {
-      const { athleteId, disciplineId, date, rounds } = shooterScore
+      const { athleteId, disciplineId, date, rounds } = athleteScore
 
       if (!athleteId || !disciplineId || !date || !Array.isArray(rounds)) {
         continue // Skip invalid entries

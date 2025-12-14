@@ -49,10 +49,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // RULE: Coaches cannot be shooters
+    // RULE: Coaches cannot be athlete
     if (coachUser.athlete) {
       return NextResponse.json(
-        { error: 'Coaches cannot be shooters on a team. This user is already a shooter.' },
+        { error: 'Coaches cannot be athletes on a team. This user is already a athlete.' },
         { status: 400 }
       )
     }
