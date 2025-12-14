@@ -64,6 +64,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Prevent inactive athletes from registering
+    if (athlete.isActive === false) {
+      return NextResponse.json(
+        { error: 'Your athlete profile is marked as inactive. Please contact your coach to reactivate your profile.' },
+        { status: 403 }
+      )
+    }
+
     // If athlete has a team, the team must be registered for the tournament
     if (athlete.teamId) {
       const teamRegistration = await prisma.teamTournamentRegistration.findUnique({

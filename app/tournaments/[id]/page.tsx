@@ -122,7 +122,8 @@ export default async function TournamentDetailPage({ params }: PageProps) {
 
     allathletes = await prisma.athlete.findMany({
       where: {
-        teamId: { in: teamIds }
+        teamId: { in: teamIds },
+        isActive: { not: false } // Only include active athletes
       },
       include: {
         user: true,
@@ -137,6 +138,9 @@ export default async function TournamentDetailPage({ params }: PageProps) {
   } else if (user?.role === 'admin') {
     // Admins can register any athlete
     allathletes = await prisma.athlete.findMany({
+      where: {
+        isActive: { not: false } // Only include active athletes
+      },
       include: {
         user: true,
         team: true

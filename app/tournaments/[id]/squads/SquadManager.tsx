@@ -101,6 +101,27 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
     }
   }, [userRole])
 
+  // MEMOIZED: Get all registered athletes with team filtering
+  // PERFORMANCE: Only recalculates when registrations, team filters, or user change
+  const allathletes = useMemo(() => {
+    let athletes = tournament.registrations.map(reg => ({
+      ...reg.athlete,
+      registrationId: reg.id,
+      disciplines: reg.disciplines
+    }))
+
+    // Filter by team - coaches can ONLY see their own team's athletes
+    if (userRole === 'coach' && coachedTeamId) {
+      athletes = athletes.filter(athlete => athlete.teamId === coachedTeamId)
+    }
+    // Admins can optionally filter by team using the toggle
+    else if (showMyTeamOnly && currentUser?.coachedTeam) {
+      athletes = athletes.filter(athlete => athlete.teamId === currentUser.coachedTeam.id)
+    }
+
+    return athletes
+  }, [tournament.registrations, userRole, coachedTeamId, showMyTeamOnly, currentUser?.coachedTeam])
+
   // Initialize selectedTeamId when modal opens
   useEffect(() => {
     if (showCreateSquadModal) {
@@ -143,27 +164,6 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
         )
       ).sort()
     : []
-
-  // MEMOIZED: Get all registered athletes with team filtering
-  // PERFORMANCE: Only recalculates when registrations, team filters, or user change
-  const allathletes = useMemo(() => {
-    let athletes = tournament.registrations.map(reg => ({
-      ...reg.athlete,
-      registrationId: reg.id,
-      disciplines: reg.disciplines
-    }))
-
-    // Filter by team - coaches can ONLY see their own team's athletes
-    if (userRole === 'coach' && coachedTeamId) {
-      athletes = athletes.filter(athlete => athlete.teamId === coachedTeamId)
-    }
-    // Admins can optionally filter by team using the toggle
-    else if (showMyTeamOnly && currentUser?.coachedTeam) {
-      athletes = athletes.filter(athlete => athlete.teamId === currentUser.coachedTeam.id)
-    }
-
-    return athletes
-  }, [tournament.registrations, userRole, coachedTeamId, showMyTeamOnly, currentUser?.coachedTeam])
 
   // Create a map of athlete ID to registration data for easy lookup
   const athleteRegistrationMap = new Map(
@@ -238,8 +238,10 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
         const isRegisteredForDiscipline = athlete.disciplines?.some(
           (d: any) => d.disciplineId === activeDiscipline
         )
-        // Only include if registered AND not already assigned
-        return isRegisteredForDiscipline && !isAthleteAssignedInDiscipline(athlete.id, activeDiscipline)
+        // Only include if registered AND not already assigned AND active
+        return isRegisteredForDiscipline &&
+               !isAthleteAssignedInDiscipline(athlete.id, activeDiscipline) &&
+               athlete.isActive !== false // Filter out inactive athletes
       })
     : []
 

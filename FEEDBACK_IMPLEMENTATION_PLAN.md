@@ -118,24 +118,39 @@ This document organizes the 20 feedback items from appfeedback.md into actionabl
 - Updated `CreateTeamForm` with affiliation dropdown
 - Updated `/api/teams` POST endpoint to save affiliation
 
-### 7. Athlete Active/Inactive Status (Item #11) ⏳ IN PROGRESS
+### 7. Athlete Active/Inactive Status (Item #11) ✅ COMPLETED
 **Requirement:** Mark athletes as inactive when they age out or move teams
 
-**Status:** Schema ready, UI pending
+**Status:** Completed
 **Tasks:**
 - [x] Update Athlete schema: Add `isActive` boolean (default true)
-- [ ] Add "Active/Inactive" toggle to athlete edit page
-- [ ] Filter inactive athletes from:
-  - Squad assignments
-  - Tournament registrations
-  - Team rosters (show separately or hide)
-- [ ] Add bulk activate/deactivate for coaches
-- [ ] Update exports to indicate status
+- [x] Add "Active/Inactive" toggle to athlete edit page
+- [x] Filter inactive athletes from:
+  - [x] Squad assignments
+  - [x] Tournament registrations
+  - [x] Team rosters (show separately in collapsible section)
+- [ ] Add bulk activate/deactivate for coaches *(Future enhancement)*
+- [ ] Update exports to indicate status *(Future enhancement)*
 
 **Implementation:**
 - Added `isActive` field to Athlete schema (default: true)
 - Migration `20251214145852` includes this field
-- Still need to add UI controls and filtering logic
+- **UI Components:**
+  - Added toggle switch to `EditAthleteForm.tsx` with green (active) / gray (inactive) visual states
+  - Shows active/inactive badge with appropriate styling
+  - Updated `CoachTeamManager.tsx` to show inactive athletes in separate collapsible section
+  - Active athletes shown with green badge, inactive with gray badge
+- **API Updates:**
+  - Updated `/api/athletes/[id]` to save `isActive` field
+  - Updated `/api/registrations` to block inactive athletes from self-registration
+  - Updated `/api/registrations/bulk` to filter out inactive athletes and provide feedback
+- **Data Filtering:**
+  - `SquadManager.tsx`: Filters inactive athletes from unassigned list
+  - `UnassignedAthletes.tsx`: Updated division list to include new division names
+  - Tournament registration page: Filters inactive athletes from coach/admin registration view
+- **Database Queries:**
+  - All athlete queries automatically include `isActive` field via Prisma
+  - Tournament registration queries filter out inactive athletes using `isActive: { not: false }`
 
 ---
 

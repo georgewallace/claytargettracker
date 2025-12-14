@@ -30,22 +30,40 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
-    
+
+    // Fetch athletes to check active status
+    const athletes = await prisma.athlete.findMany({
+      where: {
+        id: { in: athleteIds }
+      },
+      select: {
+        id: true,
+        isActive: true
+      }
+    })
+
+    // Filter out inactive athletes
+    const activeAthleteIds = athletes
+      .filter(a => a.isActive !== false)
+      .map(a => a.id)
+
+    const inactiveCount = athleteIds.length - activeAthleteIds.length
+
     // Check which athletes are already registered
     const existingRegistrations = await prisma.registration.findMany({
       where: {
         tournamentId,
         athleteId: {
-          in: athleteIds
+          in: activeAthleteIds
         }
       },
       select: {
         athleteId: true
       }
     })
-    
+
     const existingShooterIds = existingRegistrations.map((r: { athleteId: string }) => r.athleteId)
-    const newShooterIds = athleteIds.filter((id: string) => !existingShooterIds.includes(id))
+    const newShooterIds = activeAthleteIds.filter((id: string) => !existingShooterIds.includes(id))
     
     // Create registrations for athletes who aren't already registered with disciplines
     let successCount = 0
@@ -70,10 +88,15 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    const message = inactiveCount > 0
+      ? `Successfully registered ${successCount} shooter(s). ${inactiveCount} inactive athlete(s) were skipped.`
+      : `Successfully registered ${successCount} shooter(s)`
+
     return NextResponse.json({
-      message: `Successfully registered ${successCount} shooter(s)`,
+      message,
       registered: successCount,
       alreadyRegistered: existingShooterIds.length,
+      inactive: inactiveCount,
       total: athleteIds.length
     }, { status: 201 })
   } catch (error) {

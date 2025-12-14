@@ -14,6 +14,7 @@ interface Athlete {
   grade: string | null
   division: string | null
   divisionOverride: string | null
+  isActive: boolean
   profilePictureUrl: string | null
   user: {
     name: string
@@ -37,7 +38,8 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
     nscaClass: athlete.nscaClass || '',
     ataClass: athlete.ataClass || '',
     grade: athlete.grade || '',
-    divisionOverride: athlete.divisionOverride || ''
+    divisionOverride: athlete.divisionOverride || '',
+    isActive: athlete.isActive
   })
   
   const [calculatedDivision, setCalculatedDivision] = useState<string | null>(athlete.division)
@@ -382,6 +384,44 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
             </span>
           )}
         </p>
+      </div>
+
+      {/* Active Status */}
+      <div className={`border rounded-lg p-4 ${formData.isActive ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-300'}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <label htmlFor="isActive" className="text-sm font-medium text-gray-900">
+              Athlete Status
+            </label>
+            <p className="text-xs text-gray-600 mt-1">
+              {formData.isActive
+                ? 'Active athletes can compete and be assigned to squads'
+                : 'Inactive athletes are hidden from squad assignments and new registrations'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              formData.isActive ? 'bg-green-600' : 'bg-gray-400'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                formData.isActive ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        <div className="mt-2">
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            formData.isActive
+              ? 'bg-green-100 text-green-800'
+              : 'bg-gray-100 text-gray-800'
+          }`}>
+            {formData.isActive ? '● Active' : '○ Inactive'}
+          </span>
+        </div>
       </div>
 
       {/* NSCA Class */}

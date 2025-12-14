@@ -24,6 +24,11 @@ export default function Unassignedathletes({ athletes, currentDisciplineId }: Un
     'Novice',
     'Intermediate',
     'Junior Varsity',
+    'Varsity',
+    'Collegiate',
+    'Open',
+    'Unassigned',
+    // Legacy support
     'Senior',
     'College-Trade School',
     'No Division'

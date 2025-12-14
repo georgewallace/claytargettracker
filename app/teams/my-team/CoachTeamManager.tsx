@@ -8,6 +8,7 @@ interface Athlete {
   id: string
   grade: string | null
   division: string | null
+  isActive: boolean
   user: {
     name: string
     email: string
@@ -48,6 +49,7 @@ export default function CoachTeamManager({ team, availableathletes, joinRequests
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [showInactive, setShowInactive] = useState(false)
 
   const filteredAvailable = availableathletes.filter(athlete =>
     athlete.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -258,23 +260,28 @@ export default function CoachTeamManager({ team, availableathletes, joinRequests
       {/* Current Roster */}
       <div className="bg-white rounded-lg shadow-md p-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          Current Roster ({team.athletes.length})
+          Current Roster ({team.athletes.filter(a => a.isActive !== false).length})
         </h2>
 
-        {team.athletes.length === 0 ? (
+        {team.athletes.filter(a => a.isActive !== false).length === 0 ? (
           <p className="text-gray-600 text-center py-8">
-            No athletes on your team yet. Add some from the list below!
+            No active athletes on your team yet. Add some from the list below!
           </p>
         ) : (
           <div className="space-y-3">
-            {team.athletes.map((athlete) => (
+            {team.athletes.filter(a => a.isActive !== false).map((athlete) => (
               <div
                 key={athlete.id}
                 className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition"
               >
                 <div className="flex-1">
-                  <div className="font-medium text-gray-900">
-                    {athlete.user.name}
+                  <div className="flex items-center gap-2">
+                    <div className="font-medium text-gray-900">
+                      {athlete.user.name}
+                    </div>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      ● Active
+                    </span>
                   </div>
                   <div className="text-sm text-gray-500">
                     {athlete.user.email}
@@ -304,6 +311,70 @@ export default function CoachTeamManager({ team, availableathletes, joinRequests
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Inactive Athletes Section */}
+        {team.athletes.filter(a => a.isActive === false).length > 0 && (
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <button
+              onClick={() => setShowInactive(!showInactive)}
+              className="flex items-center justify-between w-full text-left mb-4"
+            >
+              <h3 className="text-lg font-semibold text-gray-700">
+                Inactive Athletes ({team.athletes.filter(a => a.isActive === false).length})
+              </h3>
+              <span className="text-gray-500">
+                {showInactive ? '▼' : '▶'}
+              </span>
+            </button>
+
+            {showInactive && (
+              <div className="space-y-3">
+                {team.athletes.filter(a => a.isActive === false).map((athlete) => (
+                  <div
+                    key={athlete.id}
+                    className="flex items-center justify-between p-4 border border-gray-300 rounded-lg bg-gray-50"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium text-gray-600">
+                          {athlete.user.name}
+                        </div>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700">
+                          ○ Inactive
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {athlete.user.email}
+                      </div>
+                      {(athlete.grade || athlete.division) && (
+                        <div className="text-sm text-gray-500 mt-1">
+                          {athlete.grade && <span>Grade: {athlete.grade}</span>}
+                          {athlete.grade && athlete.division && <span> • </span>}
+                          {athlete.division && <span className="font-medium text-gray-600">{athlete.division}</span>}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/athletes/${athlete.id}/edit`}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition text-sm"
+                      >
+                        Edit Details
+                      </Link>
+                      <button
+                        onClick={() => handleRemoveathlete(athlete.id)}
+                        disabled={loading}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
