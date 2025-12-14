@@ -113,7 +113,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
   const allathletes = useMemo(() => {
     const athletescores: Record<string, athletescore> = {}
 
-    tournament.shoots.forEach(shoot => {
+    tournament.shoots.forEach((shoot: any) => {
       const key = shoot.athleteId
       if (!athletescores[key]) {
         athletescores[key] = {
@@ -154,7 +154,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       return acc
     }, {} as Record<string, athletescore>)
 
-    tournament.timeSlots.forEach(timeSlot => {
+    tournament.timeSlots.forEach((timeSlot: any) => {
       timeSlot.squads.forEach((squad: any) => {
         let squadTotal = 0
         let membersWithScores = 0
@@ -210,14 +210,14 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       } catch (e) {
         // Fallback to default if parsing fails
         return tournament.disciplines
-          .filter(d => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
-          .map(d => d.disciplineId)
+          .filter((d: any) => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
+          .map((d: any) => d.disciplineId)
       }
     } else {
       // Default core disciplines
       return tournament.disciplines
-        .filter(d => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
-        .map(d => d.disciplineId)
+        .filter((d: any) => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
+        .map((d: any) => d.disciplineId)
     }
   }, [tournament.haaCoreDisciplines, tournament.disciplines])
 
@@ -346,12 +346,12 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
   
   // Group athletes by discipline AND division
   const athletesByDisciplineAndDivision: Record<string, Record<string, athletescore[]>> = {}
-  
-  tournament.disciplines.forEach(td => {
+
+  tournament.disciplines.forEach((td: any) => {
     const disciplineId = td.disciplineId
     athletesByDisciplineAndDivision[disciplineId] = {}
-    
-    divisions.forEach(division => {
+
+    divisions.forEach((division: string) => {
       let athletesInDisciplineAndDivision = allathletes.filter(
         s => s.division === division && s.disciplineScores[disciplineId] !== undefined
       )
@@ -853,7 +853,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       {/* Divisions View - Compact Grid */}
       {activeView === 'divisions' && (
         <div className="space-y-3">
-          {tournament.disciplines.map(td => {
+          {tournament.disciplines.map((td: any) => {
             const disciplineId = td.disciplineId
             const discipline = td.discipline
             const disciplineDivisions = athletesByDisciplineAndDivision[disciplineId]
