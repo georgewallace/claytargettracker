@@ -52,6 +52,8 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
   const [showAddTimeSlot, setShowAddTimeSlot] = useState(false)
   const [showCreateSquadModal, setShowCreateSquadModal] = useState(false)
   const [newSquadName, setNewSquadName] = useState('')
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('')
+  const [teams, setTeams] = useState<Array<{id: string, name: string}>>([])
   const [pendingSquadCreation, setPendingSquadCreation] = useState<{
     timeSlotId: string
     athleteId: string
@@ -88,6 +90,33 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
       .then(data => setCurrentUser(data))
       .catch(() => {})
   }, [])
+
+  // Fetch teams for admin squad creation
+  useEffect(() => {
+    if (userRole === 'admin') {
+      fetch('/api/teams')
+        .then(res => res.json())
+        .then(data => setTeams(data || []))
+        .catch(() => {})
+    }
+  }, [userRole])
+
+  // Initialize selectedTeamId when modal opens
+  useEffect(() => {
+    if (showCreateSquadModal) {
+      if (userRole === 'coach' && coachedTeamId) {
+        setSelectedTeamId(coachedTeamId)
+      } else if (userRole === 'admin' && pendingSquadCreation) {
+        // Try to get the team from the athlete being added
+        const athlete = allathletes.find((a: any) => a.id === pendingSquadCreation.athleteId)
+        if (athlete?.teamId) {
+          setSelectedTeamId(athlete.teamId)
+        } else {
+          setSelectedTeamId('unaffiliated')
+        }
+      }
+    }
+  }, [showCreateSquadModal, userRole, coachedTeamId, pendingSquadCreation, allathletes])
 
   // Get unique disciplines from tournament
   const tournamentDisciplines = Array.from(
@@ -682,10 +711,23 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
   }
 
   const handleConfirmCreateSquad = async () => {
-    if (!pendingSquadCreation || !newSquadName.trim()) return
+    if (!pendingSquadCreation || !newSquadName.trim() || !selectedTeamId) return
 
     const { timeSlotId, athleteId } = pendingSquadCreation
-    const squadName = newSquadName.trim()
+
+    // Build full squad name with team prefix
+    let teamPrefix = 'Unknown'
+    if (selectedTeamId === 'unaffiliated') {
+      teamPrefix = 'Unaffiliated'
+    } else if (userRole === 'coach' && coachedTeamId === selectedTeamId) {
+      // For coaches, get team name from any athlete on their team
+      const coachTeamAthlete = allathletes.find((a: any) => a.teamId === coachedTeamId)
+      teamPrefix = coachTeamAthlete?.team?.name || 'Unknown'
+    } else {
+      // For admins, get from teams list
+      teamPrefix = teams.find(t => t.id === selectedTeamId)?.name || 'Unknown'
+    }
+    const squadName = `${teamPrefix} - ${newSquadName.trim()}`
 
     // OPTIMISTIC UPDATE: Add squad and athlete to local state immediately
     const previousState = structuredClone(tournament)
@@ -799,6 +841,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
     setShowCreateSquadModal(false)
     setPendingSquadCreation(null)
     setNewSquadName('')
+    setSelectedTeamId('')
   }
 
   return (
@@ -1404,32 +1447,86 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
                 </button>
               </div>
 
-              <div className="mb-6">
-                <p className="text-gray-700 mb-4">
-                  Enter a name for the new squad. The athlete will be automatically assigned to this squad.
+              <div className="mb-6 space-y-4">
+                <p className="text-gray-700">
+                  Create a new squad. The athlete will be automatically assigned to this squad.
                 </p>
 
+                {/* Team Selection (Admin only) */}
+                {userRole === 'admin' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Team
+                    </label>
+                    <select
+                      value={selectedTeamId}
+                      onChange={(e) => setSelectedTeamId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">Select team...</option>
+                      <option value="unaffiliated">Unaffiliated</option>
+                      {teams.map(team => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Team Display (Coach only) */}
+                {userRole === 'coach' && (
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                    <div className="text-sm font-medium text-indigo-900">Team</div>
+                    <div className="text-lg font-semibold text-indigo-700 mt-1">
+                      {(() => {
+                        const coachTeamAthlete = allathletes.find((a: any) => a.teamId === coachedTeamId)
+                        return coachTeamAthlete?.team?.name || 'Your Team'
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Squad Name Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Squad Name
+                    Division & Number
                   </label>
                   <select
                     value={newSquadName}
                     onChange={(e) => setNewSquadName(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    autoFocus
+                    autoFocus={userRole === 'coach'}
                   >
-                    <option value="">Select a squad name...</option>
+                    <option value="">Select division and number...</option>
                     {squadNameOptions.map(option => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
                     ))}
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Squad names follow the format: Division + Number
-                  </p>
                 </div>
+
+                {/* Squad Name Preview */}
+                {newSquadName && selectedTeamId && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="text-xs font-medium text-green-700 mb-1">Full Squad Name:</div>
+                    <div className="text-base font-bold text-green-900">
+                      {(() => {
+                        let teamPrefix = 'Unknown'
+                        if (selectedTeamId === 'unaffiliated') {
+                          teamPrefix = 'Unaffiliated'
+                        } else if (userRole === 'coach' && coachedTeamId === selectedTeamId) {
+                          const coachTeamAthlete = allathletes.find((a: any) => a.teamId === coachedTeamId)
+                          teamPrefix = coachTeamAthlete?.team?.name || 'Unknown'
+                        } else {
+                          teamPrefix = teams.find(t => t.id === selectedTeamId)?.name || 'Unknown'
+                        }
+                        return `${teamPrefix} - ${newSquadName}`
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3">
@@ -1442,7 +1539,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
                 </button>
                 <button
                   onClick={handleConfirmCreateSquad}
-                  disabled={loading || !newSquadName.trim()}
+                  disabled={loading || !newSquadName.trim() || !selectedTeamId}
                   className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
                   {loading ? 'Creating...' : 'Create Squad'}
