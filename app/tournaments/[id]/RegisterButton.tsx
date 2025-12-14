@@ -29,6 +29,7 @@ export default function RegisterButton({ tournamentId, athleteId, tournamentDisc
   const [timeSlotSelections, setTimeSlotSelections] = useState<{[disciplineId: string]: string[]}>({})
   const [checkingTeamStatus, setCheckingTeamStatus] = useState(false)
   const [teamNotRegistered, setTeamNotRegistered] = useState(false)
+  const [isRegistered, setIsRegistered] = useState(false) // New: Track registration status optimistically
 
   const checkTeamRegistration = async () => {
     setCheckingTeamStatus(true)
@@ -101,6 +102,13 @@ export default function RegisterButton({ tournamentId, athleteId, tournamentDisc
         }
       }
 
+      // OPTIMISTIC UPDATE: Show registered state immediately
+      setIsRegistered(true)
+      setShowModal(false)
+      setStep('disciplines')
+      setTimeSlotSelections({})
+
+      // Background sync with server
       const response = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,17 +123,21 @@ export default function RegisterButton({ tournamentId, athleteId, tournamentDisc
       const data = await response.json()
 
       if (!response.ok) {
+        // ROLLBACK: Reset registration state on error
+        setIsRegistered(false)
         setError(data.error || 'Failed to register')
+        setShowModal(true) // Reopen modal to show error
         return
       }
 
-      // Reset modal state
-      setShowModal(false)
-      setStep('disciplines')
-      setTimeSlotSelections({})
+      // Success - registration confirmed on server
+      // Trigger a soft refresh to update server data (doesn't reload whole page)
       router.refresh()
     } catch (error) {
+      // ROLLBACK: Reset registration state on error
+      setIsRegistered(false)
       setError('An error occurred. Please try again.')
+      setShowModal(true) // Reopen modal to show error
     } finally {
       setLoading(false)
     }
@@ -184,13 +196,23 @@ export default function RegisterButton({ tournamentId, athleteId, tournamentDisc
   return (
     <>
       <div>
-        <button
-          onClick={handleOpenModal}
-          disabled={checkingTeamStatus}
-          className="bg-indigo-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {checkingTeamStatus ? 'Checking...' : 'Register'}
-        </button>
+        {/* Show registered state after successful registration */}
+        {isRegistered ? (
+          <div className="inline-flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-md font-medium">
+            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            Registered!
+          </div>
+        ) : (
+          <button
+            onClick={handleOpenModal}
+            disabled={checkingTeamStatus}
+            className="bg-indigo-600 text-white px-3 py-1.5 text-sm rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {checkingTeamStatus ? 'Checking...' : 'Register'}
+          </button>
+        )}
 
         {/* Team Not Registered Error */}
         {teamNotRegistered && error && (

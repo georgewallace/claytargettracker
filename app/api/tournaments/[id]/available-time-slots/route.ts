@@ -162,6 +162,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         teamName: athlete.team?.name || null,
         isTeamRegistered
       }
+    }, {
+      headers: {
+        // Cache for 2 minutes, revalidate in background for up to 5 minutes
+        'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300'
+      }
     })
   } catch (error) {
     console.error('Error fetching available time slots:', error)

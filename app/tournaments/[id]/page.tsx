@@ -5,10 +5,9 @@ import { format } from 'date-fns'
 import Link from 'next/link'
 import RegisterButton from './RegisterButton'
 import CoachRegistration from './CoachRegistration'
-import RemoveRegistrationButton from './RemoveRegistrationButton'
 import ExportRegistrationsButton from './ExportRegistrationsButton'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
-import TeamLogo from '@/components/TeamLogo'
+import RegistrationList from './RegistrationList'
 
 // Force dynamic rendering (required for getCurrentUser and dynamic params)
 export const dynamic = 'force-dynamic'
@@ -531,170 +530,12 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                 {isAdmin ? 'No athletes registered yet.' : 'No athletes from your team(s) are registered yet.'}
               </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {visibleRegistrations.map((registration) => (
-                <div
-                  key={registration.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-2">
-                      {registration.athlete.team && (
-                        <TeamLogo 
-                          logoUrl={registration.athlete.team.logoUrl}
-                          teamName={registration.athlete.team.name}
-                          size="sm"
-                        />
-                      )}
-                      <div className="font-semibold text-gray-900">
-                        {registration.athlete.user.name}
-                      </div>
-                    </div>
-                    {/* Remove button for admins or coaches (for their own team) */}
-                    {(isAdmin || (user?.role === 'coach' && registration.athlete.teamId && allathletes.some(a => a.id === registration.athleteId))) && (
-                      <RemoveRegistrationButton
-                        registrationId={registration.id}
-                        athleteName={registration.athlete.user.name}
-                        isCompact={true}
-                      />
-                    )}
-                  </div>
-                  
-                  <div className="space-y-1">
-                    {registration.athlete.team && (
-                      <div className="text-sm text-gray-600">
-                        Team: {registration.athlete.team.name}
-                      </div>
-                    )}
-                    {(registration.athlete.grade || registration.athlete.division) && (
-                      <div className="text-sm text-gray-600">
-                        {registration.athlete.grade && <span>Grade: {registration.athlete.grade}</span>}
-                        {registration.athlete.grade && registration.athlete.division && <span> • </span>}
-                        {registration.athlete.division && (
-                          <span className="font-medium text-indigo-600">{registration.athlete.division}</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Disciplines */}
-                  {registration.disciplines.length > 0 && (
-                    <div className="mt-2">
-                      <div className="text-xs text-gray-500 mb-1">Disciplines:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {registration.disciplines.map((rd) => (
-                          <span
-                            key={rd.id}
-                            className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs font-medium"
-                          >
-                            {rd.discipline.displayName}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Time Slot Preferences */}
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <div className="text-xs text-gray-500 mb-1.5">Time Preferences:</div>
-                    {registration.disciplines.some((d: any) => d.timeSlotPreferences && d.timeSlotPreferences.length > 0) ? (
-                      <>
-                        {registration.disciplines.map((rd: any) => {
-                          if (!rd.timeSlotPreferences || rd.timeSlotPreferences.length === 0) return null
-
-                          // Group preferences by time and get the lowest preference value for each time
-                          const groupedPrefs = rd.timeSlotPreferences.reduce((acc: any[], pref: any) => {
-                            const key = `${pref.timeSlot.date}_${pref.timeSlot.startTime}_${pref.timeSlot.endTime}`
-                            const existing = acc.find(p =>
-                              `${p.timeSlot.date}_${p.timeSlot.startTime}_${p.timeSlot.endTime}` === key
-                            )
-                            // Keep the one with the lowest preference value (in case of old data with ungrouped preferences)
-                            if (!existing) {
-                              acc.push(pref)
-                            } else if (pref.preference < existing.preference) {
-                              // Replace with lower preference
-                              const index = acc.indexOf(existing)
-                              acc[index] = pref
-                            }
-                            return acc
-                          }, [])
-
-                          return (
-                            <div key={rd.id} className="mb-2">
-                              <div className="text-xs font-medium text-gray-700 mb-1">{rd.discipline.displayName}</div>
-                              <div className="space-y-1">
-                                {groupedPrefs.map((pref: any) => (
-                                  <div key={pref.id} className="text-xs bg-blue-50 border border-blue-200 rounded px-2 py-1">
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <div className="font-medium text-blue-900">
-                                          {format(parseDateSafe(pref.timeSlot.date), 'EEE, MMM d')} • {pref.timeSlot.startTime} - {pref.timeSlot.endTime}
-                                        </div>
-                                      </div>
-                                      <span className="text-xs font-semibold text-blue-700">
-                                        {pref.preference === 1 && '1st'}
-                                        {pref.preference === 2 && '2nd'}
-                                        {pref.preference === 3 && '3rd'}
-                                        {pref.preference > 3 && `${pref.preference}th`}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </>
-                    ) : (
-                      <div className="text-xs text-gray-400 italic">None selected</div>
-                    )}
-                  </div>
-
-                  {/* Squad Assignments */}
-                  {(() => {
-                    const tournamentSquads = registration.athlete.squadMembers?.filter(
-                      (sm: any) => sm.squad.timeSlot.tournamentId === tournament.id
-                    ) || []
-
-                    if (tournamentSquads.length > 0) {
-                      return (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <div className="text-xs text-gray-500 mb-1.5">Assigned Squads:</div>
-                          <div className="space-y-1.5">
-                            {tournamentSquads.map((sm: any) => (
-                              <div key={sm.id} className="text-xs bg-green-50 border border-green-200 rounded px-2 py-1.5">
-                                <div className="font-medium text-green-900">
-                                  {sm.squad.timeSlot.discipline.displayName}
-                                </div>
-                                <div className="text-green-700 mt-0.5">
-                                  {format(parseDateSafe(sm.squad.timeSlot.date), 'EEE, MMM d')} • {sm.squad.timeSlot.startTime} - {sm.squad.timeSlot.endTime}
-                                </div>
-                                <div className="text-green-600">
-                                  {sm.squad.timeSlot.fieldNumber || sm.squad.timeSlot.stationNumber} • Squad {sm.squad.name}
-                                  {sm.position && ` • Pos ${sm.position}`}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    } else {
-                      return (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <div className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 rounded px-2 py-1.5">
-                            ⚠ No squad assigned yet
-                          </div>
-                        </div>
-                      )
-                    }
-                  })()}
-
-                  <div className="text-xs text-gray-500 mt-2">
-                    Registered: {format(new Date(registration.createdAt), 'PP')}
-                  </div>
-                </div>
-              ))}
-              </div>
+              <RegistrationList
+                registrations={visibleRegistrations}
+                isAdmin={isAdmin}
+                userRole={user?.role || ''}
+                allathletes={allathletes}
+              />
             )}
           </div>
         )}

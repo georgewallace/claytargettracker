@@ -25,17 +25,19 @@ interface SquadManagerProps {
   coachedTeamId?: string | null
 }
 
-export default function SquadManager({ tournament, userRole, coachedTeamId }: SquadManagerProps) {
+export default function SquadManager({ tournament: initialTournament, userRole, coachedTeamId }: SquadManagerProps) {
   const router = useRouter()
   const [draggedathlete, setDraggedathlete] = useState<any | null>(null)
   const [draggedSquad, setDraggedSquad] = useState<any | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false) // New: Track background save operations
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [showMyTeamOnly, setShowMyTeamOnly] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [activeDiscipline, setActiveDiscipline] = useState<string | null>(null)
   const [autoAssigning, setAutoAssigning] = useState(false)
+  const [tournament, setTournament] = useState(initialTournament) // New: Local state for optimistic updates
   const [showAutoAssignModal, setShowAutoAssignModal] = useState(false)
   const [autoAssignOptions, setAutoAssignOptions] = useState({
     keepTeamsTogether: true,
@@ -72,6 +74,11 @@ export default function SquadManager({ tournament, userRole, coachedTeamId }: Sq
       },
     })
   )
+
+  // Sync local state with prop changes
+  useEffect(() => {
+    setTournament(initialTournament)
+  }, [initialTournament])
 
   // Get current user's team if they're a coach
   useEffect(() => {
@@ -189,10 +196,16 @@ export default function SquadManager({ tournament, userRole, coachedTeamId }: Sq
   }
 
   // Filter unassigned athletes for active discipline
-  const unassignedathletes = activeDiscipline 
-    ? allathletes.filter(athlete => 
-        !isAthleteAssignedInDiscipline(athlete.id, activeDiscipline)
-      )
+  // BUG FIX: Only show athletes who are registered for the active discipline
+  const unassignedathletes = activeDiscipline
+    ? allathletes.filter(athlete => {
+        // Check if athlete is registered for this discipline
+        const isRegisteredForDiscipline = athlete.disciplines?.some(
+          (d: any) => d.disciplineId === activeDiscipline
+        )
+        // Only include if registered AND not already assigned
+        return isRegisteredForDiscipline && !isAthleteAssignedInDiscipline(athlete.id, activeDiscipline)
+      })
     : []
 
   // Filter time slots by active discipline and ensure they're within tournament date range (using string comparison to avoid timezone issues)
@@ -519,10 +532,48 @@ export default function SquadManager({ tournament, userRole, coachedTeamId }: Sq
         squad.members.some((member: any) => member.athleteId === athleteId)
       )
 
-      setLoading(true)
-      setError('')
-      setSuccess('')
+      // OPTIMISTIC UPDATE: Update local state immediately
+      const previousState = JSON.parse(JSON.stringify(tournament)) // Deep clone for rollback
 
+      setTournament(prevTournament => {
+        const newTournament = JSON.parse(JSON.stringify(prevTournament))
+
+        // Find and remove athlete from ANY existing squad (across all time slots)
+        for (const slot of newTournament.timeSlots) {
+          for (const squad of slot.squads) {
+            const memberIndex = squad.members.findIndex((m: any) => m.athleteId === athleteId)
+            if (memberIndex !== -1) {
+              squad.members.splice(memberIndex, 1)
+            }
+          }
+        }
+
+        // Add to new squad
+        const targetTimeSlot = newTournament.timeSlots.find((slot: any) => slot.id === timeSlot.id)
+        if (targetTimeSlot) {
+          const targetSquad = targetTimeSlot.squads.find((s: any) => s.id === squadId)
+          if (targetSquad) {
+            const athlete = allathletes.find((a: any) => a.id === athleteId)
+            if (athlete) {
+              targetSquad.members.push({
+                id: `temp-${Date.now()}`, // Temporary ID
+                squadId,
+                athleteId,
+                athlete,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              })
+            }
+          }
+        }
+
+        return newTournament
+      })
+
+      setIsSaving(true)
+      setError('')
+
+      // Background sync with server
       try {
         // If athlete is in another squad at this time slot, remove them first
         if (existingSquadAtThisTime && existingSquadAtThisTime.id !== squadId) {
@@ -551,14 +602,14 @@ export default function SquadManager({ tournament, userRole, coachedTeamId }: Sq
           throw new Error(data.error || 'Failed to assign athlete')
         }
 
-        setSuccess(`Athlete assigned successfully!`)
-        setTimeout(() => setSuccess(''), 3000)
-        router.refresh()
+        // Success - no need to update UI again, already done optimistically
       } catch (err: any) {
+        // ROLLBACK: Restore previous state on error
+        setTournament(previousState)
         setError(err.message || 'An error occurred')
         setTimeout(() => setError(''), 5000)
       } finally {
-        setLoading(false)
+        setIsSaving(false)
       }
       return
     }
@@ -703,6 +754,17 @@ export default function SquadManager({ tournament, userRole, coachedTeamId }: Sq
         {success && (
           <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-md mb-3 text-sm">
             {success}
+          </div>
+        )}
+
+        {/* Saving Indicator - Fixed position toast */}
+        {isSaving && (
+          <div className="fixed top-4 right-4 z-50 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 text-sm animate-pulse">
+            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Saving...
           </div>
         )}
 

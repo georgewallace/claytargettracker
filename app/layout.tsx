@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DemoModeNotice from "@/components/DemoModeNotice";
 import SessionProvider from "@/components/SessionProvider";
+import QueryProvider from "@/components/QueryProvider";
 import { getCurrentUser } from "@/lib/auth";
 
 const geistSans = Geist({
@@ -35,14 +36,16 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
         suppressHydrationWarning
       >
-        <SessionProvider>
-          <Navbar user={user} />
-          <main className="flex-1">
-            {children}
-          </main>
-          <Footer />
-          <DemoModeNotice />
-        </SessionProvider>
+        <QueryProvider>
+          <SessionProvider>
+            <Navbar user={user} />
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+            <DemoModeNotice />
+          </SessionProvider>
+        </QueryProvider>
       </body>
     </html>
   );
