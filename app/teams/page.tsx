@@ -105,50 +105,44 @@ export default async function TeamsPage({ searchParams }: PageProps) {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Teams</h1>
-          <p className="text-gray-600">
-            {canCreateTeam 
-              ? 'Create and manage teams for tournament competition.' 
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-0.5">Teams</h1>
+          <p className="text-gray-600 text-sm">
+            {canCreateTeam
+              ? 'Create and manage teams for tournament competition.'
               : 'Browse teams and request to join one.'}
           </p>
         </div>
 
         {/* Team Creation (Coaches/Admins Only) */}
         {canCreateTeam && !hasTeam && (
-          <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Create New Team</h2>
+          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Create New Team</h2>
             <CreateTeamForm />
           </div>
         )}
 
         {/* Manage Team (Coaches with team) */}
         {canCreateTeam && hasTeam && coachTeam && (
-          <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Manage Team</h2>
-            <div className="flex items-center justify-between bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Manage Team</h2>
+            <div className="flex items-center justify-between bg-indigo-50 border border-indigo-200 rounded-lg p-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Your Team</h3>
-                <p className="text-indigo-600 text-2xl font-bold mt-1">
+                <h3 className="text-sm font-semibold text-gray-900">Your Team</h3>
+                <p className="text-indigo-600 text-xl font-bold mt-0.5">
                   {coachTeam.team.name}
                 </p>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-xs text-gray-600 mt-1">
                   {coachTeam.team._count.athletes} athlete{coachTeam.team._count.athletes !== 1 ? 's' : ''} •
                   {' '}{coachTeam.team.coaches.length} coach{coachTeam.team.coaches.length !== 1 ? 'es' : ''}
                 </p>
               </div>
               <div className="flex flex-col gap-2">
                 <a
-                  href={`/teams/${coachTeam.team.id}`}
-                  className="px-6 py-2.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium text-center"
+                  href="/teams/my-team"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium text-center text-sm"
                 >
                   Manage Team
-                </a>
-                <a
-                  href={`/teams/${coachTeam.team.id}/roster`}
-                  className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition font-medium text-center"
-                >
-                  View Roster
                 </a>
               </div>
             </div>
@@ -157,11 +151,11 @@ export default async function TeamsPage({ searchParams }: PageProps) {
 
         {/* Current Team Status */}
         {user.athlete?.team && (
-          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6 mb-8">
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Your Current Team</h3>
-                <p className="text-indigo-600 text-xl font-bold mt-1">
+                <h3 className="text-sm font-semibold text-gray-900">Your Current Team</h3>
+                <p className="text-indigo-600 text-lg font-bold mt-0.5">
                   {user.athlete.team.name}
                 </p>
               </div>
@@ -171,9 +165,9 @@ export default async function TeamsPage({ searchParams }: PageProps) {
 
         {/* Pending Join Requests */}
         {isathlete && joinRequests.length > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Pending Join Requests</h3>
-            <div className="space-y-3">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Pending Join Requests</h3>
+            <div className="space-y-2">
               {joinRequests.map(request => (
                 <div key={request.id} className="flex items-center justify-between bg-white p-4 rounded-md">
                   <div>
@@ -200,13 +194,13 @@ export default async function TeamsPage({ searchParams }: PageProps) {
         )}
 
         {/* Team Browser */}
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">
             {canCreateTeam ? `All Teams (${totalTeams})` : 'Browse Teams'}
           </h2>
 
           {teams.length === 0 ? (
-            <p className="text-gray-600">No teams yet. Be the first to create one!</p>
+            <p className="text-gray-600 text-sm">No teams yet. Be the first to create one!</p>
           ) : (
             <TeamBrowser
               teams={teams}
