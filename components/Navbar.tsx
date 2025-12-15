@@ -150,6 +150,19 @@ export default function Navbar({ user }: NavbarProps) {
                 )}
               </div>
             )}
+
+            {/* Results POC Link */}
+            {user && (
+              <Link
+                href="/results"
+                className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition flex items-center gap-1.5"
+              >
+                Results
+                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-medium border border-amber-300">
+                  POC
+                </span>
+              </Link>
+            )}
           </div>
 
           <div className="flex items-center space-x-4">
@@ -297,6 +310,26 @@ export default function Navbar({ user }: NavbarProps) {
                     </Link>
                   </>
                 )}
+              </>
+            )}
+
+            {/* Results POC Section */}
+            {user && (
+              <>
+                <div className="px-3 py-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Results
+                </div>
+                <Link
+                  href="/results"
+                  className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                >
+                  <span className="flex items-center gap-2">
+                    Tournament Results
+                    <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-medium border border-amber-300">
+                      POC
+                    </span>
+                  </span>
+                </Link>
               </>
             )}
 
