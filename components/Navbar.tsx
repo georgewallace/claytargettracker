@@ -163,6 +163,19 @@ export default function Navbar({ user }: NavbarProps) {
                 </span>
               </Link>
             )}
+
+            {/* Admin Import Results Link */}
+            {user && user.role === 'admin' && (
+              <Link
+                href="/admin/import-results"
+                className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition flex items-center gap-1.5"
+              >
+                Import Results
+                <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded text-xs font-medium border border-indigo-300">
+                  Admin
+                </span>
+              </Link>
+            )}
           </div>
 
           <div className="flex items-center space-x-4">
@@ -330,6 +343,19 @@ export default function Navbar({ user }: NavbarProps) {
                     </span>
                   </span>
                 </Link>
+                {user.role === 'admin' && (
+                  <Link
+                    href="/admin/import-results"
+                    className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                  >
+                    <span className="flex items-center gap-2">
+                      Import Results
+                      <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded text-xs font-medium border border-indigo-300">
+                        Admin
+                      </span>
+                    </span>
+                  </Link>
+                )}
               </>
             )}
 

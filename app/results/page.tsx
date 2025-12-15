@@ -15,7 +15,7 @@ export default function ResultsPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Tournament Results</h1>
               <p className="mt-2 text-sm text-gray-600">
-                Live results powered by OneDrive integration (POC)
+                Live results (POC)
               </p>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-100 border border-amber-300 rounded-md">

@@ -2,30 +2,12 @@
 
 // useScoresTable.ts
 import { useEffect, useState } from "react";
-import { graphGet } from "./graphClient";
-import { Score, parseScoreRow } from "./models";
-
-export interface ScoreRow {
-  [key: string]: any; // we’ll refine in section 3
-}
+import { Score } from "./models";
 
 interface UseScoresTableResult {
   data: Score[];
   loading: boolean;
   error: string | null;
-}
-
-const workbookPath = process.env.NEXT_PUBLIC_ONEDRIVE_WORKBOOK_PATH || "/Tournaments/2025/Scores.xlsx";
-const tableName = process.env.NEXT_PUBLIC_ONEDRIVE_TABLE_NAME || "ScoresTable";
-
-function mapGraphRowsToObjects(headers: string[], rows: any[]): ScoreRow[] {
-  return rows.map((row: any) => {
-    const obj: ScoreRow = {};
-    row.values[0].forEach((value: any, i: number) => {
-      obj[headers[i]] = value;
-    });
-    return obj;
-  });
 }
 
 export function useScoresTable(): UseScoresTableResult {
@@ -40,26 +22,26 @@ export function useScoresTable(): UseScoresTableResult {
       setLoading(true);
       setError(null);
       try {
-        const headerUrl = `/me/drive/root:${workbookPath}:/workbook/tables('${tableName}')/headerRowRange`;
-        const rowsUrl = `/me/drive/root:${workbookPath}:/workbook/tables('${tableName}')/rows`;
+        // Fetch imported scores from database
+        const response = await fetch('/api/scores');
+        if (!response.ok) {
+          throw new Error(`Failed to load scores: ${response.status} ${response.statusText}`);
+        }
 
-        const [headerJson, rowsJson] = await Promise.all([
-          graphGet<any>(headerUrl),
-          graphGet<any>(rowsUrl),
-        ]);
-
-        const headers: string[] = headerJson.values[0];
-        const rows = rowsJson.value;
-
-        const mapped = mapGraphRowsToObjects(headers, rows).map(parseScoreRow);
+        const scores = await response.json();
 
         if (!cancelled) {
-          setData(mapped);
+          setData(scores);
         }
       } catch (e: any) {
-        if (!cancelled) setError(e.message ?? "Unknown error");
+        if (!cancelled) {
+          console.error("Error loading scores:", e);
+          setError(e.message ?? "Unknown error loading scores");
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
