@@ -1,3 +1,5 @@
+"use client"
+
 // TournamentDashboard.tsx
 import React from "react";
 import { useScoresTable } from "../lib/useScoresTable";

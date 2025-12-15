@@ -1,3 +1,5 @@
+"use client"
+
 // useScoresTable.ts
 import { useEffect, useState } from "react";
 import { graphGet } from "./graphClient";
@@ -8,7 +10,7 @@ export interface ScoreRow {
 }
 
 interface UseScoresTableResult {
-  data: ScoreRow[];
+  data: Score[];
   loading: boolean;
   error: string | null;
 }
@@ -27,7 +29,7 @@ function mapGraphRowsToObjects(headers: string[], rows: any[]): ScoreRow[] {
 }
 
 export function useScoresTable(): UseScoresTableResult {
-  const [data, setData] = useState<ScoreRow[]>([]);
+  const [data, setData] = useState<Score[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
