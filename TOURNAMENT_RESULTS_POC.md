@@ -79,13 +79,20 @@ Grant admin consent if required.
 ### 3. Environment Variables
 Add to your `.env.local` file:
 ```env
+# Azure AD Configuration
 NEXT_PUBLIC_AZURE_CLIENT_ID=your-client-id-here
 NEXT_PUBLIC_AZURE_TENANT_ID=your-tenant-id-here
+
+# OneDrive Excel File Configuration (optional - defaults shown)
+NEXT_PUBLIC_ONEDRIVE_WORKBOOK_PATH=/Tournaments/2025/Scores.xlsx
+NEXT_PUBLIC_ONEDRIVE_TABLE_NAME=ScoresTable
 ```
 
+**Note:** The OneDrive path and table name are optional. If not specified, the defaults shown above will be used. You can customize these to point to different Excel files or tables for different tournaments.
+
 ### 4. OneDrive Setup
-1. Create the Excel file: `/Tournaments/2025/Scores.xlsx` in your OneDrive
-2. Create a table named `ScoresTable` with the columns listed above
+1. Create the Excel file at the path specified in `NEXT_PUBLIC_ONEDRIVE_WORKBOOK_PATH` (default: `/Tournaments/2025/Scores.xlsx`) in your OneDrive
+2. Create a table named as specified in `NEXT_PUBLIC_ONEDRIVE_TABLE_NAME` (default: `ScoresTable`) with the columns listed above
 3. Populate with tournament data
 
 ## Usage

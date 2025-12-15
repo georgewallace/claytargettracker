@@ -15,8 +15,8 @@ interface UseScoresTableResult {
   error: string | null;
 }
 
-const workbookPath = "/Tournaments/2025/Scores.xlsx";
-const tableName = "ScoresTable";
+const workbookPath = process.env.NEXT_PUBLIC_ONEDRIVE_WORKBOOK_PATH || "/Tournaments/2025/Scores.xlsx";
+const tableName = process.env.NEXT_PUBLIC_ONEDRIVE_TABLE_NAME || "ScoresTable";
 
 function mapGraphRowsToObjects(headers: string[], rows: any[]): ScoreRow[] {
   return rows.map((row: any) => {
