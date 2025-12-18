@@ -4,11 +4,11 @@ import { requireAuth } from '@/lib/auth'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth()
-    const tournamentId = params.id
+    const { id: tournamentId } = await params
 
     // Fetch tournament to verify it exists
     const tournament = await prisma.tournament.findUnique({
