@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { getTimeOptions } from '@/lib/timeSlotUtils'
+import { getTimeOptions, getDurationOptions, calculateEndTime, formatDuration } from '@/lib/timeSlotUtils'
 
 interface Discipline {
   id: string
@@ -29,16 +29,20 @@ interface AddTimeSlotModalProps {
 
 export default function AddTimeSlotModal({ tournament, date, onClose, onSuccess }: AddTimeSlotModalProps) {
   const timeOptions = getTimeOptions()
+  const durationOptions = getDurationOptions()
 
   const [formData, setFormData] = useState({
     disciplineId: tournament.disciplines[0]?.disciplineId || '',
     startTime: '08:00',
-    endTime: '10:00',
+    duration: 120, // Default 2 hours
     squadCapacity: 5,
     fieldNumber: '',
     stationNumber: '',
     notes: ''
   })
+
+  // Calculate end time whenever start time or duration changes
+  const endTime = calculateEndTime(formData.startTime, formData.duration)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -52,7 +56,7 @@ export default function AddTimeSlotModal({ tournament, date, onClose, onSuccess 
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'squadCapacity' ? parseInt(value) || 1 : value
+      [name]: name === 'squadCapacity' || name === 'duration' ? parseInt(value) || 1 : value
     }))
   }
 
@@ -66,7 +70,7 @@ export default function AddTimeSlotModal({ tournament, date, onClose, onSuccess 
         disciplineId: formData.disciplineId,
         date: format(date, 'yyyy-MM-dd'),
         startTime: formData.startTime,
-        endTime: formData.endTime,
+        endTime: endTime,
         squadCapacity: formData.squadCapacity,
         fieldNumber: isSkeetOrTrap && formData.fieldNumber ? formData.fieldNumber : null,
         stationNumber: isSportingClays && formData.stationNumber ? formData.stationNumber : null,
@@ -132,7 +136,7 @@ export default function AddTimeSlotModal({ tournament, date, onClose, onSuccess 
             </select>
           </div>
 
-          {/* Time Range */}
+          {/* Time Configuration */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-2">
@@ -155,24 +159,34 @@ export default function AddTimeSlotModal({ tournament, date, onClose, onSuccess 
             </div>
 
             <div>
-              <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-2">
-                End Time *
+              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
+                Duration *
               </label>
               <select
-                id="endTime"
-                name="endTime"
-                value={formData.endTime}
+                id="duration"
+                name="duration"
+                value={formData.duration}
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                {timeOptions.map(option => (
+                {durationOptions.map(option => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Calculated End Time Display */}
+          <div className="bg-indigo-50 border border-indigo-200 rounded-md p-3">
+            <p className="text-sm font-medium text-indigo-900">
+              Calculated End Time: <span className="text-lg font-bold">{endTime}</span>
+            </p>
+            <p className="text-xs text-indigo-700 mt-1">
+              {formData.startTime} + {formatDuration(formData.duration)} = {endTime}
+            </p>
           </div>
 
           {/* Squad Capacity */}

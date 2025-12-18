@@ -76,6 +76,30 @@ export function getYearOptions() {
   return years
 }
 
+// Generate day options based on month and year (to handle varying days per month)
+export function getDayOptions(month?: number | null, year?: number | null) {
+  // Default to 31 days if month/year not selected
+  let daysInMonth = 31
+
+  if (month && year) {
+    // Use JavaScript Date to get actual days in month
+    daysInMonth = new Date(year, month, 0).getDate()
+  } else if (month) {
+    // Approximate based on month only
+    const daysPerMonth: Record<number, number> = {
+      1: 31, 2: 29, 3: 31, 4: 30, 5: 31, 6: 30,
+      7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31
+    }
+    daysInMonth = daysPerMonth[month] || 31
+  }
+
+  const days = []
+  for (let day = 1; day <= daysInMonth; day++) {
+    days.push({ value: day, label: day.toString() })
+  }
+  return days
+}
+
 // All available division options
 export const divisionOptions = [
   { value: 'Novice', label: 'Novice' },

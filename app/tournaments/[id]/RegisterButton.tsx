@@ -58,11 +58,17 @@ export default function RegisterButton({ tournamentId, athleteId, tournamentDisc
       const { teamRegistrationStatus } = data
 
       // Block if athlete has team but team not registered
+      // Allow if athlete has no team (they'll be assigned to individual team during registration)
       if (teamRegistrationStatus.hasTeam && !teamRegistrationStatus.isTeamRegistered) {
         setTeamNotRegistered(true)
         setError(`Your team "${teamRegistrationStatus.teamName}" has not registered for this tournament yet. Please reach out to your coach.`)
         setCheckingTeamStatus(false)
         return false
+      }
+
+      // Athletes without teams can register as individuals
+      if (!teamRegistrationStatus.hasTeam) {
+        // No blocking - they'll be assigned to the tournament's individual team
       }
 
       setCheckingTeamStatus(false)

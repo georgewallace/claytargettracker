@@ -6,6 +6,15 @@ import { requireAuth } from '@/lib/auth'
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
+
+    // Only admins can create tournaments
+    if (user.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Only administrators can create tournaments' },
+        { status: 403 }
+      )
+    }
+
     const {
       name,
       location,
@@ -26,7 +35,7 @@ export async function POST(request: NextRequest) {
       enableScores,
       enableLeaderboard
     } = await request.json()
-    
+
     // Validate input
     if (!name || !location || !startDate || !endDate) {
       return NextResponse.json(

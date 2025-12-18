@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import TeamLogo from '@/components/TeamLogo'
+import TeamBadge from '@/components/TeamBadge'
 import RemoveRegistrationButton from './RemoveRegistrationButton'
 
 interface RegistrationListProps {
@@ -138,7 +139,10 @@ export default function RegistrationList({
             <div className="space-y-1">
               {registration.athlete.team && (
                 <div className="text-sm text-gray-600">
-                  Team: {registration.athlete.team.name}
+                  Team: <TeamBadge
+                    teamName={registration.athlete.team.name}
+                    isIndividualTeam={registration.athlete.team.isIndividualTeam}
+                  />
                 </div>
               )}
               {(registration.athlete.grade || registration.athlete.division) && (

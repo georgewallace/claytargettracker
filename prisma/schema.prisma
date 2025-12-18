@@ -8,7 +8,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./prisma/dev.db"
 }
 
 model User {
@@ -30,6 +30,8 @@ model Team {
   name        String
   logoUrl     String?  // URL/path to team logo
   affiliation String?  // USAYESS, SCTP, High School Clay Target Team, Other
+  isIndividualTeam Boolean @default(false) // True if this is an "Individual Competitors" team for a tournament
+  tournamentId String?  // If isIndividualTeam=true, links to the tournament
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -77,6 +79,7 @@ model Athlete {
   id                String   @id @default(cuid())
   userId            String   @unique
   teamId            String?
+  birthDay          Int?     // 1-31
   birthMonth        Int?     // 1-12
   birthYear         Int?     // e.g., 2008
   gender            String?  // "male", "female", "other"
@@ -418,6 +421,7 @@ model ShootOffScore {
   @@index([participantId])
 }
 
+
 // Imported Tournament Results (POC) - from Excel uploads
 model ImportedScore {
   id               String   @id @default(cuid())
@@ -443,4 +447,3 @@ model ImportedScore {
   @@index([division])
   @@index([gender])
 }
-

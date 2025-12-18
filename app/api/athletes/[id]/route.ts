@@ -16,7 +16,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id } = await params
-    const { birthMonth, birthYear, nscaClass, ataClass, grade, divisionOverride, isActive } = await request.json()
+    const { birthDay, birthMonth, birthYear, nscaClass, ataClass, grade, divisionOverride, isActive } = await request.json()
     
     // Check if user is a coach or admin
     if (user.role !== 'coach' && user.role !== 'admin') {
@@ -55,17 +55,25 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const division = calculateDivision(grade)
     
     // Parse and validate numeric fields
+    const parsedBirthDay = birthDay && birthDay !== '' ? parseInt(birthDay, 10) : null
     const parsedBirthMonth = birthMonth && birthMonth !== '' ? parseInt(birthMonth, 10) : null
     const parsedBirthYear = birthYear && birthYear !== '' ? parseInt(birthYear, 10) : null
-    
+
     // Validate parsed values
+    if (parsedBirthDay !== null && (isNaN(parsedBirthDay) || parsedBirthDay < 1 || parsedBirthDay > 31)) {
+      return NextResponse.json(
+        { error: 'Invalid birth day. Must be between 1 and 31.' },
+        { status: 400 }
+      )
+    }
+
     if (parsedBirthMonth !== null && (isNaN(parsedBirthMonth) || parsedBirthMonth < 1 || parsedBirthMonth > 12)) {
       return NextResponse.json(
         { error: 'Invalid birth month. Must be between 1 and 12.' },
         { status: 400 }
       )
     }
-    
+
     if (parsedBirthYear !== null && (isNaN(parsedBirthYear) || parsedBirthYear < 1900 || parsedBirthYear > new Date().getFullYear())) {
       return NextResponse.json(
         { error: 'Invalid birth year.' },
@@ -77,6 +85,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const updatedShooter = await prisma.athlete.update({
       where: { id },
       data: {
+        birthDay: parsedBirthDay,
         birthMonth: parsedBirthMonth,
         birthYear: parsedBirthYear,
         nscaClass: nscaClass && nscaClass.trim() !== '' ? nscaClass.trim() : null,

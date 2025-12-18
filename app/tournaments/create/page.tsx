@@ -9,8 +9,8 @@ export const dynamic = 'force-dynamic'
 export default async function CreateTournamentPage() {
   const user = await getCurrentUser()
   
-  // Only coaches and admins can create tournaments
-  if (!user || (user.role !== 'coach' && user.role !== 'admin')) {
+  // Only admins can create tournaments
+  if (!user || user.role !== 'admin') {
     redirect('/')
   }
 

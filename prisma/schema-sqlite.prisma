@@ -8,7 +8,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./prisma/dev.db"
 }
 
 model User {
@@ -26,11 +26,14 @@ model User {
 }
 
 model Team {
-  id        String   @id @default(cuid())
-  name      String
-  logoUrl   String?  // URL/path to team logo
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  logoUrl     String?  // URL/path to team logo
+  affiliation String?  // USAYESS, SCTP, High School Clay Target Team, Other
+  isIndividualTeam Boolean @default(false) // True if this is an "Individual Competitors" team for a tournament
+  tournamentId String?  // If isIndividualTeam=true, links to the tournament
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   coaches      TeamCoach[] // Many-to-many relationship for coaches
   athletes     Athlete[]
@@ -76,6 +79,7 @@ model Athlete {
   id                String   @id @default(cuid())
   userId            String   @unique
   teamId            String?
+  birthDay          Int?     // 1-31
   birthMonth        Int?     // 1-12
   birthYear         Int?     // e.g., 2008
   gender            String?  // "male", "female", "other"
@@ -83,7 +87,9 @@ model Athlete {
   ataClass          String?  // ATA classification
   nssaClass         String?  // NSSA classification
   grade             String?  // "6", "7", "8", "9", "10", "11", "12", "College"
-  division          String?  // Auto-calculated: Novice, Intermediate, JV, Senior, College
+  division          String?  // Auto-calculated: Novice, Intermediate, Junior Varsity, Varsity, Collegiate, Open, Unassigned
+  divisionOverride  String?  // Coach can manually override auto-calculated division
+  isActive          Boolean  @default(true) // Active athletes can compete; inactive are aged out or transferred
   ataNumber         String?  // ATA membership number
   nscaNumber        String?  // NSCA membership number
   nssaNumber        String?  // NSSA membership number
@@ -415,3 +421,29 @@ model ShootOffScore {
   @@index([participantId])
 }
 
+
+// Imported Tournament Results (POC) - from Excel uploads
+model ImportedScore {
+  id               String   @id @default(cuid())
+  shooter          String   // Shooter name
+  team             String   // Team name
+  gender           String   // "Men" or "Ladies"
+  division         String   // "Novice", "Intermediate", "JV", "Varsity", "Collegiate"
+  discipline       String   // "Trap", "Skeet", "Sporting Clays", etc.
+  round            Int      // Round number
+  targetsThrown    Int      // Total targets thrown
+  targetsHit       Int      // Total targets hit
+  stationBreakdown String?  // Optional: "5,5,4,4,5" (hits per station)
+  field            String?  // Optional: Field identifier
+  time             String?  // Optional: Time slot
+  notes            String?  // Optional: Additional notes
+  uploadedBy       String   // User ID of admin who uploaded
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([shooter])
+  @@index([team])
+  @@index([discipline])
+  @@index([division])
+  @@index([gender])
+}

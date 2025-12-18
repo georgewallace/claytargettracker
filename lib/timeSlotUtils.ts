@@ -81,27 +81,79 @@ export function formatTimeRange(start: string, end: string): string {
 }
 
 /**
- * Get hour options for time picker (on hour and half-hour)
+ * Get hour options for time picker (15-minute increments)
  */
 export function getTimeOptions(): Array<{ value: string; label: string }> {
   const options: Array<{ value: string; label: string }> = []
-  
+
   for (let hour = 0; hour < 24; hour++) {
-    // On the hour
-    const hourStr = String(hour).padStart(2, '0')
+    for (let minute = 0; minute < 60; minute += 15) {
+      const hourStr = String(hour).padStart(2, '0')
+      const minStr = String(minute).padStart(2, '0')
+      options.push({
+        value: `${hourStr}:${minStr}`,
+        label: `${hourStr}:${minStr}`
+      })
+    }
+  }
+
+  return options
+}
+
+/**
+ * Get duration options in 15-minute increments
+ * Returns durations from 15 minutes to 4 hours (240 minutes)
+ */
+export function getDurationOptions(): Array<{ value: number; label: string }> {
+  const options: Array<{ value: number; label: string }> = []
+
+  // Generate options from 15 minutes to 4 hours in 15-minute increments
+  for (let minutes = 15; minutes <= 240; minutes += 15) {
     options.push({
-      value: `${hourStr}:00`,
-      label: `${hourStr}:00`
-    })
-    
-    // Half past
-    options.push({
-      value: `${hourStr}:30`,
-      label: `${hourStr}:30`
+      value: minutes,
+      label: formatDuration(minutes)
     })
   }
-  
+
   return options
+}
+
+/**
+ * Format duration in minutes to human-readable string
+ * Examples: "15 min", "1h", "1h 15min", "2h 30min"
+ */
+export function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+
+  if (hours === 0) {
+    return `${mins} min`
+  } else if (mins === 0) {
+    return `${hours}h`
+  } else {
+    return `${hours}h ${mins}min`
+  }
+}
+
+/**
+ * Calculate duration in minutes between two times
+ */
+export function calculateDuration(startTime: string, endTime: string): number {
+  const startMinutes = parseTime(startTime)
+  const endMinutes = parseTime(endTime)
+  return endMinutes - startMinutes
+}
+
+/**
+ * Calculate end time based on start time and duration
+ */
+export function calculateEndTime(startTime: string, durationMinutes: number): string {
+  const startMinutes = parseTime(startTime)
+  const endMinutes = startMinutes + durationMinutes
+
+  // Handle times that go past midnight
+  const normalizedMinutes = endMinutes % (24 * 60)
+  return formatTime(normalizedMinutes)
 }
 
 /**

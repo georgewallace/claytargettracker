@@ -28,6 +28,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const {
       gender,
+      birthDay,
       birthMonth,
       birthYear,
       grade,
@@ -66,6 +67,7 @@ export async function PUT(request: NextRequest) {
       where: { id: shooter.id },
       data: {
         gender,
+        birthDay: birthDay ? parseInt(birthDay) : null,
         birthMonth: birthMonth ? parseInt(birthMonth) : null,
         birthYear: birthYear ? parseInt(birthYear) : null,
         grade: grade || null,

@@ -76,7 +76,7 @@ export default function Navbar({ user }: NavbarProps) {
                             My History
                           </Link>
                         )}
-                        {(user.role === 'coach' || user.role === 'admin') && (
+                        {user.role === 'admin' && (
                           <Link
                             href="/tournaments/create"
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
@@ -268,7 +268,7 @@ export default function Navbar({ user }: NavbarProps) {
                 >
                   My History
                 </Link>
-                {(user.role === 'coach' || user.role === 'admin') && (
+                {user.role === 'admin' && (
                   <Link
                     href="/tournaments/create"
                     className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"

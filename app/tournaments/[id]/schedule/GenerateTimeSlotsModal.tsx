@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import { getDateRange, generateTimeSlots, getTimeOptions, type TimeSlotConfig } from '@/lib/timeSlotUtils'
+import { getDateRange, generateTimeSlots, getTimeOptions, getDurationOptions, type TimeSlotConfig } from '@/lib/timeSlotUtils'
 
 interface Discipline {
   id: string
@@ -324,29 +324,26 @@ export default function GenerateTimeSlotsModal({ tournament, onClose, onSuccess 
 
           {/* Slot Duration */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="slotDuration" className="block text-sm font-medium text-gray-700 mb-2">
               Slot Duration *
             </label>
-            <div className="flex gap-4">
-              {[
-                { value: 30, label: '30 minutes' },
-                { value: 60, label: '1 hour' },
-                { value: 120, label: '2 hours' },
-                { value: 180, label: '3 hours' }
-              ].map(option => (
-                <label key={option.value} className="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    name="slotDuration"
-                    value={option.value}
-                    checked={formData.slotDuration === option.value}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">{option.label}</span>
-                </label>
+            <select
+              id="slotDuration"
+              name="slotDuration"
+              value={formData.slotDuration}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {getDurationOptions().map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
-            </div>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Duration for each individual time slot that will be generated
+            </p>
           </div>
 
           {/* Squad Capacity */}

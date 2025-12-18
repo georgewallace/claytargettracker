@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { gradeOptions, monthOptions, getYearOptions, calculateDivision, divisionOptions } from '@/lib/divisions'
+import { gradeOptions, monthOptions, getYearOptions, getDayOptions, calculateDivision, divisionOptions } from '@/lib/divisions'
 
 interface Athlete {
   id: string
+  birthDay: number | null
   birthMonth: number | null
   birthYear: number | null
   gender: string | null
@@ -32,9 +33,19 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
   const router = useRouter()
   const yearOptions = getYearOptions()
   
+  // Convert birth fields to date string (YYYY-MM-DD) for date input
+  const getBirthDateString = () => {
+    if (athlete.birthYear && athlete.birthMonth && athlete.birthDay) {
+      const year = athlete.birthYear
+      const month = String(athlete.birthMonth).padStart(2, '0')
+      const day = String(athlete.birthDay).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+    return ''
+  }
+
   const [formData, setFormData] = useState({
-    birthMonth: athlete.birthMonth?.toString() || '',
-    birthYear: athlete.birthYear?.toString() || '',
+    birthDate: getBirthDateString(),
     nscaClass: athlete.nscaClass || '',
     ataClass: athlete.ataClass || '',
     grade: athlete.grade || '',
@@ -61,10 +72,26 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
     setLoading(true)
 
     try {
+      // Parse birth date into day, month, year
+      let birthDay = null, birthMonth = null, birthYear = null
+      if (formData.birthDate) {
+        const [year, month, day] = formData.birthDate.split('-')
+        birthYear = parseInt(year)
+        birthMonth = parseInt(month)
+        birthDay = parseInt(day)
+      }
+
+      const submitData = {
+        ...formData,
+        birthDay,
+        birthMonth,
+        birthYear
+      }
+
       const response = await fetch(`/api/athletes/${athlete.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submitData)
       })
 
       const data = await response.json()
@@ -278,49 +305,21 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
 
       {/* Birth Date */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
+        <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-2">
           Date of Birth
         </label>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="birthMonth" className="block text-xs text-gray-600 mb-1">
-              Month
-            </label>
-            <select
-              id="birthMonth"
-              name="birthMonth"
-              value={formData.birthMonth}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">Select Month</option>
-              {monthOptions.map(month => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="birthYear" className="block text-xs text-gray-600 mb-1">
-              Year
-            </label>
-            <select
-              id="birthYear"
-              name="birthYear"
-              value={formData.birthYear}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">Select Year</option>
-              {yearOptions.map(year => (
-                <option key={year.value} value={year.value}>
-                  {year.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <input
+          id="birthDate"
+          name="birthDate"
+          type="date"
+          value={formData.birthDate}
+          onChange={handleChange}
+          max={new Date().toISOString().split('T')[0]}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Used for age calculation and division assignment
+        </p>
       </div>
 
       {/* Grade */}

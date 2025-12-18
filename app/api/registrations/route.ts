@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { getOrCreateIndividualTeam } from '@/lib/individualTeamHelpers'
 
 
 export async function POST(request: NextRequest) {
@@ -51,6 +52,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get tournament info for individual team creation
+    const tournamentInfo = await prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      select: { id: true, name: true, status: true }
+    })
+
+    if (!tournamentInfo) {
+      return NextResponse.json(
+        { error: 'Tournament not found' },
+        { status: 404 }
+      )
+    }
+
     // Check team registration requirement
     const athlete = await prisma.athlete.findUnique({
       where: { id: athleteId },
@@ -70,6 +84,38 @@ export async function POST(request: NextRequest) {
         { error: 'Your athlete profile is marked as inactive. Please contact your coach to reactivate your profile.' },
         { status: 403 }
       )
+    }
+
+    // Handle individual shooters (athletes without a team)
+    if (!athlete.teamId) {
+      // Get or create the individual team for this tournament
+      const individualTeam = await getOrCreateIndividualTeam(tournamentInfo.id, tournamentInfo.name)
+
+      // Assign athlete to the individual team
+      await prisma.athlete.update({
+        where: { id: athleteId },
+        data: { teamId: individualTeam.id }
+      })
+
+      // Create team registration for the individual team if it doesn't exist
+      await prisma.teamTournamentRegistration.upsert({
+        where: {
+          teamId_tournamentId: {
+            teamId: individualTeam.id,
+            tournamentId
+          }
+        },
+        create: {
+          teamId: individualTeam.id,
+          tournamentId,
+          registeredBy: user.id
+        },
+        update: {} // Do nothing if already exists
+      })
+
+      // Update athlete reference to include new team
+      athlete.teamId = individualTeam.id
+      athlete.team = individualTeam
     }
 
     // If athlete has a team, the team must be registered for the tournament
