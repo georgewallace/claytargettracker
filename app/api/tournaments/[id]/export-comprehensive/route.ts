@@ -54,7 +54,7 @@ export async function GET(
     })
 
     // Fetch all registered participants with full details
-    const registrations = await prisma.athleteTournamentRegistration.findMany({
+    const registrations = await prisma.registration.findMany({
       where: { tournamentId },
       include: {
         athlete: {
@@ -103,7 +103,7 @@ export async function GET(
     })
 
     // Fetch all squad assignments with time slot details
-    const squadAssignments = await prisma.squadAssignment.findMany({
+    const squadAssignments = await prisma.squadMember.findMany({
       where: {
         squad: {
           tournamentId
