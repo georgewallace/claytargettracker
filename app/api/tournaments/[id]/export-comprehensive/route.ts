@@ -107,14 +107,19 @@ export async function GET(
     const squadAssignments = await prisma.squadMember.findMany({
       where: {
         squad: {
-          tournamentId
+          timeSlot: {
+            tournamentId
+          }
         }
       },
       include: {
         squad: {
           include: {
-            discipline: true,
-            timeSlot: true
+            timeSlot: {
+              include: {
+                discipline: true
+              }
+            }
           }
         },
         athlete: {
@@ -137,13 +142,13 @@ export async function GET(
     const squads = squadAssignments.map(assignment => {
       return {
         squadName: assignment.squad.name,
-        discipline: assignment.squad.discipline.displayName,
-        date: assignment.squad.timeSlot?.date
+        discipline: assignment.squad.timeSlot.discipline.displayName,
+        date: assignment.squad.timeSlot.date
           ? new Date(assignment.squad.timeSlot.date).toISOString().split('T')[0]
           : 'N/A',
-        startTime: assignment.squad.timeSlot?.startTime || 'N/A',
-        endTime: assignment.squad.timeSlot?.endTime || 'N/A',
-        location: assignment.squad.timeSlot?.location,
+        startTime: assignment.squad.timeSlot.startTime,
+        endTime: assignment.squad.timeSlot.endTime,
+        location: assignment.squad.timeSlot.fieldNumber || assignment.squad.timeSlot.stationNumber,
         athleteName: assignment.athlete.user.name,
         teamName: assignment.athlete.team?.name || 'N/A',
         division: assignment.athlete.divisionOverride || assignment.athlete.division,
