@@ -94,7 +94,7 @@ export async function GET(
         gender: athlete.gender,
         birthDate,
         grade: athlete.grade,
-        division: reg.division,
+        division: athlete.divisionOverride || athlete.division,
         nscaClass: athlete.nscaClass,
         ataClass: athlete.ataClass,
         disciplines,
@@ -135,8 +135,6 @@ export async function GET(
     })
 
     const squads = squadAssignments.map(assignment => {
-      const registration = assignment.athlete.registrations[0]
-
       return {
         squadName: assignment.squad.name,
         discipline: assignment.squad.discipline.displayName,
@@ -148,7 +146,7 @@ export async function GET(
         location: assignment.squad.timeSlot?.location,
         athleteName: assignment.athlete.user.name,
         teamName: assignment.athlete.team?.name || 'N/A',
-        division: registration?.division,
+        division: assignment.athlete.divisionOverride || assignment.athlete.division,
         position: assignment.position
       }
     })
