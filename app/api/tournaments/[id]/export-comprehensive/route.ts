@@ -59,6 +59,7 @@ export async function GET(
       include: {
         athlete: {
           include: {
+            user: true,
             team: true
           }
         },
@@ -87,8 +88,8 @@ export async function GET(
         .join(', ')
 
       return {
-        athleteName: athlete.name,
-        email: athlete.email,
+        athleteName: athlete.user.name,
+        email: athlete.user.email,
         teamName: athlete.team?.name || 'N/A',
         gender: athlete.gender,
         birthDate,
@@ -118,6 +119,7 @@ export async function GET(
         },
         athlete: {
           include: {
+            user: true,
             team: true,
             registrations: {
               where: { tournamentId }
@@ -144,7 +146,7 @@ export async function GET(
         startTime: assignment.squad.timeSlot?.startTime || 'N/A',
         endTime: assignment.squad.timeSlot?.endTime || 'N/A',
         location: assignment.squad.timeSlot?.location,
-        athleteName: assignment.athlete.name,
+        athleteName: assignment.athlete.user.name,
         teamName: assignment.athlete.team?.name || 'N/A',
         division: registration?.division,
         position: assignment.position
