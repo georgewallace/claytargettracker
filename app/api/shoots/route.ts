@@ -82,9 +82,9 @@ export async function POST(request: NextRequest) {
       await prisma.score.createMany({
         data: scores.map((score: { station: number; targets: number; totalTargets: number }) => ({
           shootId,
-          station: score.stationNumber,
+          stationNumber: score.station,
           targets: score.targets,
-          totalTargets: score.maxTargets
+          maxTargets: score.totalTargets
         }))
       })
       
@@ -105,9 +105,9 @@ export async function POST(request: NextRequest) {
           disciplineId,
           scores: {
             create: scores.map((score: { station: number; targets: number; totalTargets: number }) => ({
-              station: score.stationNumber,
+              stationNumber: score.station,
               targets: score.targets,
-              totalTargets: score.maxTargets
+              maxTargets: score.totalTargets
             }))
           }
         },
