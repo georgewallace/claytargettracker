@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { getTimeOptions, getDurationOptions, calculateEndTime, formatDuration } from '@/lib/timeSlotUtils'
 
@@ -27,15 +27,32 @@ interface AddTimeSlotModalProps {
   onSuccess: () => void
 }
 
+// Helper to get default squad capacity based on discipline
+const getDefaultSquadCapacity = (disciplineName: string): number => {
+  switch (disciplineName) {
+    case 'trap':
+      return 5
+    case 'skeet':
+    case 'sporting_clays':
+      return 3
+    default:
+      return 5
+  }
+}
+
 export default function AddTimeSlotModal({ tournament, date, onClose, onSuccess }: AddTimeSlotModalProps) {
   const timeOptions = getTimeOptions()
   const durationOptions = getDurationOptions()
+
+  // Get initial discipline name for default squad capacity
+  const initialDiscipline = tournament.disciplines[0]?.discipline
+  const initialSquadCapacity = initialDiscipline ? getDefaultSquadCapacity(initialDiscipline.name) : 5
 
   const [formData, setFormData] = useState({
     disciplineId: tournament.disciplines[0]?.disciplineId || '',
     startTime: '08:00',
     duration: 120, // Default 2 hours
-    squadCapacity: 5,
+    squadCapacity: initialSquadCapacity,
     fieldNumber: '',
     stationNumber: '',
     notes: ''
@@ -51,6 +68,17 @@ export default function AddTimeSlotModal({ tournament, date, onClose, onSuccess 
   const selectedDiscipline = tournament.disciplines.find(d => d.disciplineId === formData.disciplineId)
   const isSportingClays = selectedDiscipline?.discipline.name === 'sporting_clays'
   const isSkeetOrTrap = selectedDiscipline?.discipline.name === 'skeet' || selectedDiscipline?.discipline.name === 'trap'
+
+  // Update squad capacity when discipline changes
+  useEffect(() => {
+    if (selectedDiscipline) {
+      const defaultCapacity = getDefaultSquadCapacity(selectedDiscipline.discipline.name)
+      setFormData(prev => ({
+        ...prev,
+        squadCapacity: defaultCapacity
+      }))
+    }
+  }, [formData.disciplineId, selectedDiscipline])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target

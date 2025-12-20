@@ -9,6 +9,7 @@ import ExportRegistrationsButton from './ExportRegistrationsButton'
 import ExportComprehensiveButton from './ExportComprehensiveButton'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 import RegistrationList from './RegistrationList'
+import ImportScoresButton from './ImportScoresButton'
 
 // Force dynamic rendering (required for getCurrentUser and dynamic params)
 export const dynamic = 'force-dynamic'
@@ -306,7 +307,12 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                   Enter Scores
                 </Link>
               )}
-              
+
+              {/* Import Scores button for admins when enabled */}
+              {tournament.enableScores && user && user.role === 'admin' && (
+                <ImportScoresButton tournamentId={tournament.id} />
+              )}
+
               {/* Manage Squads button for coaches and admins */}
               {user && (user.role === 'coach' || user.role === 'admin') && (
                 <Link

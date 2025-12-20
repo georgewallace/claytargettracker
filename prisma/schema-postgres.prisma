@@ -79,6 +79,7 @@ model Athlete {
   id                String   @id @default(cuid())
   userId            String   @unique
   teamId            String?
+  shooterId         String?  @unique // Format: YY-XXXX (e.g., "24-1000") for Excel import matching
   birthDay          Int?     // 1-31
   birthMonth        Int?     // 1-12
   birthYear         Int?     // e.g., 2008
@@ -330,17 +331,20 @@ model Shoot {
 }
 
 model Score {
-  id           String   @id @default(cuid())
-  shootId      String
-  station      Int      // Station number
-  targets      Int      // Number of targets hit
-  totalTargets Int      @default(25) // Total targets at this station
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
+  id            String   @id @default(cuid())
+  shootId       String
+  roundNumber   Int?     // For Skeet/Trap: 1-4 (null if station-based)
+  stationNumber Int?     // For Sporting Clays: 1-20 (null if round-based)
+  targets       Int      // Number of targets hit
+  maxTargets    Int      @default(25) // Maximum possible targets (typically 25 for rounds)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
   shoot Shoot @relation(fields: [shootId], references: [id], onDelete: Cascade)
-  
-  @@unique([shootId, station])
+
+  @@index([shootId])
+  @@index([shootId, roundNumber])
+  @@index([shootId, stationNumber])
 }
 
 model ShootOff {

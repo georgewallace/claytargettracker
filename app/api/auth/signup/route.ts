@@ -78,11 +78,11 @@ export async function POST(request: NextRequest) {
     const validRoles = ['athlete', 'coach', 'admin']
     const userRole = role && validRoles.includes(role) ? role : 'athlete'
     
-    // Check if user already exists
+    // Check if user already exists by email
     const existingUser = await prisma.user.findUnique({
       where: { email }
     })
-    
+
     if (existingUser) {
       const response = NextResponse.json(
         { error: 'User already exists' },
@@ -90,23 +90,53 @@ export async function POST(request: NextRequest) {
       )
       return addSecurityHeaders(response)
     }
-    
-    // Hash password and create user
-    const hashedPassword = await hashPassword(password)
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
+
+    // Check for placeholder user with matching name (from bulk import)
+    const placeholderUser = await prisma.user.findFirst({
+      where: {
         name: sanitizedName,
-        role: userRole,
-        // Only create athlete profile for athlete role
-        ...(userRole === 'athlete' && {
-          athlete: {
-            create: {}
-          }
-        })
+        email: {
+          endsWith: '@placeholder.local'
+        }
+      },
+      include: {
+        athlete: true,
+        coachedTeams: true
       }
     })
+
+    let user
+
+    if (placeholderUser) {
+      // Link existing placeholder account by updating email and password
+      const hashedPassword = await hashPassword(password)
+
+      user = await prisma.user.update({
+        where: { id: placeholderUser.id },
+        data: {
+          email,
+          password: hashedPassword,
+          role: userRole // Update role if needed
+        }
+      })
+    } else {
+      // Hash password and create new user
+      const hashedPassword = await hashPassword(password)
+      user = await prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          name: sanitizedName,
+          role: userRole,
+          // Only create athlete profile for athlete role if no existing profile
+          ...(userRole === 'athlete' && {
+            athlete: {
+              create: {}
+            }
+          })
+        }
+      })
+    }
     
     // Return success - Auth.js will handle the session
     const response = NextResponse.json(

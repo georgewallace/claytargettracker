@@ -118,6 +118,65 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     })
 
+    // Auto-update squad name based on current composition
+    const updatedSquad = await prisma.squad.findUnique({
+      where: { id: squadId },
+      include: {
+        members: {
+          include: {
+            athlete: {
+              include: {
+                team: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+    if (updatedSquad && updatedSquad.members.length > 0) {
+      // Get unique team IDs and names (filtering out null/undefined)
+      const teams = updatedSquad.members
+        .map(m => m.athlete.team)
+        .filter((team): team is NonNullable<typeof team> => team !== null)
+
+      const uniqueTeams = [...new Map(teams.map(t => [t.id, t])).values()]
+
+      // Get divisions from squad members
+      const divisions = updatedSquad.members
+        .map(m => m.athlete.division)
+        .filter(Boolean)
+
+      const uniqueDivisions = [...new Set(divisions)]
+
+      let newSquadName: string
+
+      if (uniqueTeams.length === 0) {
+        // No teams (unaffiliated athletes) - keep current name or use "Unaffiliated"
+        const divisionPart = uniqueDivisions.length === 1 ? uniqueDivisions[0] : 'Mixed Division'
+        newSquadName = `Unaffiliated - ${divisionPart}`
+      } else if (uniqueTeams.length === 1) {
+        // Single team
+        const teamName = uniqueTeams[0].name
+        const divisionPart = uniqueDivisions.length === 1 ? uniqueDivisions[0] : 'Mixed Division'
+        newSquadName = `${teamName} - ${divisionPart}`
+      } else {
+        // Mixed teams (multiple teams)
+        const divisionPart = uniqueDivisions.length === 1 && uniqueDivisions[0]
+          ? uniqueDivisions[0]
+          : 'Mixed Division'
+        newSquadName = `Mixed Team - ${divisionPart}`
+      }
+
+      // Update squad name if it changed
+      if (updatedSquad.name !== newSquadName) {
+        await prisma.squad.update({
+          where: { id: squadId },
+          data: { name: newSquadName }
+        })
+      }
+    }
+
     return NextResponse.json(member, { status: 201 })
   } catch (error) {
     console.error('Error adding athlete to squad:', error)
@@ -151,6 +210,62 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         }
       }
     })
+
+    // Auto-update squad name based on remaining members
+    const updatedSquad = await prisma.squad.findUnique({
+      where: { id: squadId },
+      include: {
+        members: {
+          include: {
+            athlete: {
+              include: {
+                team: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+    if (updatedSquad && updatedSquad.members.length > 0) {
+      // Get unique teams
+      const teams = updatedSquad.members
+        .map(m => m.athlete.team)
+        .filter((team): team is NonNullable<typeof team> => team !== null)
+
+      const uniqueTeams = [...new Map(teams.map(t => [t.id, t])).values()]
+
+      // Get divisions
+      const divisions = updatedSquad.members
+        .map(m => m.athlete.division)
+        .filter(Boolean)
+
+      const uniqueDivisions = [...new Set(divisions)]
+
+      let newSquadName: string
+
+      if (uniqueTeams.length === 0) {
+        const divisionPart = uniqueDivisions.length === 1 ? uniqueDivisions[0] : 'Mixed Division'
+        newSquadName = `Unaffiliated - ${divisionPart}`
+      } else if (uniqueTeams.length === 1) {
+        const teamName = uniqueTeams[0].name
+        const divisionPart = uniqueDivisions.length === 1 ? uniqueDivisions[0] : 'Mixed Division'
+        newSquadName = `${teamName} - ${divisionPart}`
+      } else {
+        const divisionPart = uniqueDivisions.length === 1 && uniqueDivisions[0]
+          ? uniqueDivisions[0]
+          : 'Mixed Division'
+        newSquadName = `Mixed Team - ${divisionPart}`
+      }
+
+      // Update squad name if it changed
+      if (updatedSquad.name !== newSquadName) {
+        await prisma.squad.update({
+          where: { id: squadId },
+          data: { name: newSquadName }
+        })
+      }
+    }
 
     return NextResponse.json({ message: 'Athlete removed from squad' }, { status: 200 })
   } catch (error) {

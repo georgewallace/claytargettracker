@@ -10,9 +10,9 @@ interface UnassignedathletesProps {
 }
 
 export default function Unassignedathletes({ athletes, currentDisciplineId }: UnassignedathletesProps) {
-  // Group by division
+  // Group by division (use divisionOverride if set, otherwise use calculated division)
   const byDivision = athletes.reduce((acc, athlete) => {
-    const division = athlete.division || 'No Division'
+    const division = athlete.divisionOverride || athlete.division || 'No Division'
     if (!acc[division]) {
       acc[division] = []
     }

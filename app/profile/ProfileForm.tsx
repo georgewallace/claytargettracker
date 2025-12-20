@@ -36,7 +36,7 @@ const MONTHS = [
 ]
 const NSCA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA', 'Master']
 const ATA_CLASSES = ['A', 'AA', 'AAA']
-const NSSA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA', 'Master']
+const NSSA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA']
 
 export default function ProfileForm({ athlete }: ProfileFormProps) {
   const router = useRouter()

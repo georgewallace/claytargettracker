@@ -16,7 +16,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id } = await params
-    const { birthDay, birthMonth, birthYear, nscaClass, ataClass, grade, divisionOverride, isActive } = await request.json()
+    const { birthDay, birthMonth, birthYear, nscaClass, ataClass, nssaClass, grade, divisionOverride, isActive } = await request.json()
     
     // Check if user is a coach or admin
     if (user.role !== 'coach' && user.role !== 'admin') {
@@ -90,6 +90,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         birthYear: parsedBirthYear,
         nscaClass: nscaClass && nscaClass.trim() !== '' ? nscaClass.trim() : null,
         ataClass: ataClass && ataClass.trim() !== '' ? ataClass.trim() : null,
+        nssaClass: nssaClass && nssaClass.trim() !== '' ? nssaClass.trim() : null,
         grade: grade && grade.trim() !== '' ? grade.trim() : null,
         division,
         divisionOverride: divisionOverride && divisionOverride.trim() !== '' ? divisionOverride.trim() : null,

@@ -65,6 +65,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 id: true,
                 division: true,
                 gender: true,
+                nscaClass: true,
+                ataClass: true,
+                nssaClass: true,
                 user: {
                   select: {
                     name: true
@@ -80,12 +83,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             },
             scores: {
               select: {
-                station: true,
+                roundNumber: true,
+                stationNumber: true,
                 targets: true,
-                totalTargets: true
+                maxTargets: true
               },
               orderBy: {
-                station: 'asc'
+                stationNumber: 'asc'
               }
             }
           }

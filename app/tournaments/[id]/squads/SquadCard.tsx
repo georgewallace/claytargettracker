@@ -18,9 +18,6 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate,
   const [removing, setRemoving] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [updatingTeamOnly, setUpdatingTeamOnly] = useState(false)
-  const [isRenaming, setIsRenaming] = useState(false)
-  const [newName, setNewName] = useState(squad.name)
-  const [renamingError, setRenamingError] = useState('')
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [athleteToRemove, setathleteToRemove] = useState<any>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -151,43 +148,6 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate,
     }
   }
 
-  const handleRenameSubmit = async () => {
-    if (!newName.trim() || newName === squad.name) {
-      setIsRenaming(false)
-      setNewName(squad.name)
-      return
-    }
-
-    setRenamingError('')
-
-    try {
-      const response = await fetch(`/api/squads/${squad.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: newName.trim(),
-          tournamentId,
-          disciplineId
-        })
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to rename squad')
-      }
-
-      setIsRenaming(false)
-      onUpdate()
-    } catch (err: any) {
-      setRenamingError(err.message || 'An error occurred')
-    }
-  }
-
-  const handleRenameCancel = () => {
-    setIsRenaming(false)
-    setNewName(squad.name)
-    setRenamingError('')
-  }
 
   // Combine both refs
   const setRefs = (node: HTMLDivElement | null) => {
@@ -224,53 +184,8 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate,
               </svg>
             </button>
 
-            {/* Squad Name - Editable */}
-            {isRenaming ? (
-              <div className="flex items-center gap-1 flex-1">
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleRenameSubmit()
-                    if (e.key === 'Escape') handleRenameCancel()
-                  }}
-                  className="px-2 py-0.5 border border-indigo-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-semibold"
-                  autoFocus
-                />
-                <button
-                  onClick={handleRenameSubmit}
-                  className="text-green-600 hover:text-green-700 p-0.5 rounded hover:bg-green-50 transition"
-                  title="Save"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleRenameCancel}
-                  className="text-gray-600 hover:text-gray-700 p-0.5 rounded hover:bg-gray-100 transition"
-                  title="Cancel"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <>
-                <h4 className="text-sm font-semibold text-gray-900">{squad.name}</h4>
-                <button
-                  onClick={() => setIsRenaming(true)}
-                  className="text-gray-400 hover:text-gray-600 p-0.5 rounded hover:bg-gray-100 transition"
-                  title="Rename squad"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </button>
-              </>
-            )}
+            {/* Squad Name - Auto-generated, read-only */}
+            <h4 className="text-sm font-semibold text-gray-900">{squad.name}</h4>
 
             <div className="flex items-center gap-1.5">
               <p className={`text-xs ${isFull ? 'text-green-600 font-medium' : isPartial ? 'text-amber-600 font-medium' : 'text-gray-600'}`}>
@@ -297,14 +212,7 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate,
             </button>
           )}
         </div>
-        
-        {/* Rename Error */}
-        {renamingError && (
-          <div className="text-xs text-red-600 ml-10">
-            {renamingError}
-          </div>
-        )}
-        
+
         {/* Squad Classification and Team-Only Toggle */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -312,20 +220,14 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate,
             <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getSquadTypeBadge(classification.type)}`}>
               {classification.type === 'division' ? '🏆 Division' : '🌐 Open'}
             </span>
-            
-            {classification.type === 'division' && classification.team && (
-              <span className="text-xs text-gray-600">
-                {classification.team} - {classification.division}
-              </span>
-            )}
-            
+
             {squad.teamOnly && (
               <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium border border-blue-300">
                 🔒 Team Only
               </span>
             )}
           </div>
-          
+
           {/* Team-Only Toggle */}
           <label className="flex items-center gap-2 cursor-pointer">
             <span className="text-xs text-gray-600">Team Only:</span>

@@ -310,7 +310,7 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
 
                 {/* Configuration Fields */}
                 {isSelected && (
-                  <div className="px-4 pb-4 space-y-3">
+                  <div className="px-4 pb-4 space-y-3 hidden">
                     <div className="border-t border-indigo-200 pt-3">
                       {/* Trap/Skeet: Rounds */}
                       {(discipline.name === 'trap' || discipline.name === 'skeet') && (
@@ -419,10 +419,12 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
       </div>
 
       {/* Shoot-Off Configuration */}
-      <ShootOffSettings
-        config={shootOffConfig}
-        onChange={setShootOffConfig}
-      />
+      <div className="hidden">
+        <ShootOffSettings
+          config={shootOffConfig}
+          onChange={setShootOffConfig}
+        />
+      </div>
 
       {/* Feature Toggles Section */}
       <div className="bg-gray-50 p-6 rounded-lg space-y-4">

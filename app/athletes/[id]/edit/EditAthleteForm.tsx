@@ -12,6 +12,7 @@ interface Athlete {
   gender: string | null
   nscaClass: string | null
   ataClass: string | null
+  nssaClass: string | null
   grade: string | null
   division: string | null
   divisionOverride: string | null
@@ -48,6 +49,7 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
     birthDate: getBirthDateString(),
     nscaClass: athlete.nscaClass || '',
     ataClass: athlete.ataClass || '',
+    nssaClass: athlete.nssaClass || '',
     grade: athlete.grade || '',
     divisionOverride: athlete.divisionOverride || '',
     isActive: athlete.isActive
@@ -455,6 +457,23 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
           placeholder="e.g., AA, A, B, C, D"
         />
         <p className="text-xs text-gray-500 mt-1">ATA (Amateur Trapshooting Association) classification</p>
+      </div>
+
+      {/* NSSA Class */}
+      <div>
+        <label htmlFor="nssaClass" className="block text-sm font-medium text-gray-700 mb-2">
+          NSSA Class
+        </label>
+        <input
+          id="nssaClass"
+          name="nssaClass"
+          type="text"
+          value={formData.nssaClass}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="e.g., AA, A, B, C, D, E"
+        />
+        <p className="text-xs text-gray-500 mt-1">NSSA (National Skeet Shooting Association) classification</p>
       </div>
 
       {/* Division Explanation */}

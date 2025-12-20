@@ -42,6 +42,11 @@ export const divisionColors: Record<string, string> = {
   'Novice': 'bg-green-100 text-green-800 border-green-300',
   'Intermediate': 'bg-blue-100 text-blue-800 border-blue-300',
   'Junior Varsity': 'bg-purple-100 text-purple-800 border-purple-300',
+  'Varsity': 'bg-orange-100 text-orange-800 border-orange-300',
+  'Collegiate': 'bg-red-100 text-red-800 border-red-300',
+  'Open': 'bg-indigo-100 text-indigo-800 border-indigo-300',
+  'Unassigned': 'bg-gray-100 text-gray-600 border-gray-300',
+  // Legacy support (backwards compatibility)
   'Senior': 'bg-orange-100 text-orange-800 border-orange-300',
   'College-Trade School': 'bg-red-100 text-red-800 border-red-300',
 }
@@ -204,7 +209,7 @@ export function generateSquadAssignments(
   }
 
   // Group by division
-  const divisions = ['Novice', 'Intermediate', 'Junior Varsity', 'Senior', 'College-Trade School']
+  const divisions = ['Novice', 'Intermediate', 'Junior Varsity', 'Varsity', 'Collegiate', 'Open']
 
   for (const division of divisions) {
     const divisionAthletes = unassigned.filter(s => s.division === division)

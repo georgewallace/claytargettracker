@@ -4,6 +4,8 @@ import { getCurrentUser } from '@/lib/auth'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import TournamentActionsMenu from '@/components/TournamentActionsMenu'
+import BulkImportButton from './BulkImportButton'
+import UserRoleManagement from './UserRoleManagement'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -219,6 +221,51 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
               Coaching staff
             </div>
           </div>
+        </div>
+
+        {/* Bulk Import Section */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Bulk User Import</h2>
+          <p className="text-sm text-gray-600 mb-6">
+            Import multiple athletes or coaches at once from an Excel file. This creates placeholder accounts
+            that will be automatically linked when users register with matching names.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Athletes Import */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Import Athletes</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Upload an Excel file with athlete information including names, teams, grades, and classifications.
+              </p>
+              <BulkImportButton type="athletes" />
+            </div>
+
+            {/* Coaches Import */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Import Coaches</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Upload an Excel file with coach information including names, emails, and team assignments.
+              </p>
+              <BulkImportButton type="coaches" />
+            </div>
+          </div>
+
+          {/* How It Works */}
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="font-semibold text-blue-900 mb-2">How Auto-Linking Works:</h4>
+            <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+              <li>Import creates placeholder accounts with temporary emails (name@placeholder.local)</li>
+              <li>When a user registers with a matching name, their account is automatically linked</li>
+              <li>The placeholder email is replaced with their real email and password</li>
+              <li>All athlete/coach data (team, grades, classes) is preserved and linked to their account</li>
+            </ol>
+          </div>
+        </div>
+
+        {/* User Role Management */}
+        <div className="mb-8">
+          <UserRoleManagement />
         </div>
 
         {/* Quick Actions */}
@@ -523,7 +570,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
               <div className="space-y-4">
                 {recentScores.map((shoot) => {
                   const totalHit = shoot.scores.reduce((sum, score) => sum + score.targets, 0)
-                  const totalTargets = shoot.scores.reduce((sum, score) => sum + score.totalTargets, 0)
+                  const totalTargets = shoot.scores.reduce((sum, score) => sum + score.maxTargets, 0)
                   const percentage = totalTargets > 0 ? Math.round((totalHit / totalTargets) * 100) : 0
                   
                   return (

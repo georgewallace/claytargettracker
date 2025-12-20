@@ -28,9 +28,26 @@ interface GenerateTimeSlotsModalProps {
   onSuccess: () => void
 }
 
+// Helper to get default squad capacity based on discipline
+const getDefaultSquadCapacity = (disciplineName: string): number => {
+  switch (disciplineName) {
+    case 'trap':
+      return 5
+    case 'skeet':
+    case 'sporting_clays':
+      return 3
+    default:
+      return 5
+  }
+}
+
 export default function GenerateTimeSlotsModal({ tournament, onClose, onSuccess }: GenerateTimeSlotsModalProps) {
   const tournamentDates = getDateRange(new Date(tournament.startDate), new Date(tournament.endDate))
   const timeOptions = getTimeOptions()
+
+  // Get initial discipline name for default squad capacity
+  const initialDiscipline = tournament.disciplines[0]?.discipline
+  const initialSquadCapacity = initialDiscipline ? getDefaultSquadCapacity(initialDiscipline.name) : 5
 
   const [formData, setFormData] = useState({
     disciplineId: tournament.disciplines[0]?.disciplineId || '',
@@ -38,7 +55,7 @@ export default function GenerateTimeSlotsModal({ tournament, onClose, onSuccess 
     startTime: '08:00',
     endTime: '17:00',
     slotDuration: 120, // minutes
-    squadCapacity: 5,
+    squadCapacity: initialSquadCapacity,
     fieldNumbers: '1',
     stationNumbers: '1'
   })
@@ -51,6 +68,17 @@ export default function GenerateTimeSlotsModal({ tournament, onClose, onSuccess 
   const selectedDiscipline = tournament.disciplines.find(d => d.disciplineId === formData.disciplineId)
   const isSportingClays = selectedDiscipline?.discipline.name === 'sporting_clays'
   const isSkeetOrTrap = selectedDiscipline?.discipline.name === 'skeet' || selectedDiscipline?.discipline.name === 'trap'
+
+  // Update squad capacity when discipline changes
+  useEffect(() => {
+    if (selectedDiscipline) {
+      const defaultCapacity = getDefaultSquadCapacity(selectedDiscipline.discipline.name)
+      setFormData(prev => ({
+        ...prev,
+        squadCapacity: defaultCapacity
+      }))
+    }
+  }, [formData.disciplineId, selectedDiscipline])
 
   // Parse field/station numbers from input string
   // Supports: "1", "1,2,3", "1-3", "1, 2, 3", "1-3, 5, 7-9"
