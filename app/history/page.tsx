@@ -58,7 +58,7 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
   // Calculate totals for each shoot
   const shootsWithTotals = shoots.map((shoot: any) => {
     const totalTargets = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
-    const totalPossible = shoot.scores.reduce((sum: number, score: any) => sum + score.totalTargets, 0)
+    const totalPossible = shoot.scores.reduce((sum: number, score: any) => sum + score.maxTargets, 0)
     const percentage = totalPossible > 0 ? ((totalTargets / totalPossible) * 100).toFixed(1) : '0'
     
     return {
@@ -82,7 +82,7 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
     }
     
     const targets = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
-    const possible = shoot.scores.reduce((sum: number, score: any) => sum + score.totalTargets, 0)
+    const possible = shoot.scores.reduce((sum: number, score: any) => sum + score.maxTargets, 0)
     
     acc[disciplineId].totalShoots++
     acc[disciplineId].totalTargets += targets
@@ -210,7 +210,7 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
                             <span 
                               key={score.id}
                               className="text-xs text-gray-600"
-                              title={`Station ${score.station}: ${score.targets}/${score.totalTargets}`}
+                              title={`Station ${score.stationNumber}: ${score.targets}/${score.maxTargets}`}
                             >
                               {score.targets}
                             </span>

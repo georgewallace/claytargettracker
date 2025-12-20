@@ -359,7 +359,7 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
                                   {score.targetsHit}
                                 </span>
                                 <span className="text-sm text-gray-500 ml-1">
-                                  / {score.totalTargets}
+                                  / {score.maxTargets}
                                 </span>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-center">

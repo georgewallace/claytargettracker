@@ -171,7 +171,7 @@ export default function ScoreEntry({ tournament }: ScoreEntryProps) {
               scoresObj[shoot.athleteId] = {}
             }
             shoot.scores.forEach((score: any) => {
-              scoresObj[shoot.athleteId][score.station] = score.targets
+              scoresObj[shoot.athleteId][score.stationNumber] = score.targets
             })
           })
         }
