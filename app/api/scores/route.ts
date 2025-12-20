@@ -23,7 +23,7 @@ export async function GET() {
       Round: score.round,
       TargetsThrown: score.targetsThrown,
       TargetsHit: score.targetsHit,
-      StationBreakdown: score.stationNumberBreakdown || undefined,
+      StationBreakdown: score.stationBreakdown || undefined,
       Field: score.field || undefined,
       Time: score.time || undefined,
       Notes: score.notes || undefined,
