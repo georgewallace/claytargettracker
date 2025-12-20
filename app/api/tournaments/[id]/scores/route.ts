@@ -65,9 +65,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
       include: {
         scores: {
-          orderBy: {
-            station: 'asc'
-          }
+          orderBy: [
+            { roundNumber: 'asc' },
+            { stationNumber: 'asc' }
+          ]
         }
       }
     })
