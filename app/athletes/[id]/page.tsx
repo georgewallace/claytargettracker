@@ -93,7 +93,7 @@ export default async function athleteProfilePage({ params, searchParams }: PageP
   // Calculate statistics
   const shootsWithTotals = athlete.shoots.map(shoot => {
     const totalTargets = shoot.scores.reduce((sum, score) => sum + score.targets, 0)
-    const totalPossible = shoot.scores.reduce((sum, score) => sum + score.totalTargets, 0)
+    const totalPossible = shoot.scores.reduce((sum, score) => sum + score.maxTargets, 0)
     const percentage = totalPossible > 0 ? ((totalTargets / totalPossible) * 100) : 0
     
     return {
