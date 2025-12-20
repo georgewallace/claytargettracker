@@ -298,16 +298,6 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                 </Link>
               )}
 
-              {/* Enter Scores button for coaches and admins when enabled */}
-              {tournament.enableScores && user && (user.role === 'coach' || user.role === 'admin') && (
-                <Link
-                  href={`/tournaments/${tournament.id}/scores`}
-                  className="bg-purple-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
-                >
-                  Enter Scores
-                </Link>
-              )}
-
               {/* Import Scores button for admins when enabled */}
               {tournament.enableScores && user && user.role === 'admin' && (
                 <ImportScoresButton tournamentId={tournament.id} />
