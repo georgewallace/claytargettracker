@@ -33,7 +33,10 @@ export default async function ProfilePage() {
           tournament: true,
           discipline: true,
           scores: {
-            orderBy: { station: 'asc' }
+            orderBy: [
+              { roundNumber: 'asc' },
+              { stationNumber: 'asc' }
+            ]
           }
         },
         orderBy: {

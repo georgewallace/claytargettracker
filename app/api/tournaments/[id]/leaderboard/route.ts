@@ -88,9 +88,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 targets: true,
                 maxTargets: true
               },
-              orderBy: {
-                stationNumber: 'asc'
-              }
+              orderBy: [
+                { roundNumber: 'asc' },
+                { stationNumber: 'asc' }
+              ]
             }
           }
         },

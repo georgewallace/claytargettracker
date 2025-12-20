@@ -107,7 +107,10 @@ export default async function TeamHistoryPage({ searchParams }: PageProps) {
           tournament: true,
           discipline: true,
           scores: {
-            orderBy: { station: 'asc' }
+            orderBy: [
+              { roundNumber: 'asc' },
+              { stationNumber: 'asc' }
+            ]
           }
         },
         orderBy: {

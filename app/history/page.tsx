@@ -42,7 +42,10 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
       tournament: true,
       discipline: true,
       scores: {
-        orderBy: { station: 'asc' }
+        orderBy: [
+          { roundNumber: 'asc' },
+          { stationNumber: 'asc' }
+        ]
       }
     },
     orderBy: {
