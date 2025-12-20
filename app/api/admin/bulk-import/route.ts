@@ -101,13 +101,13 @@ async function processAthleteImport(data: any[], results: any) {
       const name = `${firstName} ${lastName}`
 
       // Check if user already exists by email
-      let existingUser = email ? await prisma.user.findUnique({
+      const existingUserCheck = email ? await prisma.user.findUnique({
         where: { email },
         include: { athlete: true }
       }) : null
 
       // Skip if user exists and already has athlete profile
-      if (existingUser?.athlete) {
+      if (existingUserCheck?.athlete) {
         results.skipped++
         continue
       }
@@ -126,13 +126,16 @@ async function processAthleteImport(data: any[], results: any) {
         }
       }
 
-      // If user doesn't exist, create a placeholder user
-      if (!existingUser) {
-        // Use email if provided, otherwise create a placeholder
+      // Get or create user
+      let userId: string
+      if (existingUserCheck) {
+        userId = existingUserCheck.id
+      } else {
+        // Create a placeholder user
         const userEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@placeholder.local`
         const defaultPassword = await hashPassword('ChangeMe123!')
 
-        existingUser = await prisma.user.create({
+        const newUser = await prisma.user.create({
           data: {
             email: userEmail,
             name,
@@ -140,6 +143,7 @@ async function processAthleteImport(data: any[], results: any) {
             role: 'athlete'
           }
         })
+        userId = newUser.id
       }
 
       // Calculate division
@@ -148,7 +152,7 @@ async function processAthleteImport(data: any[], results: any) {
       // Create athlete profile
       await prisma.athlete.create({
         data: {
-          userId: existingUser.id,
+          userId,
           teamId: team?.id || null,
           grade: grade || null,
           gender: gender === 'male' || gender === 'female' ? gender : null,
