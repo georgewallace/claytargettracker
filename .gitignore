@@ -56,3 +56,5 @@ next-env.d.ts
 # private planning documents
 PRODUCTIZATION_ROADMAP.md
 appfeedback.md
+
+*.md
