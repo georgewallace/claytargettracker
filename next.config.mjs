@@ -29,6 +29,31 @@ const nextConfig = {
 
   // Ensure Prisma binaries are included in serverless functions (Next.js 16+)
   serverExternalPackages: ['@prisma/client', '@prisma/engines'],
+
+  // Production optimizations - reduce build size
+  productionBrowserSourceMaps: false, // Disable source maps in production
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+
+  // Optimize bundle
+  swcMinify: true,
+
+  // Exclude large dependencies from client bundle
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Don't bundle these on the client side
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      }
+    }
+    return config
+  },
 }
 
 export default withBundleAnalyzer(nextConfig)
