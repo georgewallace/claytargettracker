@@ -74,10 +74,10 @@ export async function POST(request: NextRequest) {
       return addSecurityHeaders(response)
     }
 
-    const { email, password, name, role, grade, firstYearCompetition, gender, birthMonth, birthDay, birthYear } = await request.json()
+    const { email, password, firstName, lastName, role, grade, firstYearCompetition, gender, birthMonth, birthDay, birthYear } = await request.json()
 
     // Validate input
-    if (!email || !password || !name) {
+    if (!email || !password || !firstName || !lastName) {
       const response = NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -104,15 +104,28 @@ export async function POST(request: NextRequest) {
       return addSecurityHeaders(response)
     }
 
-    // Sanitize name
-    const sanitizedName = sanitizeInput(name)
-    if (sanitizedName.length < 2 || sanitizedName.length > 100) {
+    // Sanitize names
+    const sanitizedFirstName = sanitizeInput(firstName)
+    const sanitizedLastName = sanitizeInput(lastName)
+
+    if (sanitizedFirstName.length < 1 || sanitizedFirstName.length > 50) {
       const response = NextResponse.json(
-        { error: 'Name must be between 2 and 100 characters' },
+        { error: 'First name must be between 1 and 50 characters' },
         { status: 400 }
       )
       return addSecurityHeaders(response)
     }
+
+    if (sanitizedLastName.length < 1 || sanitizedLastName.length > 50) {
+      const response = NextResponse.json(
+        { error: 'Last name must be between 1 and 50 characters' },
+        { status: 400 }
+      )
+      return addSecurityHeaders(response)
+    }
+
+    // Create full name for backwards compatibility
+    const sanitizedName = `${sanitizedFirstName} ${sanitizedLastName}`.trim()
     
     // Validate role
     const validRoles = ['athlete', 'coach', 'admin']
@@ -161,6 +174,9 @@ export async function POST(request: NextRequest) {
         data: {
           email,
           password: hashedPassword,
+          name: sanitizedName,
+          firstName: sanitizedFirstName,
+          lastName: sanitizedLastName,
           role: userRole, // Update role if needed
           // Update athlete profile if exists and user is athlete
           ...(userRole === 'athlete' && placeholderUser.athlete && {
@@ -221,6 +237,8 @@ export async function POST(request: NextRequest) {
           email,
           password: hashedPassword,
           name: sanitizedName,
+          firstName: sanitizedFirstName,
+          lastName: sanitizedLastName,
           role: userRole,
           // Only create athlete profile for athlete role if no existing profile
           ...(userRole === 'athlete' && {
