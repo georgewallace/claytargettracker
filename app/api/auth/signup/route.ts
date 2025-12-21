@@ -23,14 +23,22 @@ function calculateDivision(
 
   // High school (9th-12th)
   if (['freshman', 'sophomore', 'junior', 'senior'].includes(grade)) {
-    // JV: First year or Freshman
-    if (firstYearCompetition === true || grade === 'freshman') {
+    // JV: Freshman (always) OR 10-12th grade first year
+    if (grade === 'freshman') {
       return 'Junior Varsity'
     }
-    // Varsity: Not first year and not freshman
-    if (firstYearCompetition === false) {
+    if (['sophomore', 'junior', 'senior'].includes(grade) && firstYearCompetition === true) {
+      return 'Junior Varsity'
+    }
+    // Varsity: 10-12th grade not first year
+    if (['sophomore', 'junior', 'senior'].includes(grade) && firstYearCompetition === false) {
       return 'Varsity'
     }
+  }
+
+  // College/Trade School
+  if (grade === 'college') {
+    return 'Collegiate'
   }
 
   return undefined

@@ -36,14 +36,22 @@ export default function SignupPage() {
 
     // High school (9th-12th)
     if (['freshman', 'sophomore', 'junior', 'senior'].includes(grade)) {
-      // JV: First year or Freshman
-      if (firstYearCompetition === true || grade === 'freshman') {
+      // JV: Freshman (always) OR 10-12th grade first year
+      if (grade === 'freshman') {
         return 'Junior Varsity'
       }
-      // Varsity: Not first year and not freshman
-      if (firstYearCompetition === false) {
+      if (['sophomore', 'junior', 'senior'].includes(grade) && firstYearCompetition === true) {
+        return 'Junior Varsity'
+      }
+      // Varsity: 10-12th grade not first year
+      if (['sophomore', 'junior', 'senior'].includes(grade) && firstYearCompetition === false) {
         return 'Varsity'
       }
+    }
+
+    // College/Trade School
+    if (grade === 'college') {
+      return 'Collegiate'
     }
 
     return ''
@@ -213,10 +221,11 @@ export default function SignupPage() {
                   <option value="sophomore">10th Grade (Sophomore)</option>
                   <option value="junior">11th Grade (Junior)</option>
                   <option value="senior">12th Grade (Senior)</option>
+                  <option value="college">College/Trade School</option>
                 </select>
               </div>
 
-              {['freshman', 'sophomore', 'junior', 'senior'].includes(grade) && (
+              {['sophomore', 'junior', 'senior'].includes(grade) && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Is this your first year of competition?
@@ -304,7 +313,7 @@ export default function SignupPage() {
                     {division}
                   </p>
                   <p className="text-xs text-indigo-700 mt-1">
-                    Based on your grade{['freshman', 'sophomore', 'junior', 'senior'].includes(grade) && firstYearCompetition !== null ? ' and competition experience' : ''}
+                    Based on your grade{['sophomore', 'junior', 'senior'].includes(grade) && firstYearCompetition !== null ? ' and competition experience' : ''}
                   </p>
                 </div>
               )}
