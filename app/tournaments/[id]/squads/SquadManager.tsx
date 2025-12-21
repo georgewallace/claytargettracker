@@ -304,10 +304,16 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
     // Check if dragging a squad
     if (activeId.startsWith('squad-')) {
       const squadId = activeId.replace('squad-', '')
-      const squad = tournament.timeSlots
-        .flatMap(slot => slot.squads)
-        .find((s: any) => s.id === squadId)
-      setDraggedSquad(squad || null)
+      // Find squad and attach its time slot's squadCapacity
+      let squadWithCapacity = null
+      for (const slot of tournament.timeSlots) {
+        const squad = slot.squads.find((s: any) => s.id === squadId)
+        if (squad) {
+          squadWithCapacity = { ...squad, timeSlotCapacity: slot.squadCapacity || 5 }
+          break
+        }
+      }
+      setDraggedSquad(squadWithCapacity)
       return
     }
     
@@ -1254,7 +1260,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
               </svg>
               <h4 className="font-semibold text-gray-900">{draggedSquad.name}</h4>
               <p className="text-sm text-gray-600">
-                ({draggedSquad.members.length}/{draggedSquad.capacity})
+                ({draggedSquad.members.length}/{draggedSquad.timeSlotCapacity || draggedSquad.capacity})
               </p>
             </div>
             <p className="text-xs text-gray-500 mt-2">

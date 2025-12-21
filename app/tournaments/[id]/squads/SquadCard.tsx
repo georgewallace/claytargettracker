@@ -7,6 +7,7 @@ import AthleteCard from './AthleteCard'
 
 interface SquadCardProps {
   squad: any
+  squadCapacity: number
   tournamentId: string
   disciplineId: string
   onUpdate: () => void
@@ -14,7 +15,7 @@ interface SquadCardProps {
   coachedTeamId?: string | null
 }
 
-export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate, userRole, coachedTeamId }: SquadCardProps) {
+export default function SquadCard({ squad, squadCapacity, tournamentId, disciplineId, onUpdate, userRole, coachedTeamId }: SquadCardProps) {
   const [removing, setRemoving] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [updatingTeamOnly, setUpdatingTeamOnly] = useState(false)
@@ -30,7 +31,8 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate,
     id: `squad-${squad.id}`,
   })
 
-  const availableCapacity = getSquadAvailableCapacity(squad)
+  // Use the time slot's squadCapacity instead of the stored squad.capacity
+  const availableCapacity = squadCapacity - squad.members.length
   const isFull = availableCapacity === 0
   const isPartial = squad.members.length > 0 && !isFull
   const isEmpty = squad.members.length === 0
@@ -189,7 +191,7 @@ export default function SquadCard({ squad, tournamentId, disciplineId, onUpdate,
 
             <div className="flex items-center gap-1.5">
               <p className={`text-xs ${isFull ? 'text-green-600 font-medium' : isPartial ? 'text-amber-600 font-medium' : 'text-gray-600'}`}>
-                {squad.members.length}/{squad.capacity}
+                {squad.members.length}/{squadCapacity}
                 {isFull && ' ✓'}
               </p>
               {isPartial && (

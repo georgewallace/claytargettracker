@@ -79,6 +79,7 @@ export default function TimeSlotSection({ timeSlot, tournamentId, onUpdate, user
             <SquadCard
               key={squad.id}
               squad={squad}
+              squadCapacity={timeSlot.squadCapacity || 5}
               tournamentId={tournamentId}
               disciplineId={timeSlot.disciplineId}
               onUpdate={onUpdate}
