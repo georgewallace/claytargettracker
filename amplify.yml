@@ -42,6 +42,10 @@ frontend:
         - echo "=== Setting up standalone output ==="
         - cp -r .next/static .next/standalone/.next/static
         - cp -r public .next/standalone/public
+        # Copy required server files for Amplify
+        - cp .next/required-server-files.json .next/standalone/.next/required-server-files.json
+        - cp .next/prerender-manifest.json .next/standalone/.next/prerender-manifest.json || echo "No prerender manifest"
+        - cp .next/routes-manifest.json .next/standalone/.next/routes-manifest.json || echo "No routes manifest"
         # Create .env.production for Lambda runtime
         - echo "DATABASE_URL=$DATABASE_URL" > .next/standalone/.env.production
         - echo "AUTH_SECRET=$AUTH_SECRET" >> .next/standalone/.env.production
