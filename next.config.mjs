@@ -41,6 +41,9 @@ const nextConfig = {
   // Optimize bundle
   swcMinify: true,
 
+  // Turbopack config (Next.js 16+)
+  turbopack: {},
+
   // Exclude large dependencies from client bundle
   webpack: (config, { isServer }) => {
     if (!isServer) {
