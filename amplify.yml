@@ -53,7 +53,13 @@ frontend:
         - echo "=== Verifying standalone structure ==="
         - ls -la .next/standalone/
         - ls -la .next/standalone/.next/server/ || echo "No server directory in standalone"
+        - echo "Checking for trace files in server/app:"
+        - find .next/standalone/.next/server/app -name "*.nft.json" -o -name "*.js" | head -20 || echo "No trace files in app"
+        - echo "Checking for trace files in server/pages:"
+        - find .next/standalone/.next/server/pages -name "*.nft.json" -o -name "*.js" | head -20 || echo "No trace files in pages"
         - ls -la .next/standalone/*.json || echo "No JSON files in root"
+        - echo "Checking main .next/server for comparison:"
+        - find .next/server/app -name "*.nft.json" | head -10 || echo "No .nft.json in main build"
         # Create .env.production for Lambda runtime
         - echo "DATABASE_URL=$DATABASE_URL" > .next/standalone/.env.production
         - echo "AUTH_SECRET=$AUTH_SECRET" >> .next/standalone/.env.production
