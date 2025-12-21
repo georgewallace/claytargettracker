@@ -27,7 +27,6 @@ frontend:
     build:
       commands:
         - npm run build
-        - rm -rf node_modules/canvas
         # Verify Prisma binaries were generated
         - echo "=== Verifying Prisma binaries for AWS Lambda ==="
         - find node_modules/.prisma/client -name "*rhel-openssl-3.0.x.so.node" -ls || echo "RHEL binary NOT FOUND!"
