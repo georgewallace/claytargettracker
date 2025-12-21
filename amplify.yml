@@ -51,7 +51,10 @@ frontend:
         - cp .next/routes-manifest.json .next/standalone/routes-manifest.json || echo "No routes-manifest.json"
         - cp .next/prerender-manifest.json .next/standalone/prerender-manifest.json || echo "No prerender-manifest.json"
         - echo "=== Verifying standalone structure ==="
-        - ls -la .next/standalone/
+        - ls -la .next/standalone/ | grep -E "server.js|package.json|\.next"
+        - echo "Checking for server.js:"
+        - ls -la .next/standalone/server.js || echo "No server.js found!"
+        - echo "Checking .next/server directory:"
         - ls -la .next/standalone/.next/server/ || echo "No server directory in standalone"
         - echo "Checking for trace files in server/app:"
         - find .next/standalone/.next/server/app -name "*.nft.json" -o -name "*.js" | head -20 || echo "No trace files in app"
