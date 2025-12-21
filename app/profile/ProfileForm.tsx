@@ -29,10 +29,16 @@ interface ProfileFormProps {
   athlete: athlete
 }
 
-const GRADES = ['6', '7', '8', '9', '10', '11', '12', 'College']
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+const GRADES = [
+  { value: '5th', label: '5th Grade' },
+  { value: '6th', label: '6th Grade' },
+  { value: '7th', label: '7th Grade' },
+  { value: '8th', label: '8th Grade' },
+  { value: 'freshman', label: '9th Grade (Freshman)' },
+  { value: 'sophomore', label: '10th Grade (Sophomore)' },
+  { value: 'junior', label: '11th Grade (Junior)' },
+  { value: 'senior', label: '12th Grade (Senior)' },
+  { value: 'college', label: 'College/Trade School' }
 ]
 const NSCA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA', 'Master']
 const ATA_CLASSES = ['A', 'AA', 'AAA']
@@ -160,8 +166,8 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
             required
           >
             <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
           </select>
           <p className="text-xs text-gray-500 mt-1">
             Required for tournament HOA calculations
@@ -181,7 +187,7 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
           >
             <option value="">Select Grade</option>
             {GRADES.map(grade => (
-              <option key={grade} value={grade}>{grade}</option>
+              <option key={grade.value} value={grade.value}>{grade.label}</option>
             ))}
           </select>
         </div>
@@ -195,12 +201,11 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
             id="birthDate"
             type="date"
             value={formData.birthDate}
-            onChange={(e) => handleChange('birthDate', e.target.value)}
-            max={new Date().toISOString().split('T')[0]}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            disabled
+            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Used for age calculation and division assignment
+            Date of birth cannot be changed after account creation
           </p>
         </div>
 
