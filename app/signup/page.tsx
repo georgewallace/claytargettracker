@@ -18,16 +18,14 @@ export default function SignupPage() {
   const [grade, setGrade] = useState('')
   const [firstYearCompetition, setFirstYearCompetition] = useState<boolean | null>(null)
   const [gender, setGender] = useState('')
-  const [birthMonth, setBirthMonth] = useState('')
-  const [birthDay, setBirthDay] = useState('')
-  const [birthYear, setBirthYear] = useState('')
+  const [birthDate, setBirthDate] = useState('')
 
   // Calculate division based on grade and first year status
   const calculateDivision = (): string => {
     if (!grade) return ''
 
-    // Novice: 6th grade and below
-    if (['6th', '5th', '4th', '3rd', '2nd', '1st', 'kindergarten'].includes(grade)) {
+    // Novice: 5th and 6th grade
+    if (grade === '5th' || grade === '6th') {
       return 'Novice'
     }
 
@@ -67,9 +65,14 @@ export default function SignupPage() {
         payload.grade = grade
         payload.firstYearCompetition = firstYearCompetition
         payload.gender = gender
-        payload.birthMonth = birthMonth ? parseInt(birthMonth) : undefined
-        payload.birthDay = birthDay ? parseInt(birthDay) : undefined
-        payload.birthYear = birthYear ? parseInt(birthYear) : undefined
+
+        // Parse birthdate if provided
+        if (birthDate) {
+          const date = new Date(birthDate)
+          payload.birthMonth = date.getMonth() + 1 // JavaScript months are 0-indexed
+          payload.birthDay = date.getDate()
+          payload.birthYear = date.getFullYear()
+        }
       }
 
       const response = await fetch('/api/auth/signup', {
@@ -202,11 +205,6 @@ export default function SignupPage() {
                   required
                 >
                   <option value="">Select grade</option>
-                  <option value="kindergarten">Kindergarten</option>
-                  <option value="1st">1st Grade</option>
-                  <option value="2nd">2nd Grade</option>
-                  <option value="3rd">3rd Grade</option>
-                  <option value="4th">4th Grade</option>
                   <option value="5th">5th Grade</option>
                   <option value="6th">6th Grade</option>
                   <option value="7th">7th Grade</option>
@@ -282,57 +280,19 @@ export default function SignupPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-2">
                   Date of Birth
                 </label>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <select
-                      value={birthMonth}
-                      onChange={(e) => setBirthMonth(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      required
-                    >
-                      <option value="">Month</option>
-                      <option value="1">January</option>
-                      <option value="2">February</option>
-                      <option value="3">March</option>
-                      <option value="4">April</option>
-                      <option value="5">May</option>
-                      <option value="6">June</option>
-                      <option value="7">July</option>
-                      <option value="8">August</option>
-                      <option value="9">September</option>
-                      <option value="10">October</option>
-                      <option value="11">November</option>
-                      <option value="12">December</option>
-                    </select>
-                  </div>
-                  <div>
-                    <input
-                      type="number"
-                      placeholder="Day"
-                      min="1"
-                      max="31"
-                      value={birthDay}
-                      onChange={(e) => setBirthDay(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="number"
-                      placeholder="Year"
-                      min="1950"
-                      max={new Date().getFullYear()}
-                      value={birthYear}
-                      onChange={(e) => setBirthYear(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      required
-                    />
-                  </div>
-                </div>
+                <input
+                  id="birthDate"
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  min="1950-01-01"
+                  max={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
               </div>
 
               {division && (

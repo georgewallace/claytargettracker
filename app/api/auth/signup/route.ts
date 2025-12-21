@@ -11,8 +11,8 @@ function calculateDivision(
 ): string | undefined {
   if (!grade) return undefined
 
-  // Novice: 6th grade and below
-  if (['6th', '5th', '4th', '3rd', '2nd', '1st', 'kindergarten'].includes(grade)) {
+  // Novice: 5th and 6th grade
+  if (grade === '5th' || grade === '6th') {
     return 'Novice'
   }
 
