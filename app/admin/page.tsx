@@ -189,7 +189,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           {/* Total Athletes */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-gray-500 text-sm font-medium">Total aSthletes</h3>
+              <h3 className="text-gray-500 text-sm font-medium">Total Athletes</h3>
               <span className="text-3xl">👥</span>
             </div>
             <div className="text-3xl font-bold text-gray-900">{athleteCount}</div>
