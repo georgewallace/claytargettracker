@@ -896,33 +896,33 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         </div>
       )}
 
-      {/* Divisions View - Compact Grid */}
+      {/* Divisions View - Compact Grid with Classes Styling */}
       {activeView === 'divisions' && (
         <div className="space-y-3">
           {tournament.disciplines.map((td: any) => {
             const disciplineId = td.disciplineId
             const discipline = td.discipline
             const disciplineDivisions = athletesByDisciplineAndDivision[disciplineId]
-            
+
             if (!disciplineDivisions || Object.keys(disciplineDivisions).length === 0) {
               return null
             }
-            
+
             return (
-              <div key={disciplineId} className="space-y-2">
+              <div key={disciplineId} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                 {/* Discipline Header */}
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
+                <div className="mb-3">
                   <h2 className="text-lg font-bold text-gray-900">{discipline.displayName}</h2>
                   <p className="text-gray-600 text-xs">
                     {Object.keys(disciplineDivisions).length} division{Object.keys(disciplineDivisions).length !== 1 ? 's' : ''}
                   </p>
                 </div>
-                
+
                 {/* Division Tables Grid - More columns to fit on one screen */}
                 <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                   {Object.entries(disciplineDivisions).map(([division, athletes]) => (
-                    <div key={`${disciplineId}-${division}`} className="bg-stone-900/40 backdrop-blur rounded-lg overflow-hidden">
-                      <div className="bg-gray-100 p-2 border-b border-gray-300">
+                    <div key={`${disciplineId}-${division}`} className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="bg-white p-2 border-b border-gray-200">
                         <h3 className="text-sm font-bold text-gray-900">{division}</h3>
                         <p className="text-gray-600 text-xs">
                           {athletes.length} athlete{athletes.length !== 1 ? 's' : ''}
@@ -930,34 +930,34 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                       </div>
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-xs">
-                          <thead className="bg-black/20">
+                          <thead className="bg-gray-100">
                             <tr>
                               <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
                               <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
-                              <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-gray-100">Pts</th>
+                              <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-white/5">
+                          <tbody className="divide-y divide-gray-200">
                             {athletes.map((athlete, idx) => {
                               const isRecent = isRecentlyUpdated(athlete.lastUpdated)
                               return (
-                                <tr 
-                                  key={athlete.athleteId} 
+                                <tr
+                                  key={athlete.athleteId}
                                   className={`transition ${
-                                    isRecent 
-                                      ? 'bg-green-500/20 animate-pulse' 
-                                      : 'hover:bg-white/5'
+                                    isRecent
+                                      ? 'bg-green-50 animate-pulse'
+                                      : idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'
                                   }`}
                                   title={athlete.teamName || 'Independent'}
                                 >
-                                  <td className="px-2 py-1 text-gray-500">
+                                  <td className="px-2 py-1 text-gray-600">
                                     {idx < 3 ? getMedal(idx) : `${idx + 1}`}
                                   </td>
                                   <td className="px-2 py-1 font-medium text-gray-900 text-xs truncate max-w-[120px]" title={athlete.athleteName}>
                                     {athlete.athleteName}
-                                    {isRecent && <span className="ml-1 text-green-400">✨</span>}
+                                    {isRecent && <span className="ml-1 text-green-600">✨</span>}
                                   </td>
-                                  <td className="px-2 py-1 text-right font-bold text-gray-900 bg-gray-100">
+                                  <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
                                     {athlete.disciplineScores[disciplineId]}
                                   </td>
                                 </tr>
@@ -972,9 +972,9 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
               </div>
             )
           })}
-          
+
           {Object.keys(athletesByDisciplineAndDivision).length === 0 && (
-            <div className="bg-stone-900/40 backdrop-blur rounded-lg p-8 text-center">
+            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
               <p className="text-gray-500 text-sm">No scores recorded yet</p>
             </div>
           )}
@@ -1058,9 +1058,9 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         </div>
       )}
 
-      {/* Classes View */}
+      {/* Classes View - Compact Grid */}
       {activeView === 'classes' && (
-        <div className="space-y-6">
+        <div className="space-y-3">
           {tournament.disciplines.map((tournamentDiscipline: any) => {
             const disciplineId = tournamentDiscipline.disciplineId
             const disciplineName = tournamentDiscipline.discipline.displayName
@@ -1101,50 +1101,59 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
             return (
               <div key={disciplineId} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-                <h2 className="text-xl font-bold text-gray-900 mb-3">{disciplineName} - Class Rankings</h2>
+                {/* Discipline Header */}
+                <div className="mb-3">
+                  <h2 className="text-lg font-bold text-gray-900">{disciplineName} - Class Rankings</h2>
+                  <p className="text-gray-600 text-xs">
+                    {sortedClasses.length} class{sortedClasses.length !== 1 ? 'es' : ''}
+                  </p>
+                </div>
 
-                <div className="space-y-4">
+                {/* Class Tables Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                   {sortedClasses.map(athleteClass => {
                     const classathletes = athletesByClass[athleteClass]
                       .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
 
                     return (
-                      <div key={athleteClass} className="bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <h3 className="text-base font-bold text-gray-900 mb-2">
-                          Class {athleteClass} ({classathletes.length} {classathletes.length === 1 ? 'athlete' : 'athletes'})
-                        </h3>
-
+                      <div key={athleteClass} className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="bg-white p-2 border-b border-gray-200">
+                          <h3 className="text-sm font-bold text-gray-900">Class {athleteClass}</h3>
+                          <p className="text-gray-600 text-xs">
+                            {classathletes.length} athlete{classathletes.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
                         <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead>
-                              <tr className="text-gray-600 text-xs border-b border-gray-200">
-                                <th className="px-2 py-1.5 text-center w-12">Rank</th>
-                                <th className="px-2 py-1.5 text-left">Athlete</th>
-                                <th className="px-2 py-1.5 text-left">Team</th>
-                                <th className="px-2 py-1.5 text-right">Score</th>
+                          <table className="min-w-full text-xs">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                                <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
+                                <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
                               </tr>
                             </thead>
-                            <tbody>
-                              {classathletes.map((athlete, index) => {
+                            <tbody className="divide-y divide-gray-200">
+                              {classathletes.map((athlete, idx) => {
+                                const isRecent = isRecentlyUpdated(athlete.lastUpdated)
                                 const score = athlete.disciplineScores[disciplineId] || 0
-                                const isTopThree = index < 3
-                                const medalEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : ''
-
                                 return (
                                   <tr
                                     key={athlete.athleteId}
-                                    className={`${isTopThree ? 'bg-yellow-50' : 'hover:bg-gray-50'} transition border-b border-gray-100`}
+                                    className={`transition ${
+                                      isRecent
+                                        ? 'bg-green-50 animate-pulse'
+                                        : idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'
+                                    }`}
+                                    title={athlete.teamName || 'Independent'}
                                   >
-                                    <td className="px-2 py-1.5 text-center text-gray-900 font-semibold">
-                                      {medalEmoji || `${index + 1}`}
+                                    <td className="px-2 py-1 text-gray-600">
+                                      {idx < 3 ? getMedal(idx) : `${idx + 1}`}
                                     </td>
-                                    <td className="px-2 py-1.5 text-gray-900 font-medium">
+                                    <td className="px-2 py-1 font-medium text-gray-900 text-xs truncate max-w-[120px]" title={athlete.athleteName}>
                                       {athlete.athleteName}
+                                      {isRecent && <span className="ml-1 text-green-600">✨</span>}
                                     </td>
-                                    <td className="px-2 py-1.5 text-gray-600 text-sm">
-                                      {athlete.teamName || '-'}
-                                    </td>
-                                    <td className="px-2 py-1.5 text-right text-gray-900 font-bold">
+                                    <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
                                       {score}
                                     </td>
                                   </tr>
@@ -1162,16 +1171,16 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           })}
 
           {tournament.disciplines.length === 0 && (
-            <div className="text-center py-8 text-gray-400">
-              No disciplines found
+            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+              <p className="text-gray-500 text-sm">No disciplines found</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Teams View */}
+      {/* Teams View - Compact Grid */}
       {activeView === 'teams' && (
-        <div className="space-y-6">
+        <div className="space-y-3">
           {tournament.disciplines.map((tournamentDiscipline: any) => {
             const disciplineId = tournamentDiscipline.disciplineId
             const disciplineName = tournamentDiscipline.discipline.displayName
@@ -1217,51 +1226,57 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
             return (
               <div key={disciplineId} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-                <h2 className="text-xl font-bold text-gray-900 mb-3">{disciplineName} - Team Scoring</h2>
-                <p className="text-gray-600 text-sm mb-3">Top 5 athletes per team contribute to team score</p>
+                {/* Discipline Header */}
+                <div className="mb-3">
+                  <h2 className="text-lg font-bold text-gray-900">{disciplineName} - Team Scoring</h2>
+                  <p className="text-gray-600 text-xs">
+                    Top 5 athletes per team • {teamScores.length} team{teamScores.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
 
-                <div className="space-y-3">
+                {/* Teams Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2">
                   {teamScores.map((team, index) => {
                     const isTopThree = index < 3
-                    const medalEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : ''
 
                     return (
                       <div
                         key={team.teamName}
-                        className={`${isTopThree ? 'bg-yellow-400/10 border-2 border-yellow-400/30' : 'bg-black/20'} backdrop-blur rounded-lg p-3`}
+                        className={`${isTopThree ? 'bg-yellow-50' : 'bg-gray-50'} border border-gray-200 rounded-lg overflow-hidden`}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            {team.teamLogoUrl && (
-                              <img src={team.teamLogoUrl} alt={team.teamName} className="w-8 h-8 rounded object-cover" />
-                            )}
-                            <div>
-                              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                                {medalEmoji && <span>{medalEmoji}</span>}
-                                <span>#{index + 1}</span>
-                                {team.teamName}
-                              </h3>
-                              <p className="text-gray-500 text-xs">
-                                {team.totalathletes} athlete{team.totalathletes !== 1 ? 's' : ''} total
-                              </p>
+                        <div className="bg-white p-2 border-b border-gray-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              {team.teamLogoUrl && (
+                                <img src={team.teamLogoUrl} alt={team.teamName} className="w-6 h-6 rounded object-cover flex-shrink-0" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-sm font-bold text-gray-900 truncate">
+                                  {index < 3 && getMedal(index)} {team.teamName}
+                                </h3>
+                                <p className="text-gray-600 text-xs">
+                                  {team.totalathletes} athlete{team.totalathletes !== 1 ? 's' : ''}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right ml-2">
+                              <div className="text-base font-bold text-gray-900">{team.teamTotal}</div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-xl font-bold text-gray-900">{team.teamTotal}</div>
-                            <div className="text-gray-500 text-xs">Team Score</div>
-                          </div>
                         </div>
-
-                        <div className="ml-10">
-                          <div className="text-gray-600 text-xs font-semibold mb-1">Top 5 Contributors:</div>
-                          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-                            {team.top5athletes.map((athlete, athleteIndex) => (
+                        <div className="p-2">
+                          <div className="space-y-1">
+                            {team.top5athletes.map((athlete, idx) => (
                               <div
                                 key={athlete.athleteId}
-                                className="bg-white/5 rounded px-2 py-1.5 text-xs"
+                                className="flex items-center justify-between text-xs"
                               >
-                                <div className="text-gray-900 font-medium truncate">{athlete.athleteName}</div>
-                                <div className="text-gray-700 font-bold">{athlete.disciplineScores[disciplineId]}</div>
+                                <span className="text-gray-900 truncate flex-1 mr-2" title={athlete.athleteName}>
+                                  {idx + 1}. {athlete.athleteName}
+                                </span>
+                                <span className="text-gray-900 font-bold">
+                                  {athlete.disciplineScores[disciplineId]}
+                                </span>
                               </div>
                             ))}
                           </div>
@@ -1275,25 +1290,25 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           })}
 
           {tournament.disciplines.length === 0 && (
-            <div className="text-center py-8 text-gray-400">
-              No disciplines found
+            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+              <p className="text-gray-500 text-sm">No disciplines found</p>
             </div>
           )}
         </div>
       )}
 
       {/* Legend */}
-      <div className="bg-white/10 backdrop-blur rounded-lg p-6">
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
         <h3 className="text-lg font-bold text-gray-900 mb-3">📖 Legend & Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-gray-700 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-gray-900 text-sm">
           <div>
-            <span className="font-semibold text-yellow-300">HOA (High Over All):</span> Combines scores from ALL disciplines and events in the tournament. The athlete with the highest total across every event wins HOA.
+            <span className="font-semibold text-yellow-600">HOA (High Over All):</span> Combines scores from ALL disciplines and events in the tournament. The athlete with the highest total across every event wins HOA.
           </div>
           <div>
-            <span className="font-semibold text-purple-300">HAA (High All-Around):</span> Combines scores from core disciplines only (Trap, Skeet, Sporting Clays). Requires participation in at least 2 core disciplines. HOA winners are excluded from HAA in their division.
+            <span className="font-semibold text-purple-600">HAA (High All-Around):</span> Combines scores from core disciplines only (Trap, Skeet, Sporting Clays). Requires participation in at least 2 core disciplines. HOA winners are excluded from HAA in their division.
           </div>
           <div>
-            <span className="font-semibold text-green-300">✨ Recently Updated:</span> Rows with a green background and "✨ NEW" badge indicate scores that were entered or updated within the last 2 minutes.
+            <span className="font-semibold text-green-600">✨ Recently Updated:</span> Rows with a green background and "✨" badge indicate scores that were entered or updated within the last 2 minutes.
           </div>
         </div>
       </div>
