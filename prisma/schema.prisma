@@ -11,6 +11,9 @@ model User {
   id                 String       @id @default(cuid())
   email              String       @unique
   name               String
+  firstName          String?
+  lastName           String?
+  phone              String?
   password           String
   role               String       @default("athlete")
   createdAt          DateTime     @default(now())
@@ -25,6 +28,13 @@ model Team {
   name                    String
   logoUrl                 String?
   affiliation             String?
+  headCoach               String?
+  headCoachEmail          String?
+  headCoachPhone          String?
+  address                 String?
+  city                    String?
+  state                   String?
+  zip                     String?
   isIndividualTeam        Boolean                      @default(false)
   tournamentId            String?
   createdAt               DateTime                     @default(now())

@@ -211,10 +211,18 @@ export function generateSquadAssignments(
   // Group by division
   const divisions = ['Novice', 'Intermediate', 'Junior Varsity', 'Varsity', 'Collegiate', 'Open']
 
+  // Track squad counter per division for sequential numbering
+  const divisionSquadCounters = new Map<string, number>()
+
   for (const division of divisions) {
     const divisionAthletes = unassigned.filter(s => s.division === division)
 
     if (divisionAthletes.length === 0) continue
+
+    // Initialize counter for this division
+    if (!divisionSquadCounters.has(division)) {
+      divisionSquadCounters.set(division, 1)
+    }
 
     // Group by team within division
     const byTeam = new Map<string, AthleteForSquadding[]>()
@@ -250,9 +258,13 @@ export function generateSquadAssignments(
       squadChunks.forEach((athleteGroup, index) => {
         const slot = availableSlots[index % availableSlots.length]
 
+        // Get current squad number for this division and increment
+        const squadNumber = divisionSquadCounters.get(division) || 1
+        divisionSquadCounters.set(division, squadNumber + 1)
+
         assignments.push({
           timeSlotId: slot.id,
-          squadName: `${division} - ${teamName}${squadChunks.length > 1 ? ` ${index + 1}` : ''}`,
+          squadName: `${division} ${squadNumber}`,
           athleteIds: athleteGroup.map(s => s.id)
         })
       })

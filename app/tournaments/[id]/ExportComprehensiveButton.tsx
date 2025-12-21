@@ -35,48 +35,18 @@ export default function ExportComprehensiveButton({
       const workbook = XLSX.utils.book_new()
 
       // Sheet 1: Teams List
-      const teamsData = data.teams.map((team: any) => ({
-        'Team Name': team.name,
-        'Affiliation': team.affiliation || 'N/A',
-        'Total Athletes': team.athleteCount,
-        'Registered Athletes': team.registeredCount,
-        'Team Type': team.isIndividualTeam ? 'Individual Competitors' : 'Team'
-      }))
-      const teamsSheet = XLSX.utils.json_to_sheet(teamsData)
+      // API now returns data with column names as keys, so just use it directly
+      const teamsSheet = XLSX.utils.json_to_sheet(data.teams)
       XLSX.utils.book_append_sheet(workbook, teamsSheet, 'Teams')
 
       // Sheet 2: Participants List
-      const participantsData = data.participants.map((p: any) => ({
-        'Name': p.athleteName,
-        'Email': p.email,
-        'Team': p.teamName,
-        'Gender': p.gender || 'N/A',
-        'Birth Date': p.birthDate || 'N/A',
-        'Grade': p.grade || 'N/A',
-        'Division': p.division || 'N/A',
-        'NSCA Class': p.nscaClass || 'N/A',
-        'ATA Class': p.ataClass || 'N/A',
-        'Disciplines': p.disciplines,
-        'Registration Date': p.registrationDate,
-        'Status': p.isActive ? 'Active' : 'Inactive'
-      }))
-      const participantsSheet = XLSX.utils.json_to_sheet(participantsData)
+      // API now returns data with column names as keys, so just use it directly
+      const participantsSheet = XLSX.utils.json_to_sheet(data.participants)
       XLSX.utils.book_append_sheet(workbook, participantsSheet, 'Participants')
 
       // Sheet 3: Squad Assignments
-      const squadData = data.squads.map((s: any) => ({
-        'Squad Name': s.squadName,
-        'Discipline': s.discipline,
-        'Date': s.date,
-        'Start Time': s.startTime,
-        'End Time': s.endTime,
-        'Field/Station': s.location || 'N/A',
-        'Athlete Name': s.athleteName,
-        'Team': s.teamName,
-        'Division': s.division || 'N/A',
-        'Position': s.position
-      }))
-      const squadSheet = XLSX.utils.json_to_sheet(squadData)
+      // API now returns data with column names as keys, so just use it directly
+      const squadSheet = XLSX.utils.json_to_sheet(data.squads)
       XLSX.utils.book_append_sheet(workbook, squadSheet, 'Squad Assignments')
 
       // Generate filename

@@ -894,6 +894,12 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
             .filter((squad: any) => squad.members.length > 0 && squad.members.length < squad.capacity)
 
           if (incompleteSquads.length > 0) {
+            // Get unique capacities from incomplete squads
+            const uniqueCapacities = [...new Set(incompleteSquads.map((s: any) => s.capacity))]
+            const capacityText = uniqueCapacities.length === 1
+              ? `${uniqueCapacities[0]} athletes`
+              : 'their respective capacities'
+
             return (
               <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 mb-3">
                 <div className="flex items-start gap-2">
@@ -904,7 +910,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
                     <h4 className="text-sm font-semibold text-amber-900">Incomplete Squads</h4>
                     <p className="text-sm text-amber-800 mt-1">
                       {incompleteSquads.length} squad{incompleteSquads.length !== 1 ? 's are' : ' is'} not completely filled.
-                      Squads should be filled to capacity ({incompleteSquads[0]?.capacity || 5} athletes) before the tournament begins.
+                      Squads should be filled to capacity ({capacityText}) before the tournament begins.
                     </p>
                   </div>
                 </div>

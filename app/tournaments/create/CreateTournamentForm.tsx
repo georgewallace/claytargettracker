@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import ShootOffSettings, { ShootOffConfig } from '@/components/ShootOffSettings'
 
 interface Discipline {
   id: string
@@ -13,12 +12,6 @@ interface Discipline {
 
 interface CreateTournamentFormProps {
   disciplines: Discipline[]
-}
-
-interface DisciplineConfig {
-  rounds?: number      // For Trap/Skeet
-  targets?: number     // For 5-Stand/Sporting Clays
-  stations?: number    // For Sporting Clays only
 }
 
 export default function CreateTournamentForm({ disciplines }: CreateTournamentFormProps) {
@@ -34,28 +27,6 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
   const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>(
     disciplines.map(d => d.id) // Default: all disciplines selected
   )
-  const [disciplineConfigs, setDisciplineConfigs] = useState<Record<string, DisciplineConfig>>(() => {
-    // Initialize with default values for each discipline
-    const configs: Record<string, DisciplineConfig> = {}
-    disciplines.forEach(d => {
-      if (d.name === 'trap' || d.name === 'skeet') {
-        configs[d.id] = { rounds: 1 }
-      } else if (d.name === 'five_stand') {
-        configs[d.id] = { targets: 25 }
-      } else if (d.name === 'sporting_clays') {
-        configs[d.id] = { targets: 100, stations: 10 }
-      }
-    })
-    return configs
-  })
-  const [shootOffConfig, setShootOffConfig] = useState<ShootOffConfig>({
-    enableShootOffs: false,
-    shootOffTriggers: ['1st', '2nd', '3rd'],
-    shootOffFormat: 'sudden_death',
-    shootOffTargetsPerRound: 2,
-    shootOffStartStation: '',
-    shootOffRequiresPerfect: false
-  })
   const [enableScores, setEnableScores] = useState(false)
   const [enableLeaderboard, setEnableLeaderboard] = useState(false)
   const [error, setError] = useState('')
@@ -72,47 +43,10 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
       return
     }
 
-    // Validate configurations for selected disciplines
-    for (const disciplineId of selectedDisciplines) {
-      const discipline = disciplines.find(d => d.id === disciplineId)
-      const config = disciplineConfigs[disciplineId]
-      
-      if (discipline && config) {
-        if ((discipline.name === 'trap' || discipline.name === 'skeet') && (config.rounds == null || config.rounds <= 0)) {
-          setError(`Please specify number of rounds for ${discipline.displayName}`)
-          setLoading(false)
-          return
-        }
-        if (discipline.name === 'five_stand' && (config.targets == null || config.targets <= 0)) {
-          setError(`Please specify number of targets for ${discipline.displayName}`)
-          setLoading(false)
-          return
-        }
-        if (discipline.name === 'sporting_clays' && ((config.targets == null || config.targets <= 0) || (config.stations == null || config.stations <= 0))) {
-          setError(`Please specify number of targets and stations for ${discipline.displayName}`)
-          setLoading(false)
-          return
-        }
-      }
-    }
-
     try {
-      // Build discipline configurations array
-      const disciplineConfigurations = selectedDisciplines.map(disciplineId => ({
-        disciplineId,
-        ...disciplineConfigs[disciplineId]
-      }))
-
       const payload = {
         ...formData,
-        disciplineConfigurations,
-        // Shoot-off configuration
-        enableShootOffs: shootOffConfig.enableShootOffs,
-        shootOffTriggers: JSON.stringify(shootOffConfig.shootOffTriggers),
-        shootOffFormat: shootOffConfig.shootOffFormat,
-        shootOffTargetsPerRound: shootOffConfig.shootOffTargetsPerRound,
-        shootOffStartStation: shootOffConfig.shootOffStartStation || null,
-        shootOffRequiresPerfect: shootOffConfig.shootOffRequiresPerfect,
+        disciplineIds: selectedDisciplines,
         // Feature toggles
         enableScores,
         enableLeaderboard
@@ -171,16 +105,6 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
         ? prev.filter(id => id !== disciplineId)
         : [...prev, disciplineId]
     )
-  }
-
-  const updateDisciplineConfig = (disciplineId: string, field: keyof DisciplineConfig, value: number) => {
-    setDisciplineConfigs(prev => ({
-      ...prev,
-      [disciplineId]: {
-        ...prev[disciplineId],
-        [field]: value
-      }
-    }))
   }
 
   return (
@@ -277,13 +201,12 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
       {/* Discipline Selection */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">
-          Disciplines * (select at least one and configure)
+          Disciplines * (select at least one)
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {disciplines.map(discipline => {
             const isSelected = selectedDisciplines.includes(discipline.id)
-            const config = disciplineConfigs[discipline.id] || {}
-            
+
             return (
               <div
                 key={discipline.id}
@@ -307,96 +230,6 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
                     )}
                   </div>
                 </label>
-
-                {/* Configuration Fields */}
-                {isSelected && (
-                  <div className="px-4 pb-4 space-y-3 hidden">
-                    <div className="border-t border-indigo-200 pt-3">
-                      {/* Trap/Skeet: Rounds */}
-                      {(discipline.name === 'trap' || discipline.name === 'skeet') && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Number of Rounds *
-                          </label>
-                          <select
-                            value={config.rounds || 1}
-                            onChange={(e) => updateDisciplineConfig(discipline.id, 'rounds', parseInt(e.target.value))}
-                            className="w-full md:w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          >
-                            <option value="1">1 Round (25 targets)</option>
-                            <option value="2">2 Rounds (50 targets)</option>
-                            <option value="3">3 Rounds (75 targets)</option>
-                            <option value="4">4 Rounds (100 targets)</option>
-                          </select>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {discipline.name === 'skeet' ? 'Each round has 25 targets across 8 stations' : 'Each round has 25 targets across 5 stations'}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* 5-Stand: Targets */}
-                      {discipline.name === 'five_stand' && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Number of Targets *
-                          </label>
-                          <select
-                            value={config.targets || 25}
-                            onChange={(e) => updateDisciplineConfig(discipline.id, 'targets', parseInt(e.target.value))}
-                            className="w-full md:w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          >
-                            <option value="25">25 targets</option>
-                            <option value="50">50 targets</option>
-                            <option value="75">75 targets</option>
-                            <option value="100">100 targets</option>
-                          </select>
-                          <p className="text-xs text-gray-500 mt-1">
-                            5-Stand typically uses 5 stations with 5 targets per station (25 total)
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Sporting Clays: Targets and Stations */}
-                      {discipline.name === 'sporting_clays' && (
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Number of Stations *
-                            </label>
-                            <select
-                              value={config.stations || 10}
-                              onChange={(e) => updateDisciplineConfig(discipline.id, 'stations', parseInt(e.target.value))}
-                              className="w-full md:w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            >
-                              {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
-                                <option key={num} value={num}>{num} {num === 1 ? 'station' : 'stations'}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Total Number of Targets *
-                            </label>
-                            <select
-                              value={config.targets || 100}
-                              onChange={(e) => updateDisciplineConfig(discipline.id, 'targets', parseInt(e.target.value))}
-                              className="w-full md:w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            >
-                              <option value="50">50 targets</option>
-                              <option value="75">75 targets</option>
-                              <option value="100">100 targets</option>
-                              <option value="125">125 targets</option>
-                              <option value="150">150 targets</option>
-                            </select>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Total targets across {config.stations || 10} {config.stations === 1 ? 'station' : 'stations'}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             )
           })}
@@ -415,14 +248,6 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
           onChange={handleChange}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           placeholder="Add tournament details, rules, and any other information..."
-        />
-      </div>
-
-      {/* Shoot-Off Configuration */}
-      <div className="hidden">
-        <ShootOffSettings
-          config={shootOffConfig}
-          onChange={setShootOffConfig}
         />
       </div>
 

@@ -355,9 +355,12 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {format(parseDateSafe(tournament.startDate), 'MMM d')}
-                        {tournament.startDate !== tournament.endDate && (
-                          <> - {format(parseDateSafe(tournament.endDate), 'MMM d, yyyy')}</>
+                        {parseDateSafe(tournament.startDate).getTime() === parseDateSafe(tournament.endDate).getTime() ? (
+                          format(parseDateSafe(tournament.startDate), 'MMM d, yyyy')
+                        ) : (
+                          <>
+                            {format(parseDateSafe(tournament.startDate), 'MMM d')} - {format(parseDateSafe(tournament.endDate), 'MMM d, yyyy')}
+                          </>
                         )}
                       </td>
                       <td className="px-6 py-4">

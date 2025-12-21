@@ -45,11 +45,18 @@ export async function GET(
         athlete => athlete.registrations.length > 0
       )
       return {
-        name: reg.team.name,
-        affiliation: reg.team.affiliation,
-        athleteCount: reg.team.athletes.length,
-        registeredCount: registeredAthletes.length,
-        isIndividualTeam: reg.team.isIndividualTeam
+        'Team Name': reg.team.name,
+        'Affiliation': reg.team.affiliation || '',
+        'Total Athletes': reg.team.athletes.length,
+        'Registered Athletes': registeredAthletes.length,
+        'Team Type': reg.team.isIndividualTeam ? 'Individual' : 'Team',
+        'Head Coach': reg.team.headCoach || '',
+        'Head Coach Email': reg.team.headCoachEmail || '',
+        'Address': reg.team.address || '',
+        'City': reg.team.city || '',
+        'State': reg.team.state || '',
+        'ZIP': reg.team.zip || '',
+        'Head Coach Phone': reg.team.headCoachPhone || ''
       }
     })
 
@@ -74,32 +81,39 @@ export async function GET(
     const participants = registrations.map(reg => {
       const athlete = reg.athlete
 
-      // Format birth date
-      let birthDate = 'N/A'
+      // Format birth date (MM/DD/YYYY)
+      let birthDate = ''
       if (athlete.birthYear && athlete.birthMonth && athlete.birthDay) {
-        birthDate = `${athlete.birthMonth}/${athlete.birthDay}/${athlete.birthYear}`
-      } else if (athlete.birthYear && athlete.birthMonth) {
-        birthDate = `${athlete.birthMonth}/${athlete.birthYear}`
+        const month = String(athlete.birthMonth).padStart(2, '0')
+        const day = String(athlete.birthDay).padStart(2, '0')
+        birthDate = `${month}/${day}/${athlete.birthYear}`
       }
 
-      // Collect disciplines
-      const disciplines = reg.disciplines
-        .map(d => d.discipline.displayName)
-        .join(', ')
+      // Check which disciplines they're registered for
+      const registeredDisciplines = reg.disciplines.map(d => d.discipline.name)
+      const hasSkeet = registeredDisciplines.includes('skeet') ? 'Yes' : 'No'
+      const hasTrap = registeredDisciplines.includes('trap') ? 'Yes' : 'No'
+      const hasSportingClays = registeredDisciplines.includes('sporting_clays') ? 'Yes' : 'No'
 
       return {
-        athleteName: athlete.user.name,
-        email: athlete.user.email,
-        teamName: athlete.team?.name || 'N/A',
-        gender: athlete.gender,
-        birthDate,
-        grade: athlete.grade,
-        division: athlete.divisionOverride || athlete.division,
-        nscaClass: athlete.nscaClass,
-        ataClass: athlete.ataClass,
-        disciplines,
-        registrationDate: reg.createdAt.toISOString().split('T')[0],
-        isActive: athlete.isActive
+        'Shooter ID': athlete.shooterId || '',
+        'First Name': athlete.user.firstName || '',
+        'Last Name': athlete.user.lastName || '',
+        'Birthdate': birthDate,
+        'Sex': athlete.gender || '',
+        'Contact Phone #': athlete.user.phone || '',
+        'Contact Email': athlete.user.email,
+        'Shooting Team': athlete.team?.name || '',
+        'Grade': athlete.grade || '',
+        'Age Concurrent': athlete.divisionOverride || athlete.division || '',
+        'Skeet': hasSkeet,
+        'Trap': hasTrap,
+        'Sporting Clays': hasSportingClays,
+        'NSSA Class': athlete.nssaClass || '',
+        'ATA Class': athlete.ataClass || '',
+        'NSCA Class': athlete.nscaClass || '',
+        'Registration Date': reg.createdAt.toISOString().split('T')[0],
+        'Status': athlete.isActive ? 'Active' : 'Inactive'
       }
     })
 
@@ -140,19 +154,26 @@ export async function GET(
     })
 
     const squads = squadAssignments.map(assignment => {
+      const disciplineName = assignment.squad.timeSlot.discipline.name
+
+      // Map discipline name to display format (only show Skeet for skeet discipline, empty otherwise)
+      const disciplineDisplay = disciplineName === 'skeet' ? 'Skeet' :
+                                disciplineName === 'trap' ? 'Trap' :
+                                disciplineName === 'sporting_clays' ? 'Sporting Clays' : ''
+
       return {
-        squadName: assignment.squad.name,
-        discipline: assignment.squad.timeSlot.discipline.displayName,
-        date: assignment.squad.timeSlot.date
-          ? new Date(assignment.squad.timeSlot.date).toISOString().split('T')[0]
-          : 'N/A',
-        startTime: assignment.squad.timeSlot.startTime,
-        endTime: assignment.squad.timeSlot.endTime,
-        location: assignment.squad.timeSlot.fieldNumber || assignment.squad.timeSlot.stationNumber,
-        athleteName: assignment.athlete.user.name,
-        teamName: assignment.athlete.team?.name || 'N/A',
-        division: assignment.athlete.divisionOverride || assignment.athlete.division,
-        position: assignment.position
+        'Shooter ID': assignment.athlete.shooterId || '',
+        'Team': assignment.athlete.team?.name || '',
+        'First Name': assignment.athlete.user.firstName || '',
+        'Last Name': assignment.athlete.user.lastName || '',
+        'Participant Concurrent': assignment.athlete.divisionOverride || assignment.athlete.division || '',
+        'Skeet': disciplineDisplay,
+        'Start Time': assignment.squad.timeSlot.startTime || '',
+        'End Time': assignment.squad.timeSlot.endTime || '',
+        'Field/Station': assignment.squad.timeSlot.fieldNumber || assignment.squad.timeSlot.stationNumber || '',
+        'Team Concurrent': assignment.athlete.team?.name || '',
+        'Concurrent Squad': assignment.squad.name,
+        'Squad Position': assignment.position || ''
       }
     })
 

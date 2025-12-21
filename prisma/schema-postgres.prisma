@@ -15,25 +15,35 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String
+  firstName String?
+  lastName  String?
+  phone     String?
   password  String
   role      String   @default("athlete") // athlete, coach, admin
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   athlete            Athlete?
   createdTournaments Tournament[]
   coachedTeams       TeamCoach[] // Many-to-many relationship for coaches
 }
 
 model Team {
-  id          String   @id @default(cuid())
-  name        String
-  logoUrl     String?  // URL/path to team logo
-  affiliation String?  // USAYESS, SCTP, High School Clay Target Team, Other
-  isIndividualTeam Boolean @default(false) // True if this is an "Individual Competitors" team for a tournament
-  tournamentId String?  // If isIndividualTeam=true, links to the tournament
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  logoUrl          String?  // URL/path to team logo
+  affiliation      String?  // USAYESS, SCTP, High School Clay Target Team, Other
+  headCoach        String?
+  headCoachEmail   String?
+  headCoachPhone   String?
+  address          String?
+  city             String?
+  state            String?
+  zip              String?
+  isIndividualTeam Boolean  @default(false) // True if this is an "Individual Competitors" team for a tournament
+  tournamentId     String?  // If isIndividualTeam=true, links to the tournament
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   coaches      TeamCoach[] // Many-to-many relationship for coaches
   athletes     Athlete[]
