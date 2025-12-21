@@ -22,6 +22,8 @@ frontend:
         - ls -la node_modules/.prisma/client/*.node || echo "Prisma binaries not found!"
         # Run database migrations with retry logic (PostgreSQL via DATABASE_URL env var)
         - |
+          echo "=== Resolving any failed migrations ==="
+          npx prisma migrate resolve --rolled-back "20241221_add_user_name_fields_and_team_contact_info" || echo "No failed migration to resolve"
           echo "=== Running database migrations ==="
           MAX_RETRIES=3
           RETRY_COUNT=0
