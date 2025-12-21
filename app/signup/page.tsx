@@ -14,6 +14,11 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Athlete-specific fields
+  const [grade, setGrade] = useState('')
+  const [inHighSchool, setInHighSchool] = useState<boolean | null>(null)
+  const [firstYearCompetition, setFirstYearCompetition] = useState<boolean | null>(null)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -21,10 +26,19 @@ export default function SignupPage() {
 
     try {
       // Create the user account
+      const payload: any = { name, email, password, role }
+
+      // Add athlete-specific fields if role is athlete
+      if (role === 'athlete') {
+        payload.grade = grade
+        payload.inHighSchool = inHighSchool
+        payload.firstYearCompetition = firstYearCompetition
+      }
+
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, role })
+        body: JSON.stringify(payload)
       })
 
       const data = await response.json()
@@ -136,6 +150,93 @@ export default function SignupPage() {
               }
             </p>
           </div>
+
+          {role === 'athlete' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Are you currently in high school?
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="inHighSchool"
+                      value="true"
+                      checked={inHighSchool === true}
+                      onChange={() => setInHighSchool(true)}
+                      className="mr-2"
+                    />
+                    Yes
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="inHighSchool"
+                      value="false"
+                      checked={inHighSchool === false}
+                      onChange={() => setInHighSchool(false)}
+                      className="mr-2"
+                    />
+                    No
+                  </label>
+                </div>
+              </div>
+
+              {inHighSchool === true && (
+                <>
+                  <div>
+                    <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-2">
+                      Current Grade
+                    </label>
+                    <select
+                      id="grade"
+                      value={grade}
+                      onChange={(e) => setGrade(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      required
+                    >
+                      <option value="">Select grade</option>
+                      <option value="freshman">Freshman</option>
+                      <option value="sophomore">Sophomore</option>
+                      <option value="junior">Junior</option>
+                      <option value="senior">Senior</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Is this your first year of competition?
+                    </label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="firstYearCompetition"
+                          value="true"
+                          checked={firstYearCompetition === true}
+                          onChange={() => setFirstYearCompetition(true)}
+                          className="mr-2"
+                        />
+                        Yes
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="firstYearCompetition"
+                          value="false"
+                          checked={firstYearCompetition === false}
+                          onChange={() => setFirstYearCompetition(false)}
+                          className="mr-2"
+                        />
+                        No
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )}
 
           <button
             type="submit"

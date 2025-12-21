@@ -27,8 +27,14 @@ const nextConfig = {
     // API routes are only available in non-demo mode
   }),
 
-  // Ensure Prisma binaries are included in serverless functions (Next.js 16+)
-  serverExternalPackages: ['@prisma/client', '@prisma/engines'],
+  // Ensure Prisma binaries and other large server-only packages are externalized (Next.js 16+)
+  serverExternalPackages: [
+    '@prisma/client',
+    '@prisma/engines',
+    'bcrypt',
+    '@aws-sdk/client-s3',
+    '@aws-sdk/client-ssm',
+  ],
 
   // Production optimizations - reduce build size
   productionBrowserSourceMaps: false, // Disable source maps in production
@@ -43,6 +49,12 @@ const nextConfig = {
 
   // Turbopack config (Next.js 16+)
   turbopack: {},
+
+  // Experimental optimizations
+  experimental: {
+    // Optimize package imports to reduce bundle size
+    optimizePackageImports: ['recharts', '@dnd-kit/core', '@dnd-kit/sortable'],
+  },
 
   // Exclude large dependencies from client bundle
   webpack: (config, { isServer }) => {

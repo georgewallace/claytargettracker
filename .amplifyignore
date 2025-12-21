@@ -1,6 +1,4 @@
 # Amplify ignore file - exclude from deployment
-node_modules/
-.next/
 .git/
 .env*
 *.log
@@ -15,6 +13,19 @@ coverage/
 *.pdf
 *.zip
 *.tar.gz
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!next.config.mjs
+
+# Database files
+*.db
+*.db-journal
+prisma/prisma/
+
+# Public uploads (user-generated content) - regenerate on server
+public/uploads/
 
 # Scripts and tools
 scripts/

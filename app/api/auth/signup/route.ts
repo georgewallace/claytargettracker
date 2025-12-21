@@ -4,6 +4,36 @@ import { hashPassword } from '@/lib/auth'
 import { rateLimiters, getIdentifier, checkRateLimit, createRateLimitHeaders } from '@/lib/ratelimit'
 import { isValidEmail, isStrongPassword, sanitizeInput, validateCSRF, addSecurityHeaders } from '@/lib/security'
 
+// Calculate division based on high school status, grade, and first year status
+function calculateDivision(
+  inHighSchool: boolean | null,
+  grade: string,
+  firstYearCompetition: boolean | null
+): string | undefined {
+  // If not in high school, return undefined (no division assigned)
+  if (inHighSchool !== true) {
+    return undefined
+  }
+
+  // If in high school and first year of competition -> JV
+  if (firstYearCompetition === true) {
+    return 'Junior Varsity'
+  }
+
+  // If in high school and freshman -> JV
+  if (grade === 'freshman') {
+    return 'Junior Varsity'
+  }
+
+  // If in high school, not freshman, not first year -> Varsity
+  if (grade && firstYearCompetition === false) {
+    return 'Varsity'
+  }
+
+  // Default: no division assigned
+  return undefined
+}
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,8 +64,8 @@ export async function POST(request: NextRequest) {
       return addSecurityHeaders(response)
     }
 
-    const { email, password, name, role } = await request.json()
-    
+    const { email, password, name, role, grade, inHighSchool, firstYearCompetition } = await request.json()
+
     // Validate input
     if (!email || !password || !name) {
       const response = NextResponse.json(
@@ -111,17 +141,39 @@ export async function POST(request: NextRequest) {
       // Link existing placeholder account by updating email and password
       const hashedPassword = await hashPassword(password)
 
+      // Calculate division for athletes
+      const division = userRole === 'athlete'
+        ? calculateDivision(inHighSchool, grade, firstYearCompetition)
+        : undefined
+
       user = await prisma.user.update({
         where: { id: placeholderUser.id },
         data: {
           email,
           password: hashedPassword,
-          role: userRole // Update role if needed
+          role: userRole, // Update role if needed
+          // Update athlete profile if exists and user is athlete
+          ...(userRole === 'athlete' && placeholderUser.athlete && {
+            athlete: {
+              update: {
+                grade: grade || undefined,
+                division
+              }
+            }
+          })
         }
       })
     } else {
       // Hash password and create new user
       const hashedPassword = await hashPassword(password)
+
+      // Calculate division for athletes
+      const athleteData: any = {}
+      if (userRole === 'athlete') {
+        athleteData.grade = grade || undefined
+        athleteData.division = calculateDivision(inHighSchool, grade, firstYearCompetition)
+      }
+
       user = await prisma.user.create({
         data: {
           email,
@@ -131,7 +183,7 @@ export async function POST(request: NextRequest) {
           // Only create athlete profile for athlete role if no existing profile
           ...(userRole === 'athlete' && {
             athlete: {
-              create: {}
+              create: athleteData
             }
           })
         }
