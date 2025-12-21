@@ -43,10 +43,15 @@ frontend:
         - mkdir -p .next/standalone/.next
         - cp -r .next/static .next/standalone/.next/static
         - cp -r .next/server .next/standalone/.next/server || echo "No server directory"
-        - cp .next/*.json .next/standalone/.next/ || echo "No JSON files to copy"
         - cp -r public .next/standalone/public
+        # Copy manifest files to both root and .next subdirectory for compatibility
+        - cp .next/*.json .next/standalone/.next/ || echo "No JSON files in .next/"
+        - cp .next/required-server-files.json .next/standalone/required-server-files.json || echo "No required-server-files.json"
+        - cp .next/routes-manifest.json .next/standalone/routes-manifest.json || echo "No routes-manifest.json"
+        - cp .next/prerender-manifest.json .next/standalone/prerender-manifest.json || echo "No prerender-manifest.json"
         - echo "=== Verifying standalone structure ==="
-        - ls -la .next/standalone/.next/ || echo "No .next directory in standalone"
+        - ls -la .next/standalone/*.json
+        - ls -la .next/standalone/.next/*.json
         # Create .env.production for Lambda runtime
         - echo "DATABASE_URL=$DATABASE_URL" > .next/standalone/.env.production
         - echo "AUTH_SECRET=$AUTH_SECRET" >> .next/standalone/.env.production
