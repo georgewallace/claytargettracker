@@ -27,6 +27,12 @@ frontend:
     build:
       commands:
         - npm run build
+        # Clean up unnecessary files to reduce build artifact size
+        - echo "=== Cleaning up cache and unnecessary files ==="
+        - rm -rf .next/cache
+        - rm -rf node_modules/.cache
+        - find .next -name "*.map" -delete
+        - echo "=== Build artifact cleanup complete ==="
   artifacts:
     baseDirectory: .next
     files:
