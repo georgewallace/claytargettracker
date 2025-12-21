@@ -4,11 +4,11 @@ import { requireAuth } from '@/lib/auth'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth()
-    const teamId = params.id
+    const { id: teamId } = await params
 
     // Get the team to check permissions
     const team = await prisma.team.findUnique({
