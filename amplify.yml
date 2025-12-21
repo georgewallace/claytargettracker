@@ -38,20 +38,22 @@ frontend:
         - cp -r node_modules/@prisma/client .next/standalone/node_modules/@prisma/
         - echo "=== Verifying Prisma binaries in standalone ==="
         - ls -la .next/standalone/node_modules/.prisma/client/*.node || echo "Copy failed!"
-        # Copy all Next.js files to standalone
+        # Copy static files to standalone (server files already exist from standalone build)
         - echo "=== Setting up standalone output ==="
-        - mkdir -p .next/standalone/.next
+        - echo "Checking what standalone build created:"
+        - ls -la .next/standalone/.next/ || echo "No .next in standalone"
+        - echo "Copying static assets:"
         - cp -r .next/static .next/standalone/.next/static
-        - cp -r .next/server .next/standalone/.next/server || echo "No server directory"
         - cp -r public .next/standalone/public
-        # Copy manifest files to both root and .next subdirectory for compatibility
-        - cp .next/*.json .next/standalone/.next/ || echo "No JSON files in .next/"
+        # Copy manifest files to root for Amplify
+        - echo "Copying manifest files:"
         - cp .next/required-server-files.json .next/standalone/required-server-files.json || echo "No required-server-files.json"
         - cp .next/routes-manifest.json .next/standalone/routes-manifest.json || echo "No routes-manifest.json"
         - cp .next/prerender-manifest.json .next/standalone/prerender-manifest.json || echo "No prerender-manifest.json"
         - echo "=== Verifying standalone structure ==="
-        - ls -la .next/standalone/*.json
-        - ls -la .next/standalone/.next/*.json
+        - ls -la .next/standalone/
+        - ls -la .next/standalone/.next/server/ || echo "No server directory in standalone"
+        - ls -la .next/standalone/*.json || echo "No JSON files in root"
         # Create .env.production for Lambda runtime
         - echo "DATABASE_URL=$DATABASE_URL" > .next/standalone/.env.production
         - echo "AUTH_SECRET=$AUTH_SECRET" >> .next/standalone/.env.production
