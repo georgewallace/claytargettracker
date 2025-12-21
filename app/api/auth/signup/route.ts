@@ -4,33 +4,35 @@ import { hashPassword } from '@/lib/auth'
 import { rateLimiters, getIdentifier, checkRateLimit, createRateLimitHeaders } from '@/lib/ratelimit'
 import { isValidEmail, isStrongPassword, sanitizeInput, validateCSRF, addSecurityHeaders } from '@/lib/security'
 
-// Calculate division based on high school status, grade, and first year status
+// Calculate division based on grade and first year status
 function calculateDivision(
-  inHighSchool: boolean | null,
   grade: string,
   firstYearCompetition: boolean | null
 ): string | undefined {
-  // If not in high school, return undefined (no division assigned)
-  if (inHighSchool !== true) {
-    return undefined
+  if (!grade) return undefined
+
+  // Novice: 6th grade and below
+  if (['6th', '5th', '4th', '3rd', '2nd', '1st', 'kindergarten'].includes(grade)) {
+    return 'Novice'
   }
 
-  // If in high school and first year of competition -> JV
-  if (firstYearCompetition === true) {
-    return 'Junior Varsity'
+  // Intermediate: 7th and 8th grade
+  if (grade === '7th' || grade === '8th') {
+    return 'Intermediate'
   }
 
-  // If in high school and freshman -> JV
-  if (grade === 'freshman') {
-    return 'Junior Varsity'
+  // High school (9th-12th)
+  if (['freshman', 'sophomore', 'junior', 'senior'].includes(grade)) {
+    // JV: First year or Freshman
+    if (firstYearCompetition === true || grade === 'freshman') {
+      return 'Junior Varsity'
+    }
+    // Varsity: Not first year and not freshman
+    if (firstYearCompetition === false) {
+      return 'Varsity'
+    }
   }
 
-  // If in high school, not freshman, not first year -> Varsity
-  if (grade && firstYearCompetition === false) {
-    return 'Varsity'
-  }
-
-  // Default: no division assigned
   return undefined
 }
 
@@ -64,7 +66,7 @@ export async function POST(request: NextRequest) {
       return addSecurityHeaders(response)
     }
 
-    const { email, password, name, role, grade, inHighSchool, firstYearCompetition } = await request.json()
+    const { email, password, name, role, grade, firstYearCompetition, gender, birthMonth, birthDay, birthYear } = await request.json()
 
     // Validate input
     if (!email || !password || !name) {
@@ -143,7 +145,7 @@ export async function POST(request: NextRequest) {
 
       // Calculate division for athletes
       const division = userRole === 'athlete'
-        ? calculateDivision(inHighSchool, grade, firstYearCompetition)
+        ? calculateDivision(grade, firstYearCompetition)
         : undefined
 
       user = await prisma.user.update({
@@ -157,7 +159,11 @@ export async function POST(request: NextRequest) {
             athlete: {
               update: {
                 grade: grade || undefined,
-                division
+                division,
+                gender: gender || undefined,
+                birthMonth: birthMonth || undefined,
+                birthDay: birthDay || undefined,
+                birthYear: birthYear || undefined
               }
             }
           })
@@ -171,7 +177,11 @@ export async function POST(request: NextRequest) {
       const athleteData: any = {}
       if (userRole === 'athlete') {
         athleteData.grade = grade || undefined
-        athleteData.division = calculateDivision(inHighSchool, grade, firstYearCompetition)
+        athleteData.division = calculateDivision(grade, firstYearCompetition)
+        athleteData.gender = gender || undefined
+        athleteData.birthMonth = birthMonth || undefined
+        athleteData.birthDay = birthDay || undefined
+        athleteData.birthYear = birthYear || undefined
       }
 
       user = await prisma.user.create({

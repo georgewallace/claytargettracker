@@ -16,8 +16,42 @@ export default function SignupPage() {
 
   // Athlete-specific fields
   const [grade, setGrade] = useState('')
-  const [inHighSchool, setInHighSchool] = useState<boolean | null>(null)
   const [firstYearCompetition, setFirstYearCompetition] = useState<boolean | null>(null)
+  const [gender, setGender] = useState('')
+  const [birthMonth, setBirthMonth] = useState('')
+  const [birthDay, setBirthDay] = useState('')
+  const [birthYear, setBirthYear] = useState('')
+
+  // Calculate division based on grade and first year status
+  const calculateDivision = (): string => {
+    if (!grade) return ''
+
+    // Novice: 6th grade and below
+    if (['6th', '5th', '4th', '3rd', '2nd', '1st', 'kindergarten'].includes(grade)) {
+      return 'Novice'
+    }
+
+    // Intermediate: 7th and 8th grade
+    if (grade === '7th' || grade === '8th') {
+      return 'Intermediate'
+    }
+
+    // High school (9th-12th)
+    if (['freshman', 'sophomore', 'junior', 'senior'].includes(grade)) {
+      // JV: First year or Freshman
+      if (firstYearCompetition === true || grade === 'freshman') {
+        return 'Junior Varsity'
+      }
+      // Varsity: Not first year and not freshman
+      if (firstYearCompetition === false) {
+        return 'Varsity'
+      }
+    }
+
+    return ''
+  }
+
+  const division = calculateDivision()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,8 +65,11 @@ export default function SignupPage() {
       // Add athlete-specific fields if role is athlete
       if (role === 'athlete') {
         payload.grade = grade
-        payload.inHighSchool = inHighSchool
         payload.firstYearCompetition = firstYearCompetition
+        payload.gender = gender
+        payload.birthMonth = birthMonth ? parseInt(birthMonth) : undefined
+        payload.birthDay = birthDay ? parseInt(birthDay) : undefined
+        payload.birthYear = birthYear ? parseInt(birthYear) : undefined
       }
 
       const response = await fetch('/api/auth/signup', {
@@ -146,7 +183,7 @@ export default function SignupPage() {
             <p className="mt-1 text-sm text-gray-500">
               {role === 'coach'
                 ? 'Coaches can register multiple athletes for tournaments'
-                : 'Athletes can register themselves and enter their own scores'
+                : 'Athletes can register themselves for tournaments'
               }
             </p>
           </div>
@@ -154,86 +191,162 @@ export default function SignupPage() {
           {role === 'athlete' && (
             <>
               <div>
+                <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-2">
+                  Current Grade
+                </label>
+                <select
+                  id="grade"
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                >
+                  <option value="">Select grade</option>
+                  <option value="kindergarten">Kindergarten</option>
+                  <option value="1st">1st Grade</option>
+                  <option value="2nd">2nd Grade</option>
+                  <option value="3rd">3rd Grade</option>
+                  <option value="4th">4th Grade</option>
+                  <option value="5th">5th Grade</option>
+                  <option value="6th">6th Grade</option>
+                  <option value="7th">7th Grade</option>
+                  <option value="8th">8th Grade</option>
+                  <option value="freshman">9th Grade (Freshman)</option>
+                  <option value="sophomore">10th Grade (Sophomore)</option>
+                  <option value="junior">11th Grade (Junior)</option>
+                  <option value="senior">12th Grade (Senior)</option>
+                </select>
+              </div>
+
+              {['freshman', 'sophomore', 'junior', 'senior'].includes(grade) && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Is this your first year of competition?
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="firstYearCompetition"
+                        value="true"
+                        checked={firstYearCompetition === true}
+                        onChange={() => setFirstYearCompetition(true)}
+                        className="mr-2"
+                      />
+                      <span className="text-gray-900">Yes</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="firstYearCompetition"
+                        value="false"
+                        checked={firstYearCompetition === false}
+                        onChange={() => setFirstYearCompetition(false)}
+                        className="mr-2"
+                      />
+                      <span className="text-gray-900">No</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Are you currently in high school?
+                  Gender
                 </label>
                 <div className="flex gap-4">
-                  <label className="flex items-center">
+                  <label className="flex items-center cursor-pointer">
                     <input
                       type="radio"
-                      name="inHighSchool"
-                      value="true"
-                      checked={inHighSchool === true}
-                      onChange={() => setInHighSchool(true)}
+                      name="gender"
+                      value="male"
+                      checked={gender === 'male'}
+                      onChange={(e) => setGender(e.target.value)}
                       className="mr-2"
+                      required
                     />
-                    Yes
+                    <span className="text-gray-900">Male</span>
                   </label>
-                  <label className="flex items-center">
+                  <label className="flex items-center cursor-pointer">
                     <input
                       type="radio"
-                      name="inHighSchool"
-                      value="false"
-                      checked={inHighSchool === false}
-                      onChange={() => setInHighSchool(false)}
+                      name="gender"
+                      value="female"
+                      checked={gender === 'female'}
+                      onChange={(e) => setGender(e.target.value)}
                       className="mr-2"
                     />
-                    No
+                    <span className="text-gray-900">Female</span>
                   </label>
                 </div>
               </div>
 
-              {inHighSchool === true && (
-                <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date of Birth
+                </label>
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-2">
-                      Current Grade
-                    </label>
                     <select
-                      id="grade"
-                      value={grade}
-                      onChange={(e) => setGrade(e.target.value)}
+                      value={birthMonth}
+                      onChange={(e) => setBirthMonth(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       required
                     >
-                      <option value="">Select grade</option>
-                      <option value="freshman">Freshman</option>
-                      <option value="sophomore">Sophomore</option>
-                      <option value="junior">Junior</option>
-                      <option value="senior">Senior</option>
+                      <option value="">Month</option>
+                      <option value="1">January</option>
+                      <option value="2">February</option>
+                      <option value="3">March</option>
+                      <option value="4">April</option>
+                      <option value="5">May</option>
+                      <option value="6">June</option>
+                      <option value="7">July</option>
+                      <option value="8">August</option>
+                      <option value="9">September</option>
+                      <option value="10">October</option>
+                      <option value="11">November</option>
+                      <option value="12">December</option>
                     </select>
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Is this your first year of competition?
-                    </label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="firstYearCompetition"
-                          value="true"
-                          checked={firstYearCompetition === true}
-                          onChange={() => setFirstYearCompetition(true)}
-                          className="mr-2"
-                        />
-                        Yes
-                      </label>
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="firstYearCompetition"
-                          value="false"
-                          checked={firstYearCompetition === false}
-                          onChange={() => setFirstYearCompetition(false)}
-                          className="mr-2"
-                        />
-                        No
-                      </label>
-                    </div>
+                    <input
+                      type="number"
+                      placeholder="Day"
+                      min="1"
+                      max="31"
+                      value={birthDay}
+                      onChange={(e) => setBirthDay(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      required
+                    />
                   </div>
-                </>
+                  <div>
+                    <input
+                      type="number"
+                      placeholder="Year"
+                      min="1950"
+                      max={new Date().getFullYear()}
+                      value={birthYear}
+                      onChange={(e) => setBirthYear(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {division && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-md p-4">
+                  <p className="text-sm font-medium text-indigo-900">
+                    Division Assignment
+                  </p>
+                  <p className="text-lg font-semibold text-indigo-600 mt-1">
+                    {division}
+                  </p>
+                  <p className="text-xs text-indigo-700 mt-1">
+                    Based on your grade{['freshman', 'sophomore', 'junior', 'senior'].includes(grade) && firstYearCompetition !== null ? ' and competition experience' : ''}
+                  </p>
+                </div>
               )}
             </>
           )}
