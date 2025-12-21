@@ -4,11 +4,9 @@ import { authConfig } from './auth.config'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcrypt'
 
-// Let Auth.js automatically infer the secret from AUTH_SECRET env var
-// Don't explicitly set it - this is the recommended approach for Next.js
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  // secret is omitted - Auth.js will auto-detect from AUTH_SECRET
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   providers: [
     Credentials({
       name: 'credentials',
