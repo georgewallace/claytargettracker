@@ -1,0 +1,415 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./prisma/dev.db"
+}
+
+model User {
+  id                 String       @id @default(cuid())
+  email              String       @unique
+  name               String
+  password           String
+  role               String       @default("athlete")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  athlete            Athlete?
+  coachedTeams       TeamCoach[]
+  createdTournaments Tournament[]
+}
+
+model Team {
+  id                      String                       @id @default(cuid())
+  name                    String
+  logoUrl                 String?
+  affiliation             String?
+  isIndividualTeam        Boolean                      @default(false)
+  tournamentId            String?
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  athletes                Athlete[]
+  coaches                 TeamCoach[]
+  joinRequests            TeamJoinRequest[]
+  tournamentRegistrations TeamTournamentRegistration[]
+}
+
+model TeamCoach {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      String   @default("coach")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model TeamJoinRequest {
+  id        String   @id @default(cuid())
+  teamId    String
+  athleteId String
+  status    String   @default("pending")
+  message   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, athleteId])
+  @@index([teamId])
+  @@index([athleteId])
+  @@index([status])
+}
+
+model Athlete {
+  id                     String                @id @default(cuid())
+  userId                 String                @unique
+  teamId                 String?
+  birthMonth             Int?
+  birthYear              Int?
+  gender                 String?
+  nscaClass              String?
+  ataClass               String?
+  nssaClass              String?
+  grade                  String?
+  division               String?
+  divisionOverride       String?
+  isActive               Boolean               @default(true)
+  ataNumber              String?
+  nscaNumber             String?
+  nssaNumber             String?
+  profilePictureUrl      String?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  birthDay               Int?
+  shooterId              String?               @unique
+  team                   Team?                 @relation(fields: [teamId], references: [id])
+  user                   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  averages               AthleteAverage[]
+  registrations          Registration[]
+  shoots                 Shoot[]
+  shootOffWins           ShootOff[]            @relation("ShootOffWinner")
+  shootOffParticipations ShootOffParticipant[]
+  squadMembers           SquadMember[]
+  teamJoinRequests       TeamJoinRequest[]
+}
+
+model AthleteAverage {
+  id           String               @id @default(cuid())
+  athleteId    String
+  disciplineId String
+  average      Float
+  isManual     Boolean              @default(false)
+  lastUpdated  DateTime             @default(now()) @updatedAt
+  createdAt    DateTime             @default(now())
+  discipline   TournamentDiscipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  athlete      Athlete              @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([athleteId, disciplineId])
+  @@index([athleteId])
+  @@index([disciplineId])
+}
+
+model Tournament {
+  id                      String                       @id @default(cuid())
+  name                    String
+  location                String
+  startDate               DateTime
+  endDate                 DateTime
+  description             String?
+  status                  String                       @default("upcoming")
+  createdById             String
+  enableHOA               Boolean                      @default(true)
+  enableHAA               Boolean                      @default(true)
+  hoaSeparateGender       Boolean                      @default(false)
+  haaCoreDisciplines      String?
+  hoaExcludesHAA          Boolean                      @default(true)
+  haaExcludesDivision     Boolean                      @default(true)
+  enableShootOffs         Boolean                      @default(false)
+  shootOffTriggers        String?
+  shootOffFormat          String                       @default("sudden_death")
+  shootOffTargetsPerRound Int                          @default(2)
+  shootOffStartStation    String?
+  shootOffRequiresPerfect Boolean                      @default(false)
+  enableScores            Boolean                      @default(false)
+  enableLeaderboard       Boolean                      @default(false)
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  registrations           Registration[]
+  shoots                  Shoot[]
+  shootOffs               ShootOff[]
+  teamRegistrations       TeamTournamentRegistration[]
+  timeSlots               TimeSlot[]
+  createdBy               User                         @relation(fields: [createdById], references: [id])
+  disciplines             TournamentDiscipline[]
+}
+
+model TeamTournamentRegistration {
+  id           String     @id @default(cuid())
+  teamId       String
+  tournamentId String
+  registeredBy String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, tournamentId])
+  @@index([teamId])
+  @@index([tournamentId])
+}
+
+model TimeSlot {
+  id            String               @id @default(cuid())
+  tournamentId  String
+  disciplineId  String
+  date          DateTime
+  startTime     String
+  endTime       String
+  squadCapacity Int                  @default(5)
+  fieldNumber   String?
+  stationNumber String?
+  notes         String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  squads        Squad[]
+  discipline    Discipline           @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  tournament    Tournament           @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  preferences   TimeSlotPreference[]
+
+  @@index([tournamentId, date])
+  @@index([disciplineId])
+}
+
+model Squad {
+  id         String        @id @default(cuid())
+  timeSlotId String
+  name       String
+  capacity   Int           @default(5)
+  teamOnly   Boolean       @default(false)
+  notes      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  timeSlot   TimeSlot      @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+  members    SquadMember[]
+
+  @@index([timeSlotId])
+}
+
+model SquadMember {
+  id        String   @id @default(cuid())
+  squadId   String
+  athleteId String
+  position  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  squad     Squad    @relation(fields: [squadId], references: [id], onDelete: Cascade)
+
+  @@unique([squadId, athleteId])
+  @@index([squadId])
+  @@index([athleteId])
+}
+
+model Discipline {
+  id            String                   @id @default(cuid())
+  name          String                   @unique
+  displayName   String
+  description   String?
+  registrations RegistrationDiscipline[]
+  shoots        Shoot[]
+  shootOffs     ShootOff[]
+  timeSlots     TimeSlot[]
+  tournaments   TournamentDiscipline[]
+}
+
+model TournamentDiscipline {
+  id              String           @id @default(cuid())
+  tournamentId    String
+  disciplineId    String
+  rounds          Int?
+  targets         Int?
+  stations        Int?
+  shooterAverages AthleteAverage[]
+  discipline      Discipline       @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, disciplineId])
+}
+
+model Registration {
+  id           String                   @id @default(cuid())
+  tournamentId String
+  athleteId    String
+  status       String                   @default("registered")
+  createdAt    DateTime                 @default(now())
+  athlete      Athlete                  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  tournament   Tournament               @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  disciplines  RegistrationDiscipline[]
+
+  @@unique([tournamentId, athleteId])
+}
+
+model RegistrationDiscipline {
+  id                  String               @id @default(cuid())
+  registrationId      String
+  disciplineId        String
+  assignedBy          String?
+  discipline          Discipline           @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  registration        Registration         @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  timeSlotPreferences TimeSlotPreference[]
+
+  @@unique([registrationId, disciplineId])
+}
+
+model TimeSlotPreference {
+  id                       String                 @id @default(cuid())
+  registrationDisciplineId String
+  timeSlotId               String
+  preference               Int                    @default(1)
+  createdAt                DateTime               @default(now())
+  timeSlot                 TimeSlot               @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+  registrationDiscipline   RegistrationDiscipline @relation(fields: [registrationDisciplineId], references: [id], onDelete: Cascade)
+
+  @@unique([registrationDisciplineId, timeSlotId])
+  @@index([registrationDisciplineId])
+  @@index([timeSlotId])
+}
+
+model Shoot {
+  id           String     @id @default(cuid())
+  tournamentId String
+  athleteId    String
+  disciplineId String
+  date         DateTime   @default(now())
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  scores       Score[]
+  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  athlete      Athlete    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, athleteId, disciplineId])
+}
+
+model Score {
+  id            String   @id @default(cuid())
+  shootId       String
+  roundNumber   Int?
+  stationNumber Int?
+  targets       Int
+  maxTargets    Int      @default(25)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  shoot         Shoot    @relation(fields: [shootId], references: [id], onDelete: Cascade)
+
+  @@index([shootId])
+  @@index([shootId, roundNumber])
+  @@index([shootId, stationNumber])
+}
+
+model ShootOff {
+  id           String                @id @default(cuid())
+  tournamentId String
+  disciplineId String?
+  position     Int
+  status       String                @default("pending")
+  format       String
+  description  String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  winnerId     String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  winner       Athlete?              @relation("ShootOffWinner", fields: [winnerId], references: [id])
+  discipline   Discipline?           @relation(fields: [disciplineId], references: [id])
+  tournament   Tournament            @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  participants ShootOffParticipant[]
+  rounds       ShootOffRound[]
+
+  @@index([tournamentId])
+  @@index([status])
+}
+
+model ShootOffParticipant {
+  id                String          @id @default(cuid())
+  shootOffId        String
+  athleteId         String
+  tiedScore         Int
+  finalPlace        Int?
+  eliminated        Boolean         @default(false)
+  eliminatedInRound Int?
+  createdAt         DateTime        @default(now())
+  athlete           Athlete         @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  shootOff          ShootOff        @relation(fields: [shootOffId], references: [id], onDelete: Cascade)
+  scores            ShootOffScore[]
+
+  @@unique([shootOffId, athleteId])
+  @@index([shootOffId])
+  @@index([athleteId])
+}
+
+model ShootOffRound {
+  id          String          @id @default(cuid())
+  shootOffId  String
+  roundNumber Int
+  targets     Int
+  station     String?
+  difficulty  String?
+  notes       String?
+  completedAt DateTime?
+  createdAt   DateTime        @default(now())
+  shootOff    ShootOff        @relation(fields: [shootOffId], references: [id], onDelete: Cascade)
+  scores      ShootOffScore[]
+
+  @@unique([shootOffId, roundNumber])
+  @@index([shootOffId])
+}
+
+model ShootOffScore {
+  id            String              @id @default(cuid())
+  roundId       String
+  participantId String
+  targetsHit    Int
+  totalTargets  Int
+  notes         String?
+  createdAt     DateTime            @default(now())
+  participant   ShootOffParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  round         ShootOffRound       @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, participantId])
+  @@index([roundId])
+  @@index([participantId])
+}
+
+model ImportedScore {
+  id               String   @id @default(cuid())
+  shooter          String
+  team             String
+  gender           String
+  division         String
+  discipline       String
+  round            Int
+  targetsThrown    Int
+  targetsHit       Int
+  stationBreakdown String?
+  field            String?
+  time             String?
+  notes            String?
+  uploadedBy       String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([shooter])
+  @@index([team])
+  @@index([discipline])
+  @@index([division])
+  @@index([gender])
+}
