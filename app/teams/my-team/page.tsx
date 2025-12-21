@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { getUserFirstCoachedTeam } from '@/lib/teamHelpers'
 import CoachTeamManager from './CoachTeamManager'
 import TeamLogoUpload from './TeamLogoUpload'
+import TeamInfoEdit from './TeamInfoEdit'
 
 // Force dynamic rendering (required for getCurrentUser)
 export const dynamic = 'force-dynamic'
@@ -111,6 +112,9 @@ export default async function MyTeamPage() {
 
         {/* Team Logo Upload */}
         <TeamLogoUpload team={teamWithDetails} />
+
+        {/* Team Information Edit */}
+        <TeamInfoEdit team={teamWithDetails} />
 
         <CoachTeamManager 
           team={teamWithDetails}

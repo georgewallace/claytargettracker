@@ -717,6 +717,10 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
 
     const { timeSlotId, athleteId } = pendingSquadCreation
 
+    // Find the time slot to get its squad capacity
+    const timeSlot = tournament.timeSlots.find(slot => slot.id === timeSlotId)
+    const squadCapacity = timeSlot?.squadCapacity || 5
+
     // Build full squad name with team prefix
     let teamPrefix = 'Unknown'
     if (selectedTeamId === 'unaffiliated') {
@@ -740,7 +744,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
     const newSquad = {
       id: tempSquadId,
       name: squadName,
-      capacity: 5,
+      capacity: squadCapacity,
       timeSlotId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -781,7 +785,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: squadName,
-          capacity: 5
+          capacity: squadCapacity
         })
       })
 
