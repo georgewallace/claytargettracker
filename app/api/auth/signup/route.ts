@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
       // Hash password and create new user
       const hashedPassword = await hashPassword(password)
 
-      // Calculate division for athletes
+      // Calculate division and generate shooter ID for athletes
       const athleteData: any = {}
       if (userRole === 'athlete') {
         athleteData.grade = grade || undefined
@@ -190,6 +190,30 @@ export async function POST(request: NextRequest) {
         athleteData.birthMonth = birthMonth || undefined
         athleteData.birthDay = birthDay || undefined
         athleteData.birthYear = birthYear || undefined
+
+        // Generate shooter ID: YY-XXXX format
+        const currentYear = new Date().getFullYear()
+        const yearSuffix = currentYear.toString().slice(-2) // Get last 2 digits of year
+
+        // Find the highest shooter ID for this year
+        const lastShooter = await prisma.athlete.findFirst({
+          where: {
+            shooterId: {
+              startsWith: `${yearSuffix}-`
+            }
+          },
+          orderBy: {
+            shooterId: 'desc'
+          }
+        })
+
+        let nextNumber = 1000 // Start at 1000 for new years
+        if (lastShooter?.shooterId) {
+          const lastNumber = parseInt(lastShooter.shooterId.split('-')[1])
+          nextNumber = lastNumber + 1
+        }
+
+        athleteData.shooterId = `${yearSuffix}-${nextNumber}`
       }
 
       user = await prisma.user.create({

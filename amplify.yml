@@ -20,8 +20,21 @@ frontend:
         # Verify Prisma binaries were generated
         - echo "Checking for Prisma binaries..."
         - ls -la node_modules/.prisma/client/*.node || echo "Prisma binaries not found!"
-        # Run database migrations (PostgreSQL via DATABASE_URL env var)
-        - npx prisma migrate deploy
+        # Run database migrations with retry logic (PostgreSQL via DATABASE_URL env var)
+        - |
+          echo "=== Running database migrations ==="
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          until npx prisma migrate deploy || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            echo "Migration attempt $RETRY_COUNT failed. Waiting 10 seconds before retry..."
+            sleep 10
+          done
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "Migration failed after $MAX_RETRIES attempts"
+            exit 1
+          fi
+          echo "=== Migration completed successfully ==="
         # Seed historical tournament data (only if SEED_HISTORY env var is set)
         - if [ "$SEED_HISTORY" = "true" ]; then npm run db:seed-history; fi
     build:
