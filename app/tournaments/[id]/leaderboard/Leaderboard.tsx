@@ -981,68 +981,62 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         </div>
       )}
 
-      {/* Squads View - Compact Table */}
+      {/* Squads View - Compact Grid */}
       {activeView === 'squads' && (
-        <div className="bg-white/10 backdrop-blur rounded-lg shadow-2xl overflow-hidden">
-          <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-4">
-            <h2 className="text-xl font-bold text-gray-900">👥 Squad Standings</h2>
-            <p className="text-gray-600 text-xs mt-1">Ranked by total squad score</p>
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+          <div className="mb-3">
+            <h2 className="text-lg font-bold text-gray-900">👥 Squad Standings</h2>
+            <p className="text-gray-600 text-xs">
+              Ranked by total squad score • {squadScores.length} squad{squadScores.length !== 1 ? 's' : ''}
+            </p>
           </div>
           <div className="overflow-x-auto">
             {squadScores.length > 0 ? (
-              <table className="min-w-full divide-y divide-white/10">
-                <thead className="bg-white/5">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 w-12">#</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Squad</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Team</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Members</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600">Status</th>
-                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 bg-gray-100">Total Score</th>
+                    <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                    <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Squad</th>
+                    <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Team</th>
+                    <th className="px-2 py-1 text-center text-xs font-semibold text-gray-600">Athletes</th>
+                    <th className="px-2 py-1 text-center text-xs font-semibold text-gray-600">Status</th>
+                    <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Score</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-gray-200">
                   {[...squadScores]
                     .sort((a, b) => b.totalScore - a.totalScore)
                     .map((squad, idx) => (
-                      <tr key={squad.squadId} className={`hover:bg-white/5 transition ${!squad.isComplete ? 'bg-yellow-400/5' : ''}`}>
-                        <td className="px-3 py-2 text-sm text-gray-500">
+                      <tr
+                        key={squad.squadId}
+                        className={`transition ${
+                          idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'
+                        } ${!squad.isComplete ? 'border-l-2 border-l-yellow-400' : ''}`}
+                      >
+                        <td className="px-2 py-1 text-gray-600">
                           {idx < 3 ? getMedal(idx) : `${idx + 1}`}
                         </td>
-                        <td className="px-3 py-2 text-sm font-medium text-gray-900">
+                        <td className="px-2 py-1 text-xs font-medium text-gray-900 truncate max-w-[200px]" title={squad.squadName}>
                           {squad.squadName}
                         </td>
-                        <td className="px-3 py-2 text-xs text-gray-500">
+                        <td className="px-2 py-1 text-xs text-gray-600 truncate max-w-[120px]" title={squad.teamName || 'Mixed'}>
                           {squad.teamName || 'Mixed'}
                         </td>
-                        <td className="px-3 py-2 text-xs text-gray-500">
-                          <div className="max-w-xs truncate" title={squad.members.join(', ')}>
-                            {squad.members.join(', ')}
-                          </div>
-                          <div className="text-gray-400 text-xs mt-0.5">
-                            {squad.memberCount} athlete{squad.memberCount !== 1 ? 's' : ''}
-                          </div>
+                        <td className="px-2 py-1 text-xs text-gray-600 text-center">
+                          {squad.memberCount}
                         </td>
-                        <td className="px-3 py-2 text-center">
+                        <td className="px-2 py-1 text-center">
                           {squad.isComplete ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-400/20 text-green-300 border border-green-400/30">
-                              ✓ Complete
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                              ✓
                             </span>
                           ) : (
-                            <div className="flex items-center justify-center gap-2">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-400/20 text-yellow-300 border border-yellow-400/30">
-                                ⚠️ {squad.completionPercentage}%
-                              </span>
-                              <div className="w-16 bg-white/10 rounded-full h-1.5 overflow-hidden">
-                                <div 
-                                  className="bg-yellow-400 h-full transition-all"
-                                  style={{ width: `${squad.completionPercentage}%` }}
-                                />
-                              </div>
-                            </div>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                              {squad.completionPercentage}%
+                            </span>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right text-sm font-bold text-gray-900 bg-gray-100">
+                        <td className="px-2 py-1 text-right text-xs font-bold text-gray-900 bg-white">
                           {squad.totalScore}
                         </td>
                       </tr>
@@ -1050,7 +1044,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                 </tbody>
               </table>
             ) : (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-gray-500">
                 No squads with scores yet
               </div>
             )}
