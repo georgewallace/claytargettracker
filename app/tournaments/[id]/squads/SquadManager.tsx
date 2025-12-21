@@ -892,14 +892,18 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
 
         {/* Incomplete Squads Warning */}
         {(() => {
+          // Check squads against their time slot's squadCapacity (not the stored squad.capacity)
           const incompleteSquads = tournament.timeSlots
             .filter((slot: any) => !activeDiscipline || slot.disciplineId === activeDiscipline)
-            .flatMap((slot: any) => slot.squads)
-            .filter((squad: any) => squad.members.length > 0 && squad.members.length < squad.capacity)
+            .flatMap((slot: any) =>
+              slot.squads
+                .filter((squad: any) => squad.members.length > 0 && squad.members.length < (slot.squadCapacity || 5))
+                .map((squad: any) => ({ ...squad, timeSlotCapacity: slot.squadCapacity || 5 }))
+            )
 
           if (incompleteSquads.length > 0) {
-            // Get unique capacities from incomplete squads
-            const uniqueCapacities = [...new Set(incompleteSquads.map((s: any) => s.capacity))]
+            // Get unique capacities from time slots
+            const uniqueCapacities = [...new Set(incompleteSquads.map((s: any) => s.timeSlotCapacity))]
             const capacityText = uniqueCapacities.length === 1
               ? `${uniqueCapacities[0]} athletes`
               : 'their respective capacities'
