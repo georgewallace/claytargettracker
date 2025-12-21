@@ -30,31 +30,36 @@ frontend:
         # Verify Prisma binaries were generated
         - echo "=== Verifying Prisma binaries for AWS Lambda ==="
         - find node_modules/.prisma/client -name "*rhel-openssl-3.0.x.so.node" -ls || echo "RHEL binary NOT FOUND!"
-        # CRITICAL: Copy Prisma binaries to Next.js server output
-        - echo "=== Copying Prisma binaries to .next output ==="
-        - mkdir -p .next/server/node_modules/.prisma
-        - cp -r node_modules/.prisma/client .next/server/node_modules/.prisma/
-        - mkdir -p .next/server/node_modules/@prisma
-        - cp -r node_modules/@prisma/client .next/server/node_modules/@prisma/
-        - echo "=== Verifying Prisma binaries in .next/server ==="
-        - ls -la .next/server/node_modules/.prisma/client/*.node || echo "Copy failed!"
-        # Create .env.production for Lambda runtime (in multiple locations to ensure it's found)
-        - echo "DATABASE_URL=$DATABASE_URL" > .env.production
-        - echo "AUTH_SECRET=$AUTH_SECRET" >> .env.production
-        - echo "NEXTAUTH_SECRET=$NEXTAUTH_SECRET" >> .env.production
-        - echo "NEXTAUTH_URL=$NEXTAUTH_URL" >> .env.production
-        - echo "UPSTASH_REDIS_REST_URL=$UPSTASH_REDIS_REST_URL" >> .env.production
-        - echo "UPSTASH_REDIS_REST_TOKEN=$UPSTASH_REDIS_REST_TOKEN" >> .env.production
+        # CRITICAL: Copy Prisma binaries to Next.js standalone output
+        - echo "=== Copying Prisma binaries to standalone output ==="
+        - mkdir -p .next/standalone/node_modules/.prisma
+        - cp -r node_modules/.prisma/client .next/standalone/node_modules/.prisma/
+        - mkdir -p .next/standalone/node_modules/@prisma
+        - cp -r node_modules/@prisma/client .next/standalone/node_modules/@prisma/
+        - echo "=== Verifying Prisma binaries in standalone ==="
+        - ls -la .next/standalone/node_modules/.prisma/client/*.node || echo "Copy failed!"
+        # Copy static files and public to standalone
+        - echo "=== Setting up standalone output ==="
+        - cp -r .next/static .next/standalone/.next/static
+        - cp -r public .next/standalone/public
+        # Create .env.production for Lambda runtime
+        - echo "DATABASE_URL=$DATABASE_URL" > .next/standalone/.env.production
+        - echo "AUTH_SECRET=$AUTH_SECRET" >> .next/standalone/.env.production
+        - echo "NEXTAUTH_SECRET=$NEXTAUTH_SECRET" >> .next/standalone/.env.production
+        - echo "NEXTAUTH_URL=$NEXTAUTH_URL" >> .next/standalone/.env.production
+        - echo "UPSTASH_REDIS_REST_URL=$UPSTASH_REDIS_REST_URL" >> .next/standalone/.env.production
+        - echo "UPSTASH_REDIS_REST_TOKEN=$UPSTASH_REDIS_REST_TOKEN" >> .next/standalone/.env.production
         # S3 environment variables for team logo uploads
-        - echo "S3_ACCESS_KEY_ID=$S3_ACCESS_KEY_ID" >> .env.production
-        - echo "S3_SECRET_ACCESS_KEY=$S3_SECRET_ACCESS_KEY" >> .env.production
-        - echo "S3_BUCKET=$S3_BUCKET" >> .env.production
-        - echo "S3_REGION=$S3_REGION" >> .env.production
-        - cp .env.production .next/.env.production
+        - echo "S3_ACCESS_KEY_ID=$S3_ACCESS_KEY_ID" >> .next/standalone/.env.production
+        - echo "S3_SECRET_ACCESS_KEY=$S3_SECRET_ACCESS_KEY" >> .next/standalone/.env.production
+        - echo "S3_BUCKET=$S3_BUCKET" >> .next/standalone/.env.production
+        - echo "S3_REGION=$S3_REGION" >> .next/standalone/.env.production
         - echo "=== Created .env.production for Lambda runtime ==="
-        - cat .env.production
+        # Check standalone output size
+        - echo "=== Standalone output size ==="
+        - du -sh .next/standalone
   artifacts:
-    baseDirectory: .next
+    baseDirectory: .next/standalone
     files:
       - '**/*'
   cache:

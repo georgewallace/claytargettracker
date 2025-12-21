@@ -6,8 +6,8 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable static export for demo mode only (AWS Amplify handles SSR natively)
-  output: process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ? 'export' : undefined,
+  // Enable static export for demo mode, standalone for production (AWS Amplify)
+  output: process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ? 'export' : 'standalone',
 
   // Set base path for GitHub Pages (if using repo pages)
   basePath: process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && process.env.NEXT_PUBLIC_BASE_PATH
