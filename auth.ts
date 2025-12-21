@@ -4,9 +4,15 @@ import { authConfig } from './auth.config'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcrypt'
 
+// Ensure secret is defined with fallback
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
+if (!authSecret) {
+  throw new Error('AUTH_SECRET or NEXTAUTH_SECRET environment variable must be defined')
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  secret: authSecret,
   providers: [
     Credentials({
       name: 'credentials',
