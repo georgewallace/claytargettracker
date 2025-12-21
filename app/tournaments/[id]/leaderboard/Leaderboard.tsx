@@ -86,20 +86,15 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     refetchOnWindowFocus: false
   })
 
-  // Determine initial view based on tournament status
-  const isTournamentComplete = tournament.status === 'completed'
-  const [activeView, setActiveView] = useState<'podium' | 'divisions' | 'squads' | 'classes' | 'teams'>(
-    isTournamentComplete ? 'podium' : 'divisions'
-  )
+  // Determine initial view
+  const [activeView, setActiveView] = useState<'divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa'>('divisions')
 
   // Auto-cycle through views
   useEffect(() => {
     if (!autoRefresh) return
 
-    const views: ('podium' | 'divisions' | 'squads' | 'classes' | 'teams')[] =
-      isTournamentComplete
-        ? ['podium', 'divisions', 'classes', 'teams', 'squads']
-        : ['divisions', 'classes', 'teams', 'squads']
+    const views: ('divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa')[] =
+      ['divisions', 'classes', 'teams', 'hoa-haa', 'squads']
 
     const interval = setInterval(() => {
       setActiveView(current => {
@@ -110,7 +105,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     }, 15000) // Cycle every 15 seconds
 
     return () => clearInterval(interval)
-  }, [autoRefresh, isTournamentComplete])
+  }, [autoRefresh])
 
   // Fullscreen toggle
   const toggleFullscreen = () => {
@@ -424,18 +419,6 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         
         {/* View Toggle */}
         <div className="flex gap-2 flex-wrap">
-          {isTournamentComplete && (
-            <button
-              onClick={() => setActiveView('podium')}
-              className={`px-2 py-1 rounded text-sm transition font-medium ${
-                activeView === 'podium'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-              }`}
-            >
-              🏆 Podium
-            </button>
-          )}
           <button
             onClick={() => setActiveView('divisions')}
             className={`px-3 py-1.5 rounded text-sm transition font-medium ${
@@ -465,6 +448,16 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             }`}
           >
             🏅 Teams
+          </button>
+          <button
+            onClick={() => setActiveView('hoa-haa')}
+            className={`px-3 py-1.5 rounded text-sm transition font-medium ${
+              activeView === 'hoa-haa'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+            }`}
+          >
+            👑 HOA/HAA
           </button>
           <button
             onClick={() => setActiveView('squads')}
@@ -516,383 +509,152 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         />
       )}
 
-      {/* Podium View */}
-      {activeView === 'podium' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* HOA - High Over All */}
-          {tournament.enableHOA && !tournament.hoaSeparateGender && (
+      {/* HOA/HAA View */}
+      {activeView === 'hoa-haa' && (
+        <div className="space-y-3">
+          {/* HOA Section */}
+          {tournament.enableHOA && (
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-              <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                👑 HOA - High Over All
-              </h2>
-              <p className="text-gray-600 text-xs mb-3">All Disciplines Combined</p>
-              
-              {hoaathletes.length > 0 ? (
-                <div className="space-y-2">
-                  {hoaathletes.map((athlete, idx) => (
-                    <div
-                      key={athlete.athleteId}
-                      className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-3xl">{getMedal(idx)}</span>
-                        <div>
-                          <div className="text-base font-bold text-gray-900">
-                            {athlete.athleteName}
+              <div className="mb-3">
+                <h2 className="text-lg font-bold text-gray-900">👑 HOA - High Over All</h2>
+                <p className="text-gray-600 text-xs">All Disciplines Combined</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {/* HOA Combined or Male */}
+                {(!tournament.hoaSeparateGender || (tournament.hoaSeparateGender && hoaMaleathletes.length > 0)) && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
+                    <h3 className="text-sm font-bold text-gray-900 mb-2">
+                      {tournament.hoaSeparateGender ? 'Male' : 'Combined'}
+                    </h3>
+                    {(tournament.hoaSeparateGender ? hoaMaleathletes : hoaathletes).length > 0 ? (
+                      <div className="space-y-1">
+                        {(tournament.hoaSeparateGender ? hoaMaleathletes : hoaathletes).map((athlete, idx) => (
+                          <div
+                            key={athlete.athleteId}
+                            className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className="text-lg">{getMedal(idx) || `${idx + 1}`}</span>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
+                                <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                              </div>
+                            </div>
+                            <div className="text-right ml-2">
+                              <div className="text-base font-bold text-gray-900">{athlete.totalScore}</div>
+                              <div className="text-xs text-gray-600">{athlete.disciplineCount} disc</div>
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-600">
-                            {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500 text-xs">No scores yet</div>
+                    )}
+                  </div>
+                )}
+
+                {/* HOA Female */}
+                {tournament.hoaSeparateGender && hoaFemaleathletes.length > 0 && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
+                    <h3 className="text-sm font-bold text-gray-900 mb-2">Female</h3>
+                    <div className="space-y-1">
+                      {hoaFemaleathletes.map((athlete, idx) => (
+                        <div
+                          key={athlete.athleteId}
+                          className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className="text-lg">{getMedal(idx) || `${idx + 1}`}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
+                              <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                            </div>
+                          </div>
+                          <div className="text-right ml-2">
+                            <div className="text-base font-bold text-gray-900">{athlete.totalScore}</div>
+                            <div className="text-xs text-gray-600">{athlete.disciplineCount} disc</div>
                           </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-gray-900">
-                          {athlete.totalScore}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {athlete.disciplineCount} disc{athlete.disciplineCount !== 1 ? 's' : ''}
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-500 text-sm">
-                  No scores recorded yet
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* HOA - Male */}
-          {tournament.enableHOA && tournament.hoaSeparateGender && (
+          {/* HAA Section */}
+          {tournament.enableHAA && (
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-              <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                👑 HOA - Male
-              </h2>
-              <p className="text-gray-600 text-xs mb-3">All Disciplines Combined</p>
-              
-              {hoaMaleathletes.length > 0 ? (
-                <div className="space-y-2">
-                  {hoaMaleathletes.map((athlete, idx) => (
-                    <div
-                      key={athlete.athleteId}
-                      className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-3xl">{getMedal(idx)}</span>
-                        <div>
-                          <div className="text-base font-bold text-gray-900">
-                            {athlete.athleteName}
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-gray-900">
-                          {athlete.totalScore}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {athlete.disciplineCount} disc{athlete.disciplineCount !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-500 text-sm">
-                  No scores recorded yet
-                </div>
-              )}
-            </div>
-          )}
+              <div className="mb-3">
+                <h2 className="text-lg font-bold text-gray-900">🎯 HAA - High All-Around</h2>
+                <p className="text-gray-600 text-xs">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
+              </div>
 
-          {/* HOA - Female */}
-          {tournament.enableHOA && tournament.hoaSeparateGender && (
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-              <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                👑 HOA - Female
-              </h2>
-              <p className="text-gray-600 text-xs mb-3">All Disciplines Combined</p>
-              
-              {hoaFemaleathletes.length > 0 ? (
-                <div className="space-y-2">
-                  {hoaFemaleathletes.map((athlete, idx) => (
-                    <div
-                      key={athlete.athleteId}
-                      className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-3xl">{getMedal(idx)}</span>
-                        <div>
-                          <div className="text-base font-bold text-gray-900">
-                            {athlete.athleteName}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {/* HAA Combined or Male */}
+                {(!tournament.hoaSeparateGender || (tournament.hoaSeparateGender && haaMaleathletes.length > 0)) && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
+                    <h3 className="text-sm font-bold text-gray-900 mb-2">
+                      {tournament.hoaSeparateGender ? 'Male' : 'Combined'}
+                    </h3>
+                    {(tournament.hoaSeparateGender ? haaMaleathletes : haaathletes).length > 0 ? (
+                      <div className="space-y-1">
+                        {(tournament.hoaSeparateGender ? haaMaleathletes : haaathletes).map((athlete, idx) => (
+                          <div
+                            key={athlete.athleteId}
+                            className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className="text-lg">{getMedal(idx) || `${idx + 1}`}</span>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
+                                <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                              </div>
+                            </div>
+                            <div className="text-right ml-2">
+                              <div className="text-base font-bold text-gray-900">{athlete.haaTotal}</div>
+                              <div className="text-xs text-gray-600">{athlete.haaDisciplineCount} core</div>
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-600">
-                            {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500 text-xs">Need 2+ core disciplines</div>
+                    )}
+                  </div>
+                )}
+
+                {/* HAA Female */}
+                {tournament.hoaSeparateGender && haaFemaleathletes.length > 0 && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
+                    <h3 className="text-sm font-bold text-gray-900 mb-2">Female</h3>
+                    <div className="space-y-1">
+                      {haaFemaleathletes.map((athlete, idx) => (
+                        <div
+                          key={athlete.athleteId}
+                          className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className="text-lg">{getMedal(idx) || `${idx + 1}`}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
+                              <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                            </div>
+                          </div>
+                          <div className="text-right ml-2">
+                            <div className="text-base font-bold text-gray-900">{athlete.haaTotal}</div>
+                            <div className="text-xs text-gray-600">{athlete.haaDisciplineCount} core</div>
                           </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-gray-900">
-                          {athlete.totalScore}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {athlete.disciplineCount} disc{athlete.disciplineCount !== 1 ? 's' : ''}
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-500 text-sm">
-                  No scores recorded yet
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
-
-        {/* HAA - High All-Around */}
-        {tournament.enableHAA && !tournament.hoaSeparateGender && (
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-            <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" style={{color: 'white'}}>
-                <circle cx="12" cy="12" r="10"></circle>
-                <circle cx="12" cy="12" r="6"></circle>
-                <circle cx="12" cy="12" r="2"></circle>
-              </svg>
-              HAA - High All-Around
-            </h2>
-            <p className="text-gray-600 text-xs mb-3">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
-            
-            {haaathletes.length > 0 ? (
-              <div className="space-y-2">
-                {haaathletes.map((athlete, idx) => (
-                  <div
-                    key={athlete.athleteId}
-                    className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-3xl">{getMedal(idx)}</span>
-                      <div>
-                        <div className="text-base font-bold text-gray-900">
-                          {athlete.athleteName}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-gray-900">
-                        {athlete.haaTotal}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {athlete.haaDisciplineCount} core
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 text-gray-500 text-sm">
-                Need 2+ core disciplines
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* HAA - Male */}
-        {tournament.enableHAA && tournament.hoaSeparateGender && (
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-            <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" style={{color: 'white'}}>
-                <circle cx="12" cy="12" r="10"></circle>
-                <circle cx="12" cy="12" r="6"></circle>
-                <circle cx="12" cy="12" r="2"></circle>
-              </svg>
-              HAA - Male
-            </h2>
-            <p className="text-gray-600 text-xs mb-3">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
-            
-            {haaMaleathletes.length > 0 ? (
-              <div className="space-y-2">
-                {haaMaleathletes.map((athlete, idx) => (
-                  <div
-                    key={athlete.athleteId}
-                    className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-3xl">{getMedal(idx)}</span>
-                      <div>
-                        <div className="text-base font-bold text-gray-900">
-                          {athlete.athleteName}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-gray-900">
-                        {athlete.haaTotal}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {athlete.haaDisciplineCount} core
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 text-gray-500 text-sm">
-                Need 2+ core disciplines
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* HAA - Female */}
-        {tournament.enableHAA && tournament.hoaSeparateGender && (
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-            <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" style={{color: 'white'}}>
-                <circle cx="12" cy="12" r="10"></circle>
-                <circle cx="12" cy="12" r="6"></circle>
-                <circle cx="12" cy="12" r="2"></circle>
-              </svg>
-              HAA - Female
-            </h2>
-            <p className="text-gray-600 text-xs mb-3">Core Disciplines (Trap, Skeet, Sporting Clays)</p>
-            
-            {haaFemaleathletes.length > 0 ? (
-              <div className="space-y-2">
-                {haaFemaleathletes.map((athlete, idx) => (
-                  <div
-                    key={athlete.athleteId}
-                    className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-3xl">{getMedal(idx)}</span>
-                      <div>
-                        <div className="text-base font-bold text-gray-900">
-                          {athlete.athleteName}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-gray-900">
-                        {athlete.haaTotal}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {athlete.haaDisciplineCount} core
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 text-gray-500 text-sm">
-                Need 2+ core disciplines
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Top 3 Overall */}
-        <div className="bg-gradient-to-br from-stone-700 to-stone-900 rounded-lg shadow-xl p-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-            🏅 Top 3 Individuals
-          </h2>
-          <p className="text-gray-600 text-xs mb-3">Overall Tournament Leaders</p>
-          
-          {top3Overall.length > 0 ? (
-            <div className="space-y-2">
-              {top3Overall.map((athlete, idx) => (
-                <div
-                  key={athlete.athleteId}
-                  className="bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-3xl">{getMedal(idx)}</span>
-                    <div>
-                      <div className="text-base font-bold text-gray-900">
-                        {athlete.athleteName}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {athlete.teamName || 'Independent'} • {athlete.division || 'No Division'}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xl font-bold text-gray-900">
-                      {athlete.totalScore}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {athlete.disciplineCount} disc{athlete.disciplineCount !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-white/70 text-sm">
-              No scores recorded yet
-            </div>
-          )}
-        </div>
-
-        {/* Top 3 Squads */}
-        <div className="bg-gradient-to-br from-green-800 to-green-950 rounded-lg shadow-xl p-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-            👥 Top 3 Squads
-          </h2>
-          <p className="text-gray-600 text-xs mb-3">Combined Squad Scores</p>
-          
-          {top3Squads.length > 0 ? (
-            <div className="space-y-2">
-              {top3Squads.map((squad, idx) => (
-                <div
-                  key={squad.squadId}
-                  className={`bg-black/20 backdrop-blur rounded-lg p-3 flex items-center justify-between ${!squad.isComplete ? 'border border-yellow-400/50' : ''}`}
-                >
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="text-3xl">{getMedal(idx)}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <div className="text-base font-bold text-gray-900 truncate">
-                          {squad.squadName}
-                        </div>
-                        {!squad.isComplete && (
-                          <span className="px-1.5 py-0.5 bg-yellow-400/20 text-yellow-200 text-xs font-semibold rounded">
-                            {squad.completionPercentage}%
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-600 truncate">
-                        {squad.teamName || 'Mixed'} • {squad.memberCount} athletes
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right ml-2">
-                    <div className="text-xl font-bold text-gray-900">
-                      {squad.totalScore}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-white/70 text-sm">
-              No squads with scores yet
-            </div>
-          )}
-        </div>
         </div>
       )}
 

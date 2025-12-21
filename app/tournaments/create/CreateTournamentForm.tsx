@@ -193,7 +193,6 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
         >
           <option value="upcoming">Upcoming</option>
           <option value="active">Active</option>
-          <option value="finalizing">Finalizing (for Shoot-Offs)</option>
           <option value="completed">Completed</option>
         </select>
       </div>
