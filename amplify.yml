@@ -38,19 +38,15 @@ frontend:
         - cp -r node_modules/@prisma/client .next/standalone/node_modules/@prisma/
         - echo "=== Verifying Prisma binaries in standalone ==="
         - ls -la .next/standalone/node_modules/.prisma/client/*.node || echo "Copy failed!"
-        # Copy static files and public to standalone
+        # Copy all Next.js files to standalone
         - echo "=== Setting up standalone output ==="
+        - mkdir -p .next/standalone/.next
         - cp -r .next/static .next/standalone/.next/static
+        - cp -r .next/server .next/standalone/.next/server || echo "No server directory"
+        - cp .next/*.json .next/standalone/.next/ || echo "No JSON files to copy"
         - cp -r public .next/standalone/public
-        # Copy required server files for Amplify
-        - echo "=== Checking for required-server-files.json ==="
-        - ls -la .next/required-server-files.json || echo "File not found in .next/"
-        - ls -la .next/standalone/ || echo "Standalone directory contents"
-        - cp .next/required-server-files.json .next/standalone/required-server-files.json
-        - cp .next/prerender-manifest.json .next/standalone/prerender-manifest.json || echo "No prerender manifest"
-        - cp .next/routes-manifest.json .next/standalone/routes-manifest.json || echo "No routes manifest"
-        - echo "=== Verifying copied files ==="
-        - ls -la .next/standalone/*.json || echo "No JSON files in standalone root"
+        - echo "=== Verifying standalone structure ==="
+        - ls -la .next/standalone/.next/ || echo "No .next directory in standalone"
         # Create .env.production for Lambda runtime
         - echo "DATABASE_URL=$DATABASE_URL" > .next/standalone/.env.production
         - echo "AUTH_SECRET=$AUTH_SECRET" >> .next/standalone/.env.production
