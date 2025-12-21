@@ -4,7 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { affiliationOptions } from '@/lib/divisions'
 
-export default function CreateTeamForm() {
+interface CreateTeamFormProps {
+  onSuccess?: () => void
+}
+
+export default function CreateTeamForm({ onSuccess }: CreateTeamFormProps = {}) {
   const router = useRouter()
   const [name, setName] = useState('')
   const [affiliation, setAffiliation] = useState('')
@@ -57,6 +61,11 @@ export default function CreateTeamForm() {
       setState('')
       setZip('')
       router.refresh()
+
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess()
+      }
     } catch (error) {
       setError('An error occurred. Please try again.')
     } finally {

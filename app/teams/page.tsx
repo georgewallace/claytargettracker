@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import CreateTeamForm from './CreateTeamForm'
+import CreateTeamModal from './CreateTeamModal'
 import TeamBrowser from './TeamBrowser'
 
 // Force dynamic rendering (required for getCurrentUser)
@@ -105,22 +105,21 @@ export default async function TeamsPage({ searchParams }: PageProps) {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-900 mb-0.5">Teams</h1>
-          <p className="text-gray-600 text-sm">
-            {canCreateTeam
-              ? 'Create and manage teams for tournament competition.'
-              : 'Browse teams and request to join one.'}
-          </p>
-        </div>
-
-        {/* Team Creation (Coaches/Admins Only) */}
-        {canCreateTeam && !hasTeam && (
-          <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-            <h2 className="text-lg font-bold text-gray-900 mb-3">Create New Team</h2>
-            <CreateTeamForm />
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-0.5">Teams</h1>
+            <p className="text-gray-600 text-sm">
+              {canCreateTeam
+                ? 'Create and manage teams for tournament competition.'
+                : 'Browse teams and request to join one.'}
+            </p>
           </div>
-        )}
+
+          {/* Team Creation Button (Coaches/Admins Only without team) */}
+          {canCreateTeam && !hasTeam && (
+            <CreateTeamModal />
+          )}
+        </div>
 
         {/* Manage Team (Coaches with team) */}
         {canCreateTeam && hasTeam && coachTeam && (
