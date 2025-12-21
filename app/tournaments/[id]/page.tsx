@@ -367,7 +367,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
               <div className="flex items-center text-gray-700">
                 <span className="font-semibold mr-2">📅 Date:</span>
                 {format(parseDateSafe(tournament.startDate), 'PPP')}
-                {tournament.startDate !== tournament.endDate && (
+                {new Date(tournament.startDate).toISOString().split('T')[0] !== new Date(tournament.endDate).toISOString().split('T')[0] && (
                   <> - {format(parseDateSafe(tournament.endDate), 'PPP')}</>
                 )}
               </div>

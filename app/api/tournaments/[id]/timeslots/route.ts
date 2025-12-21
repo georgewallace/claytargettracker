@@ -107,9 +107,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const tournamentEndStr = format(new Date(tournament.endDate), 'yyyy-MM-dd')
       
       if (slotDateStr < tournamentStartStr || slotDateStr > tournamentEndStr) {
+        const dateRange = tournamentStartStr === tournamentEndStr
+          ? format(new Date(tournament.startDate), 'PPP')
+          : `${format(new Date(tournament.startDate), 'PPP')} - ${format(new Date(tournament.endDate), 'PPP')}`
+
         return NextResponse.json(
-          { 
-            error: `Time slot date must be within tournament date range (${format(new Date(tournament.startDate), 'PPP')} - ${format(new Date(tournament.endDate), 'PPP')})`
+          {
+            error: `Time slot date must be within tournament date range (${dateRange})`
           },
           { status: 400 }
         )

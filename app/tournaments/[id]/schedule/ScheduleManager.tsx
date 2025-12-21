@@ -128,7 +128,10 @@ export default function ScheduleManager({ tournament, userRole }: ScheduleManage
             <div>
               <p className="text-sm text-gray-600">Tournament Dates</p>
               <p className="text-lg font-semibold text-gray-900">
-                {format(parseDateSafe(tournament.startDate), 'PPP')} - {format(parseDateSafe(tournament.endDate), 'PPP')}
+                {format(parseDateSafe(tournament.startDate), 'PPP')}
+                {new Date(tournament.startDate).toISOString().split('T')[0] !== new Date(tournament.endDate).toISOString().split('T')[0] && (
+                  <> - {format(parseDateSafe(tournament.endDate), 'PPP')}</>
+                )}
               </p>
             </div>
             <div className="flex gap-3">

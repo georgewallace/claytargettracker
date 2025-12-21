@@ -143,7 +143,7 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
                   <div className="flex items-center">
                     <span className="font-medium mr-2">📅</span>
                     {format(new Date(tournament.startDate), 'PPP')}
-                    {tournament.startDate !== tournament.endDate && (
+                    {new Date(tournament.startDate).toISOString().split('T')[0] !== new Date(tournament.endDate).toISOString().split('T')[0] && (
                       <> - {format(new Date(tournament.endDate), 'PPP')}</>
                     )}
                   </div>
@@ -275,7 +275,7 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {format(new Date(tournament.startDate), 'MMM d, yyyy')}
-                    {tournament.startDate !== tournament.endDate && (
+                    {new Date(tournament.startDate).toISOString().split('T')[0] !== new Date(tournament.endDate).toISOString().split('T')[0] && (
                       <> - {format(new Date(tournament.endDate), 'MMM d')}</>
                     )}
                   </td>
