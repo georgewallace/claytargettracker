@@ -36,7 +36,17 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
-    const { name, affiliation } = await request.json()
+    const {
+      name,
+      affiliation,
+      headCoach,
+      headCoachEmail,
+      headCoachPhone,
+      address,
+      city,
+      state,
+      zip
+    } = await request.json()
 
     // Validate input
     if (!name) {
@@ -63,6 +73,13 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         affiliation: affiliation || null,
+        headCoach: headCoach || null,
+        headCoachEmail: headCoachEmail || null,
+        headCoachPhone: headCoachPhone || null,
+        address: address || null,
+        city: city || null,
+        state: state || null,
+        zip: zip || null,
         // If the creator is a coach (not admin), automatically add them to the team
         ...(user.role === 'coach' && {
           coaches: {

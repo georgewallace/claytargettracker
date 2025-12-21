@@ -7,6 +7,9 @@ interface AccountSettingsProps {
   user: {
     id: string
     name: string
+    firstName: string | null
+    lastName: string | null
+    phone: string | null
     email: string
     role: string
   }
@@ -18,7 +21,9 @@ export default function AccountSettings({ user }: AccountSettingsProps) {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   
   const [formData, setFormData] = useState({
-    name: user.name,
+    firstName: user.firstName || '',
+    lastName: user.lastName || '',
+    phone: user.phone || '',
     email: user.email,
     currentPassword: '',
     newPassword: '',
@@ -35,11 +40,13 @@ export default function AccountSettings({ user }: AccountSettingsProps) {
     setSuccess('')
     
     // Check if anything actually changed
-    const nameChanged = formData.name !== user.name
+    const firstNameChanged = formData.firstName !== (user.firstName || '')
+    const lastNameChanged = formData.lastName !== (user.lastName || '')
+    const phoneChanged = formData.phone !== (user.phone || '')
     const emailChanged = formData.email !== user.email
     const passwordChanging = isChangingPassword && formData.newPassword
-    
-    if (!nameChanged && !emailChanged && !passwordChanging) {
+
+    if (!firstNameChanged && !lastNameChanged && !phoneChanged && !emailChanged && !passwordChanging) {
       setError('No changes to save')
       return
     }
@@ -67,8 +74,10 @@ export default function AccountSettings({ user }: AccountSettingsProps) {
 
     try {
       const updateData: any = {}
-      
-      if (nameChanged) updateData.name = formData.name
+
+      if (firstNameChanged) updateData.firstName = formData.firstName
+      if (lastNameChanged) updateData.lastName = formData.lastName
+      if (phoneChanged) updateData.phone = formData.phone
       if (emailChanged) updateData.email = formData.email
 
       if (isChangingPassword && formData.newPassword) {
@@ -111,7 +120,9 @@ export default function AccountSettings({ user }: AccountSettingsProps) {
 
   const handleCancel = () => {
     setFormData({
-      name: user.name,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      phone: user.phone || '',
       email: user.email,
       currentPassword: '',
       newPassword: '',
@@ -140,21 +151,57 @@ export default function AccountSettings({ user }: AccountSettingsProps) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Name Field */}
+        {/* First Name Field */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Name
+            First Name
           </label>
           {isEditing ? (
             <input
               type="text"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              value={formData.firstName}
+              onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
             />
           ) : (
-            <p className="text-gray-900">{user.name}</p>
+            <p className="text-gray-900">{user.firstName || 'Not set'}</p>
+          )}
+        </div>
+
+        {/* Last Name Field */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Last Name
+          </label>
+          {isEditing ? (
+            <input
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          ) : (
+            <p className="text-gray-900">{user.lastName || 'Not set'}</p>
+          )}
+        </div>
+
+        {/* Phone Field */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Phone Number
+          </label>
+          {isEditing ? (
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="(555) 123-4567"
+            />
+          ) : (
+            <p className="text-gray-900">{user.phone || 'Not set'}</p>
           )}
         </div>
 

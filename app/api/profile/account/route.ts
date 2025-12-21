@@ -16,10 +16,10 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, email, currentPassword, newPassword } = body
+    const { firstName, lastName, phone, email, currentPassword, newPassword } = body
 
     // Validate at least one field is provided
-    if (!name && !email && !newPassword) {
+    if (!firstName && !lastName && !phone && !email && !newPassword) {
       return NextResponse.json(
         { error: 'No fields to update' },
         { status: 400 }
@@ -76,9 +76,18 @@ export async function PUT(request: NextRequest) {
 
     // Update user
     const updateData: any = {}
-    if (name) updateData.name = name
+    if (firstName !== undefined) updateData.firstName = firstName
+    if (lastName !== undefined) updateData.lastName = lastName
+    if (phone !== undefined) updateData.phone = phone
     if (email) updateData.email = email
     if (hashedPassword) updateData.password = hashedPassword
+
+    // Automatically update name field for backwards compatibility
+    if (firstName !== undefined || lastName !== undefined) {
+      const newFirstName = firstName !== undefined ? firstName : user.firstName || ''
+      const newLastName = lastName !== undefined ? lastName : user.lastName || ''
+      updateData.name = `${newFirstName} ${newLastName}`.trim()
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
@@ -86,6 +95,9 @@ export async function PUT(request: NextRequest) {
       select: {
         id: true,
         name: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
         email: true,
         role: true
       }

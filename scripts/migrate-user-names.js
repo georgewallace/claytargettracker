@@ -48,16 +48,19 @@ async function migrateUserNames() {
         lastName = nameParts.slice(1).join(' ')
       }
 
-      // Update the user
+      // Update the user - also update name field for consistency
+      const name = `${firstName} ${lastName}`.trim()
+
       await prisma.user.update({
         where: { id: user.id },
         data: {
           firstName,
-          lastName
+          lastName,
+          name
         }
       })
 
-      console.log(`✓ Updated "${user.name}" → First: "${firstName}", Last: "${lastName}"`)
+      console.log(`✓ Updated "${user.name}" → First: "${firstName}", Last: "${lastName}", Name: "${name}"`)
       updated++
     }
 

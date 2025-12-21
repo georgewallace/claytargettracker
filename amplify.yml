@@ -37,6 +37,9 @@ frontend:
             exit 1
           fi
           echo "=== Migration completed successfully ==="
+        # Run data migration to split user names into firstName/lastName
+        - echo "=== Running user name data migration ==="
+        - node scripts/migrate-user-names.js || echo "Name migration completed or already done"
         # Seed historical tournament data (only if SEED_HISTORY env var is set)
         - if [ "$SEED_HISTORY" = "true" ]; then npm run db:seed-history; fi
     build:
