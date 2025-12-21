@@ -19,6 +19,7 @@ coverage/
 # Scripts and tools
 scripts/
 prisma/migrations/
+docs/
 *.md
 !README.md
 
