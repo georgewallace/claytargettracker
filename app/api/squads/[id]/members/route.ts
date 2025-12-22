@@ -142,31 +142,54 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       const uniqueTeams = [...new Map(teams.map(t => [t.id, t])).values()]
 
-      // Get divisions from squad members
+      // Get divisions from squad members (use divisionOverride if available, otherwise division)
       const divisions = updatedSquad.members
-        .map(m => m.athlete.division)
+        .map(m => m.athlete.divisionOverride || m.athlete.division)
         .filter(Boolean)
 
       const uniqueDivisions = [...new Set(divisions)]
 
-      let newSquadName: string
+      let baseSquadName: string
 
-      if (uniqueTeams.length === 0) {
-        // No teams (unaffiliated athletes) - keep current name or use "Unaffiliated"
-        const divisionPart = uniqueDivisions.length === 1 ? uniqueDivisions[0] : 'Mixed Division'
-        newSquadName = `Unaffiliated - ${divisionPart}`
-      } else if (uniqueTeams.length === 1) {
-        // Single team
+      // If multiple divisions (mixed divisions), use "Open" format
+      if (uniqueDivisions.length > 1) {
+        baseSquadName = 'Open'
+      } else if (uniqueTeams.length === 1 && uniqueDivisions.length === 1) {
+        // Single team with single division: "<Team> - <Division>"
         const teamName = uniqueTeams[0].name
-        const divisionPart = uniqueDivisions.length === 1 ? uniqueDivisions[0] : 'Mixed Division'
-        newSquadName = `${teamName} - ${divisionPart}`
+        const division = uniqueDivisions[0]
+        baseSquadName = `${teamName} - ${division}`
+      } else if (uniqueDivisions.length === 1) {
+        // Single division but no team or multiple teams
+        baseSquadName = `${uniqueDivisions[0]}`
       } else {
-        // Mixed teams (multiple teams)
-        const divisionPart = uniqueDivisions.length === 1 && uniqueDivisions[0]
-          ? uniqueDivisions[0]
-          : 'Mixed Division'
-        newSquadName = `Mixed Team - ${divisionPart}`
+        // Fallback
+        baseSquadName = 'Open'
       }
+
+      // Get all squads for this time slot to determine the number suffix
+      const timeSlotSquads = await prisma.squad.findMany({
+        where: { timeSlotId: updatedSquad.timeSlotId },
+        orderBy: { createdAt: 'asc' }
+      })
+
+      // Find squads with the same base name pattern and get their numbers
+      const similarSquads = timeSlotSquads.filter(s =>
+        s.name.startsWith(baseSquadName) && s.id !== squadId
+      )
+
+      // Determine the next number
+      let squadNumber = 1
+      if (similarSquads.length > 0) {
+        // Extract numbers from existing squad names
+        const numbers = similarSquads.map(s => {
+          const match = s.name.match(/\s+(\d+)$/)
+          return match ? parseInt(match[1]) : 0
+        })
+        squadNumber = Math.max(...numbers, 0) + 1
+      }
+
+      const newSquadName = `${baseSquadName} ${squadNumber}`
 
       // Update squad name if it changed
       if (updatedSquad.name !== newSquadName) {
@@ -228,35 +251,61 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (updatedSquad && updatedSquad.members.length > 0) {
-      // Get unique teams
+      // Get unique team IDs and names (filtering out null/undefined)
       const teams = updatedSquad.members
         .map(m => m.athlete.team)
         .filter((team): team is NonNullable<typeof team> => team !== null)
 
       const uniqueTeams = [...new Map(teams.map(t => [t.id, t])).values()]
 
-      // Get divisions
+      // Get divisions from squad members (use divisionOverride if available, otherwise division)
       const divisions = updatedSquad.members
-        .map(m => m.athlete.division)
+        .map(m => m.athlete.divisionOverride || m.athlete.division)
         .filter(Boolean)
 
       const uniqueDivisions = [...new Set(divisions)]
 
-      let newSquadName: string
+      let baseSquadName: string
 
-      if (uniqueTeams.length === 0) {
-        const divisionPart = uniqueDivisions.length === 1 ? uniqueDivisions[0] : 'Mixed Division'
-        newSquadName = `Unaffiliated - ${divisionPart}`
-      } else if (uniqueTeams.length === 1) {
+      // If multiple divisions (mixed divisions), use "Open" format
+      if (uniqueDivisions.length > 1) {
+        baseSquadName = 'Open'
+      } else if (uniqueTeams.length === 1 && uniqueDivisions.length === 1) {
+        // Single team with single division: "<Team> - <Division>"
         const teamName = uniqueTeams[0].name
-        const divisionPart = uniqueDivisions.length === 1 ? uniqueDivisions[0] : 'Mixed Division'
-        newSquadName = `${teamName} - ${divisionPart}`
+        const division = uniqueDivisions[0]
+        baseSquadName = `${teamName} - ${division}`
+      } else if (uniqueDivisions.length === 1) {
+        // Single division but no team or multiple teams
+        baseSquadName = `${uniqueDivisions[0]}`
       } else {
-        const divisionPart = uniqueDivisions.length === 1 && uniqueDivisions[0]
-          ? uniqueDivisions[0]
-          : 'Mixed Division'
-        newSquadName = `Mixed Team - ${divisionPart}`
+        // Fallback
+        baseSquadName = 'Open'
       }
+
+      // Get all squads for this time slot to determine the number suffix
+      const timeSlotSquads = await prisma.squad.findMany({
+        where: { timeSlotId: updatedSquad.timeSlotId },
+        orderBy: { createdAt: 'asc' }
+      })
+
+      // Find squads with the same base name pattern and get their numbers
+      const similarSquads = timeSlotSquads.filter(s =>
+        s.name.startsWith(baseSquadName) && s.id !== squadId
+      )
+
+      // Determine the next number
+      let squadNumber = 1
+      if (similarSquads.length > 0) {
+        // Extract numbers from existing squad names
+        const numbers = similarSquads.map(s => {
+          const match = s.name.match(/\s+(\d+)$/)
+          return match ? parseInt(match[1]) : 0
+        })
+        squadNumber = Math.max(...numbers, 0) + 1
+      }
+
+      const newSquadName = `${baseSquadName} ${squadNumber}`
 
       // Update squad name if it changed
       if (updatedSquad.name !== newSquadName) {
