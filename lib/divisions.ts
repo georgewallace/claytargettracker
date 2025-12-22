@@ -1,34 +1,34 @@
 // Calculate division based on grade
 export function calculateDivision(grade: string | null | undefined): string | null {
   if (!grade) return null
-  
+
   const gradeNum = grade.toLowerCase()
-  
+
   // Novice: 6th grade and below
-  if (['k', 'kindergarten', '1', '2', '3', '4', '5', '6'].includes(gradeNum)) {
+  if (['k', '1', '2', '3', '4', '5', '6'].includes(gradeNum)) {
     return 'Novice'
   }
-  
+
   // Intermediate: 7th – 8th grade
   if (['7', '8'].includes(gradeNum)) {
     return 'Intermediate'
   }
-  
+
   // Junior Varsity: 9th grade
   if (gradeNum === '9') {
     return 'Junior Varsity'
   }
-  
+
   // Varsity: 10th – 12th grade
   if (['10', '11', '12'].includes(gradeNum)) {
     return 'Varsity'
   }
 
   // Collegiate: College/Trade School
-  if (['college', 'trade', 'university', 'college-trade'].includes(gradeNum)) {
+  if (gradeNum === 'college') {
     return 'Collegiate'
   }
-  
+
   return null
 }
 

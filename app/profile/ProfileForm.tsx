@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { gradeOptions } from '@/lib/divisions'
 
 interface athlete {
   id: string
@@ -29,17 +30,6 @@ interface ProfileFormProps {
   athlete: athlete
 }
 
-const GRADES = [
-  { value: '5th', label: '5th Grade' },
-  { value: '6th', label: '6th Grade' },
-  { value: '7th', label: '7th Grade' },
-  { value: '8th', label: '8th Grade' },
-  { value: 'freshman', label: '9th Grade (Freshman)' },
-  { value: 'sophomore', label: '10th Grade (Sophomore)' },
-  { value: 'junior', label: '11th Grade (Junior)' },
-  { value: 'senior', label: '12th Grade (Senior)' },
-  { value: 'college', label: 'College/Trade School' }
-]
 const NSCA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA', 'Master']
 const ATA_CLASSES = ['A', 'AA', 'AAA']
 const NSSA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA']
@@ -186,7 +176,7 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">Select Grade</option>
-            {GRADES.map(grade => (
+            {gradeOptions.map(grade => (
               <option key={grade.value} value={grade.value}>{grade.label}</option>
             ))}
           </select>
