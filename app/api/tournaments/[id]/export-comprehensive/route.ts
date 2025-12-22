@@ -133,6 +133,11 @@ export async function GET(
               include: {
                 discipline: true
               }
+            },
+            members: {
+              include: {
+                athlete: true
+              }
             }
           }
         },
@@ -161,6 +166,17 @@ export async function GET(
                                 disciplineName === 'trap' ? 'Trap' :
                                 disciplineName === 'sporting_clays' ? 'Sporting Clays' : ''
 
+      // Determine if squad has mixed divisions
+      const squadDivisions = assignment.squad.members
+        .map(m => m.athlete.divisionOverride || m.athlete.division)
+        .filter(Boolean)
+      const uniqueDivisions = [...new Set(squadDivisions)]
+
+      // Team Concurrent should be the division if same division, "Open" if mixed
+      const teamConcurrent = uniqueDivisions.length > 1
+        ? 'Open'
+        : (uniqueDivisions[0] || '')
+
       return {
         'Shooter ID': assignment.athlete.shooterId || '',
         'Team': assignment.athlete.team?.name || '',
@@ -171,7 +187,7 @@ export async function GET(
         'Start Time': assignment.squad.timeSlot.startTime || '',
         'End Time': assignment.squad.timeSlot.endTime || '',
         'Field/Station': assignment.squad.timeSlot.fieldNumber || assignment.squad.timeSlot.stationNumber || '',
-        'Team Concurrent': assignment.athlete.team?.name || '',
+        'Team Concurrent': teamConcurrent,
         'Concurrent Squad': assignment.squad.name,
         'Squad Position': assignment.position || ''
       }
