@@ -46,7 +46,6 @@ export async function GET(
       )
       return {
         // Primary columns in requested order
-        'Team ID': reg.team.id,
         'Team Name': reg.team.name,
         'Head Coach': reg.team.headCoach || '',
         'Email': reg.team.headCoachEmail || '',
@@ -99,34 +98,26 @@ export async function GET(
       const hasTrap = registeredDisciplines.includes('trap') ? 'Yes' : 'No'
       const hasSportingClays = registeredDisciplines.includes('sporting_clays') ? 'Yes' : 'No'
 
-      // Construct full name
-      const firstName = athlete.user.firstName || ''
-      const lastName = athlete.user.lastName || ''
-      const fullName = firstName && lastName ? `${firstName} ${lastName}` : athlete.user.name
-
       return {
         // Primary columns in requested order
         'Shooter ID': athlete.shooterId || '',
-        'First Name': firstName,
-        'Last Name': lastName,
-        'Full Name': fullName,
+        'First Name': athlete.user.firstName || '',
+        'Last Name': athlete.user.lastName || '',
         'Birthdate': birthDate,
         'Sex': athlete.gender || '',
-        'Skeet Event': hasSkeet === 'Yes' ? 'Y' : 'N',
-        'Trap Event': hasTrap === 'Yes' ? 'Y' : 'N',
-        'Sporting Event': hasSportingClays === 'Yes' ? 'Y' : 'N',
-        'Total Amount': '',
-        'Paid': '',
-        'Shooting Team': athlete.team?.name || '',
-        'Age Concurrent': athlete.divisionOverride || athlete.division || '',
-
-        // Additional columns
         'Contact Phone #': athlete.user.phone || '',
         'Contact Email': athlete.user.email,
+        'Shooting Team': athlete.team?.name || '',
+        'Age Concurrent': athlete.divisionOverride || athlete.division || '',
+        'Skeet': hasSkeet === 'Yes' ? 'Y' : 'N',
+        'Trap': hasTrap === 'Yes' ? 'Y' : 'N',
+        'Sporting Clays': hasSportingClays === 'Yes' ? 'Y' : 'N',
+        'Skeet Class': athlete.nssaClass || '',
+        'Trap Class': athlete.ataClass || '',
+        'Sporting Class': athlete.nscaClass || '',
+
+        // Additional columns
         'Grade': athlete.grade || '',
-        'NSSA Class': athlete.nssaClass || '',
-        'ATA Class': athlete.ataClass || '',
-        'NSCA Class': athlete.nscaClass || '',
         'Registration Date': reg.createdAt.toISOString().split('T')[0],
         'Status': athlete.isActive ? 'Active' : 'Inactive'
       }
