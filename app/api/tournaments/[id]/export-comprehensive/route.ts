@@ -188,19 +188,28 @@ export async function GET(
         ? 'Open'
         : (uniqueDivisions[0] || '')
 
+      // Construct full name
+      const firstName = assignment.athlete.user.firstName || ''
+      const lastName = assignment.athlete.user.lastName || ''
+      const fullName = firstName && lastName ? `${firstName} ${lastName}` : assignment.athlete.user.name
+
       return {
+        // Primary columns in requested order
         'Shooter ID': assignment.athlete.shooterId || '',
         'Team': assignment.athlete.team?.name || '',
-        'First Name': assignment.athlete.user.firstName || '',
-        'Last Name': assignment.athlete.user.lastName || '',
+        'First Name': firstName,
+        'Last Name': lastName,
+        'Full Name': fullName,
         'Participant Concurrent': assignment.athlete.divisionOverride || assignment.athlete.division || '',
         'Skeet': disciplineDisplay,
-        'Start Time': assignment.squad.timeSlot.startTime || '',
+        'Concurrent Squad': assignment.squad.name,
+        'Squad Position': assignment.position || '',
+        'Shooting Time': assignment.squad.timeSlot.startTime || '',
+
+        // Additional columns
         'End Time': assignment.squad.timeSlot.endTime || '',
         'Field/Station': assignment.squad.timeSlot.fieldNumber || assignment.squad.timeSlot.stationNumber || '',
-        'Team Concurrent': teamConcurrent,
-        'Concurrent Squad': assignment.squad.name,
-        'Squad Position': assignment.position || ''
+        'Team Concurrent': teamConcurrent
       }
     })
 
