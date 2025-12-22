@@ -48,7 +48,7 @@ function SortableMember({ member, disciplineId, timeSlotId, onRemove, removing }
         title="Drag to reorder position in squad"
       >
         <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7m-7 7h12" />
         </svg>
       </div>
       <AthleteCard
@@ -56,6 +56,7 @@ function SortableMember({ member, disciplineId, timeSlotId, onRemove, removing }
         currentDisciplineId={disciplineId}
         currentTimeSlotId={timeSlotId}
         onRemove={removing === member.athleteId ? undefined : onRemove}
+        position={member.position}
       />
     </div>
   )
@@ -72,6 +73,9 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
     [...squad.members].sort((a, b) => (a.position || 0) - (b.position || 0))
   )
   const [reordering, setReordering] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [editedName, setEditedName] = useState(squad.name)
+  const [updatingName, setUpdatingName] = useState(false)
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: `squad-${squad.id}`,
@@ -227,7 +231,7 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
 
     try {
       const response = await fetch(`/api/squads/${squad.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ teamOnly: !squad.teamOnly })
       })
@@ -242,6 +246,50 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
       alert(err.message || 'An error occurred')
     } finally {
       setUpdatingTeamOnly(false)
+    }
+  }
+
+  const handleEditName = () => {
+    setEditedName(squad.name)
+    setEditingName(true)
+  }
+
+  const handleCancelEditName = () => {
+    setEditedName(squad.name)
+    setEditingName(false)
+  }
+
+  const handleSaveName = async () => {
+    if (!editedName.trim()) {
+      alert('Squad name cannot be empty')
+      return
+    }
+
+    if (editedName.trim() === squad.name) {
+      setEditingName(false)
+      return
+    }
+
+    setUpdatingName(true)
+
+    try {
+      const response = await fetch(`/api/squads/${squad.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editedName.trim() })
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to update squad name')
+      }
+
+      setEditingName(false)
+      onUpdate()
+    } catch (err: any) {
+      alert(err.message || 'An error occurred')
+    } finally {
+      setUpdatingName(false)
     }
   }
 
@@ -270,33 +318,81 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1">
             {/* Drag Handle */}
-            <button
-              {...attributes}
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 p-0.5 rounded hover:bg-gray-100 transition"
-              title="Drag to move entire squad to another time slot"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-              </svg>
-            </button>
+            {!editingName && (
+              <button
+                {...attributes}
+                {...listeners}
+                className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 p-0.5 rounded hover:bg-gray-100 transition"
+                title="Drag to move entire squad to another time slot"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                </svg>
+              </button>
+            )}
 
-            {/* Squad Name - Auto-generated, read-only */}
-            <h4 className="text-sm font-semibold text-gray-900">{squad.name}</h4>
+            {/* Squad Name - Editable */}
+            {editingName ? (
+              <div className="flex items-center gap-2 flex-1">
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  className="px-2 py-1 text-sm font-semibold border border-indigo-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName()
+                    if (e.key === 'Escape') handleCancelEditName()
+                  }}
+                  disabled={updatingName}
+                />
+                <button
+                  onClick={handleSaveName}
+                  disabled={updatingName}
+                  className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-50"
+                  title="Save name"
+                >
+                  {updatingName ? '...' : 'Save'}
+                </button>
+                <button
+                  onClick={handleCancelEditName}
+                  disabled={updatingName}
+                  className="px-2 py-1 border border-gray-300 text-gray-700 rounded text-xs hover:bg-gray-50 disabled:opacity-50"
+                  title="Cancel"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <>
+                <h4 className="text-sm font-semibold text-gray-900">{squad.name}</h4>
+                <button
+                  onClick={handleEditName}
+                  className="text-gray-400 hover:text-indigo-600 p-0.5 rounded hover:bg-gray-100 transition"
+                  title="Edit squad name"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              </>
+            )}
 
-            <div className="flex items-center gap-1.5">
-              <p className={`text-xs ${isFull ? 'text-green-600 font-medium' : isPartial ? 'text-amber-600 font-medium' : 'text-gray-600'}`}>
-                {squad.members.length}/{squadCapacity}
-                {isFull && ' ✓'}
-              </p>
-              {isPartial && (
-                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded text-xs font-medium" title="Squad is not completely filled">
-                  ⚠ Incomplete
-                </span>
-              )}
-            </div>
+            {!editingName && (
+              <div className="flex items-center gap-1.5">
+                <p className={`text-xs ${isFull ? 'text-green-600 font-medium' : isPartial ? 'text-amber-600 font-medium' : 'text-gray-600'}`}>
+                  {squad.members.length}/{squadCapacity}
+                  {isFull && ' ✓'}
+                </p>
+                {isPartial && (
+                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded text-xs font-medium" title="Squad is not completely filled">
+                    ⚠ Incomplete
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-          {canDeleteSquad() && (
+          {!editingName && canDeleteSquad() && (
             <button
               onClick={handleDeleteClick}
               disabled={deleting}

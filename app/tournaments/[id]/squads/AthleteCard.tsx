@@ -10,6 +10,7 @@ interface athleteCardProps {
   onRemove?: () => void
   currentDisciplineId?: string
   currentTimeSlotId?: string
+  position?: number
 }
 
 // Convert division names to acronyms
@@ -29,7 +30,7 @@ const getDivisionAcronym = (division: string): string => {
   return acronyms[division] || division
 }
 
-export default function athleteCard({ athlete, isDragging: isDraggingProp, onRemove, currentDisciplineId, currentTimeSlotId }: athleteCardProps) {
+export default function athleteCard({ athlete, isDragging: isDraggingProp, onRemove, currentDisciplineId, currentTimeSlotId, position }: athleteCardProps) {
   // Only make the card draggable if it has the onRemove prop (i.e., it's in a squad)
   const { attributes, listeners, setNodeRef, isDragging: isDraggingFromHook } = useDraggable({
     id: athlete.id,
@@ -102,6 +103,11 @@ export default function athleteCard({ athlete, isDragging: isDraggingProp, onRem
             <div className="font-medium text-xs text-gray-900 truncate">
               {athlete.user.name}
             </div>
+            {position !== undefined && (
+              <span className="inline-block px-1 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700 flex-shrink-0">
+                Pos #{position}
+              </span>
+            )}
             {athlete.division && (
               <span className={`inline-block px-1 py-0.5 rounded text-xs font-medium ${getDivisionColor(athlete.division)} flex-shrink-0`}>
                 {getDivisionAcronym(athlete.division)}

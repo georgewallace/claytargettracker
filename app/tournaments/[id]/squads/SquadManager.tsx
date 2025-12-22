@@ -652,7 +652,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
         }
 
         // Success - refresh from server to ensure state is in sync
-        router.refresh()
+        window.location.reload()
       } catch (err: any) {
         // ROLLBACK: Restore previous state on error
         setTournament(previousState)
@@ -840,6 +840,8 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
 
       setSuccess(`Squad "${squadName}" created and athlete assigned!`)
       setTimeout(() => setSuccess(''), 3000)
+      // Refresh page to show the new squad and athlete
+      window.location.reload()
     } catch (err: any) {
       // ROLLBACK: Restore previous state on error
       setTournament(previousState)

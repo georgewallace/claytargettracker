@@ -2,58 +2,63 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 
-
-
 interface RouteParams {
   params: Promise<{
     id: string // squadId
   }>
 }
 
-// PUT: Update squad
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+// PATCH: Update squad properties (name, capacity, etc.)
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id: squadId } = await params
-    const { name, capacity, notes, teamOnly, tournamentId, disciplineId } = await request.json()
+    const body = await request.json()
 
     // Check permissions (coach or admin)
     if (user.role !== 'coach' && user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Only coaches and admins can update squads' },
+        { error: 'Only coaches and admins can manage squads' },
         { status: 403 }
       )
     }
 
-    // If renaming, check for duplicate names within the same discipline
-    if (name !== undefined && tournamentId && disciplineId) {
-      const duplicateSquad = await prisma.squad.findFirst({
-        where: {
-          name: name,
-          id: { not: squadId },
-          timeSlot: {
-            tournamentId,
-            disciplineId
-          }
-        }
-      })
+    // Validate and sanitize update data
+    const updateData: any = {}
 
-      if (duplicateSquad) {
+    if (body.name !== undefined) {
+      if (typeof body.name !== 'string' || body.name.trim().length === 0) {
         return NextResponse.json(
-          { error: 'A squad with this name already exists in this discipline' },
+          { error: 'Squad name must be a non-empty string' },
           { status: 400 }
         )
       }
+      updateData.name = body.name.trim()
     }
 
+    if (body.capacity !== undefined) {
+      const capacity = parseInt(body.capacity)
+      if (isNaN(capacity) || capacity < 1 || capacity > 10) {
+        return NextResponse.json(
+          { error: 'Capacity must be between 1 and 10' },
+          { status: 400 }
+        )
+      }
+      updateData.capacity = capacity
+    }
+
+    if (body.teamOnly !== undefined) {
+      updateData.teamOnly = Boolean(body.teamOnly)
+    }
+
+    if (body.notes !== undefined) {
+      updateData.notes = body.notes
+    }
+
+    // Update the squad
     const squad = await prisma.squad.update({
       where: { id: squadId },
-      data: {
-        name: name !== undefined ? name : undefined,
-        capacity: capacity !== undefined ? capacity : undefined,
-        notes: notes !== undefined ? notes : undefined,
-        teamOnly: teamOnly !== undefined ? teamOnly : undefined
-      },
+      data: updateData,
       include: {
         members: {
           include: {
@@ -87,11 +92,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Check permissions (coach or admin)
     if (user.role !== 'coach' && user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Only coaches and admins can delete squads' },
+        { error: 'Only coaches and admins can manage squads' },
         { status: 403 }
       )
     }
 
+    // Delete the squad (cascade will delete squad members)
     await prisma.squad.delete({
       where: { id: squadId }
     })
@@ -105,4 +111,3 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-
