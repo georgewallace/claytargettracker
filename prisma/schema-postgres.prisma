@@ -164,8 +164,9 @@ model Tournament {
   shootOffRequiresPerfect  Boolean @default(false) // Only shoot off if at least one shooter has perfect score
 
   // Feature Toggles
-  enableScores        Boolean @default(false)  // Enable score entry
-  enableLeaderboard   Boolean @default(false)  // Enable leaderboard
+  enableScores            Boolean @default(false)  // Enable score entry
+  enableLeaderboard       Boolean @default(false)  // Enable leaderboard
+  leaderboardTabInterval  Int?    @default(15000)  // Leaderboard tab switching interval in milliseconds
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
