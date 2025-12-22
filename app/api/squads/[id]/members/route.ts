@@ -154,14 +154,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       // If multiple divisions (mixed divisions), use "Open" format
       if (uniqueDivisions.length > 1) {
         baseSquadName = 'Open'
-      } else if (uniqueTeams.length === 1 && uniqueDivisions.length === 1) {
-        // Single team with single division: "<Team> - <Division>"
-        const teamName = uniqueTeams[0].name
-        const division = uniqueDivisions[0]
-        baseSquadName = `${teamName} - ${division}`
       } else if (uniqueDivisions.length === 1) {
-        // Single division but no team or multiple teams
-        baseSquadName = `${uniqueDivisions[0]}`
+        // Single division: use just the division name (e.g., "Varsity", "Junior Varsity", "Novice")
+        baseSquadName = uniqueDivisions[0]
       } else {
         // Fallback
         baseSquadName = 'Open'
@@ -270,14 +265,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       // If multiple divisions (mixed divisions), use "Open" format
       if (uniqueDivisions.length > 1) {
         baseSquadName = 'Open'
-      } else if (uniqueTeams.length === 1 && uniqueDivisions.length === 1) {
-        // Single team with single division: "<Team> - <Division>"
-        const teamName = uniqueTeams[0].name
-        const division = uniqueDivisions[0]
-        baseSquadName = `${teamName} - ${division}`
       } else if (uniqueDivisions.length === 1) {
-        // Single division but no team or multiple teams
-        baseSquadName = `${uniqueDivisions[0]}`
+        // Single division: use just the division name (e.g., "Varsity", "Junior Varsity", "Novice")
+        baseSquadName = uniqueDivisions[0]
       } else {
         // Fallback
         baseSquadName = 'Open'
