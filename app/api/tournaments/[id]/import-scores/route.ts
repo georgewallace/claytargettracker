@@ -452,6 +452,7 @@ async function importSingleScore({
     data: {
       shootId: shoot.id,
       roundNumber: 1,
+      stationNumber: null,
       targets: totalScore,
       maxTargets: maxScore
     }
