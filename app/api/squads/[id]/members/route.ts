@@ -166,7 +166,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       // If multiple divisions (mixed divisions), use "Open" format
       if (uniqueDivisions.length > 1) {
         baseSquadName = 'Open'
-      } else if (uniqueDivisions.length === 1) {
+      } else if (uniqueDivisions.length === 1 && uniqueDivisions[0]) {
         // Single division: use just the division name (e.g., "Varsity", "Junior Varsity", "Novice")
         baseSquadName = uniqueDivisions[0]
       } else {
@@ -277,7 +277,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       // If multiple divisions (mixed divisions), use "Open" format
       if (uniqueDivisions.length > 1) {
         baseSquadName = 'Open'
-      } else if (uniqueDivisions.length === 1) {
+      } else if (uniqueDivisions.length === 1 && uniqueDivisions[0]) {
         // Single division: use just the division name (e.g., "Varsity", "Junior Varsity", "Novice")
         baseSquadName = uniqueDivisions[0]
       } else {
