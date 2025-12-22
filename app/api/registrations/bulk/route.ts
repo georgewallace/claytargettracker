@@ -65,6 +65,46 @@ export async function POST(request: NextRequest) {
     const existingShooterIds = existingRegistrations.map((r: { athleteId: string }) => r.athleteId)
     const newShooterIds = activeAthleteIds.filter((id: string) => !existingShooterIds.includes(id))
     
+    // Fetch full athlete info including team to auto-register teams
+    const athletesWithTeams = await prisma.athlete.findMany({
+      where: {
+        id: { in: newShooterIds }
+      },
+      include: {
+        team: true
+      }
+    })
+
+    // Auto-register teams that aren't already registered
+    const teamIds = [...new Set(athletesWithTeams.map(a => a.teamId).filter(Boolean))] as string[]
+    for (const teamId of teamIds) {
+      try {
+        // Check if team is already registered
+        const existingTeamReg = await prisma.teamTournamentRegistration.findUnique({
+          where: {
+            teamId_tournamentId: {
+              teamId,
+              tournamentId
+            }
+          }
+        })
+
+        // Auto-register team if not already registered
+        if (!existingTeamReg) {
+          await prisma.teamTournamentRegistration.create({
+            data: {
+              teamId,
+              tournamentId,
+              registeredBy: user.id
+            }
+          })
+        }
+      } catch (error) {
+        console.log(`Error auto-registering team ${teamId}:`, error)
+        // Continue even if team registration fails
+      }
+    }
+
     // Create registrations for athletes who aren't already registered with disciplines
     let successCount = 0
     for (const athleteId of newShooterIds) {
