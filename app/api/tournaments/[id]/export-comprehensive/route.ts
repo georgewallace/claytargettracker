@@ -45,18 +45,22 @@ export async function GET(
         athlete => athlete.registrations.length > 0
       )
       return {
+        // Primary columns in requested order
+        'Team ID': reg.team.id,
         'Team Name': reg.team.name,
-        'Affiliation': reg.team.affiliation || '',
-        'Total Athletes': reg.team.athletes.length,
-        'Registered Athletes': registeredAthletes.length,
-        'Team Type': reg.team.isIndividualTeam ? 'Individual' : 'Team',
         'Head Coach': reg.team.headCoach || '',
-        'Head Coach Email': reg.team.headCoachEmail || '',
+        'Email': reg.team.headCoachEmail || '',
         'Address': reg.team.address || '',
         'City': reg.team.city || '',
         'State': reg.team.state || '',
         'ZIP': reg.team.zip || '',
-        'Head Coach Phone': reg.team.headCoachPhone || ''
+        'Phone': reg.team.headCoachPhone || '',
+        'Team Affiliation': reg.team.affiliation || '',
+
+        // Additional columns
+        'Total Athletes': reg.team.athletes.length,
+        'Registered Athletes': registeredAthletes.length,
+        'Team Type': reg.team.isIndividualTeam ? 'Individual' : 'Team'
       }
     })
 
