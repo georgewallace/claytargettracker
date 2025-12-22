@@ -40,14 +40,14 @@ function SortableMember({ member, disciplineId, timeSlotId, onRemove, removing }
       style={style}
       className="flex-shrink-0 w-[175px] relative group"
     >
-      {/* Drag handle - positioned on left side, vertically centered */}
+      {/* Drag handle - positioned at bottom-right corner */}
       <div
         {...attributes}
         {...listeners}
-        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 cursor-grab active:cursor-grabbing bg-white/90 rounded p-1.5 shadow-sm hover:bg-indigo-50 transition opacity-40 group-hover:opacity-100 border border-gray-200"
+        className="absolute bottom-1 right-1 z-10 cursor-grab active:cursor-grabbing bg-white/90 rounded p-1 shadow-sm hover:bg-indigo-50 transition opacity-50 group-hover:opacity-100 border border-gray-300"
         title="Drag to reorder position in squad"
       >
-        <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
         </svg>
       </div>
@@ -183,6 +183,8 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
       setShowRemoveModal(false)
       setathleteToRemove(null)
       onUpdate()
+      // Refresh to show athlete back in unassigned list
+      window.location.reload()
     } catch (err: any) {
       alert(err.message || 'An error occurred')
     } finally {
