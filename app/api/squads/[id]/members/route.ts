@@ -101,12 +101,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Auto-assign position if not provided
+    let finalPosition = position
+    if (!finalPosition) {
+      // Get the highest position in the squad
+      const highestPosition = await prisma.squadMember.findFirst({
+        where: { squadId },
+        orderBy: { position: 'desc' },
+        select: { position: true }
+      })
+      finalPosition = (highestPosition?.position || 0) + 1
+    }
+
     // Add athlete to squad
     const member = await prisma.squadMember.create({
       data: {
         squadId,
         athleteId,
-        position
+        position: finalPosition
       },
       include: {
         athlete: {
