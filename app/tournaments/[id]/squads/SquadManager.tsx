@@ -651,7 +651,8 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
           throw new Error(data.error || 'Failed to assign athlete')
         }
 
-        // Success - no need to update UI again, already done optimistically
+        // Success - refresh from server to ensure state is in sync
+        router.refresh()
       } catch (err: any) {
         // ROLLBACK: Restore previous state on error
         setTournament(previousState)
