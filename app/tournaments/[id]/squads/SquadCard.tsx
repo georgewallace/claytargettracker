@@ -40,15 +40,15 @@ function SortableMember({ member, disciplineId, timeSlotId, onRemove, removing }
       style={style}
       className="flex-shrink-0 w-[175px] relative group"
     >
-      {/* Drag handle - positioned on the right side */}
+      {/* Drag handle - positioned on left side, vertically centered */}
       <div
         {...attributes}
         {...listeners}
-        className="absolute top-1 right-1 z-10 cursor-grab active:cursor-grabbing bg-white/90 rounded p-1.5 shadow-sm hover:bg-indigo-50 transition opacity-60 group-hover:opacity-100 border border-gray-200"
+        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 cursor-grab active:cursor-grabbing bg-white/90 rounded p-1.5 shadow-sm hover:bg-indigo-50 transition opacity-40 group-hover:opacity-100 border border-gray-200"
         title="Drag to reorder position in squad"
       >
-        <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
         </svg>
       </div>
       <AthleteCard
