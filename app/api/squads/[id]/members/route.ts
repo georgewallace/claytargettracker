@@ -328,3 +328,51 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   }
 }
 
+// PATCH: Update squad member positions (for drag-and-drop reordering)
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const user = await requireAuth()
+    const { id: squadId } = await params
+    const { updates } = await request.json()
+
+    // Check permissions (coach or admin)
+    if (user.role !== 'coach' && user.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Only coaches and admins can manage squads' },
+        { status: 403 }
+      )
+    }
+
+    // Validate updates format: [{ athleteId: string, position: number }]
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return NextResponse.json(
+        { error: 'Invalid updates format. Expected array of {athleteId, position}' },
+        { status: 400 }
+      )
+    }
+
+    // Update positions in a transaction
+    await prisma.$transaction(
+      updates.map(({ athleteId, position }) =>
+        prisma.squadMember.update({
+          where: {
+            squadId_athleteId: {
+              squadId,
+              athleteId
+            }
+          },
+          data: { position }
+        })
+      )
+    )
+
+    return NextResponse.json({ message: 'Squad positions updated' }, { status: 200 })
+  } catch (error) {
+    console.error('Error updating squad positions:', error)
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
