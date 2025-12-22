@@ -5,6 +5,12 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import RegisterButton from './tournaments/[id]/RegisterButton'
 
+// Helper to parse dates safely avoiding timezone issues
+function parseDateSafe(date: Date) {
+  const dateStr = new Date(date).toISOString().split('T')[0]
+  return new Date(`${dateStr}T12:00:00.000Z`)
+}
+
 interface Tournament {
   id: string
   name: string
@@ -142,9 +148,12 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
                   </div>
                   <div className="flex items-center">
                     <span className="font-medium mr-2">📅</span>
-                    {format(new Date(tournament.startDate), 'PPP')}
-                    {new Date(tournament.startDate).toISOString().split('T')[0] !== new Date(tournament.endDate).toISOString().split('T')[0] && (
-                      <> - {format(new Date(tournament.endDate), 'PPP')}</>
+                    {parseDateSafe(tournament.startDate).getTime() === parseDateSafe(tournament.endDate).getTime() ? (
+                      format(parseDateSafe(tournament.startDate), 'PPP')
+                    ) : (
+                      <>
+                        {format(parseDateSafe(tournament.startDate), 'PPP')} - {format(parseDateSafe(tournament.endDate), 'PPP')}
+                      </>
                     )}
                   </div>
                   <div className="flex items-center">
@@ -274,9 +283,12 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {format(new Date(tournament.startDate), 'MMM d, yyyy')}
-                    {new Date(tournament.startDate).toISOString().split('T')[0] !== new Date(tournament.endDate).toISOString().split('T')[0] && (
-                      <> - {format(new Date(tournament.endDate), 'MMM d')}</>
+                    {parseDateSafe(tournament.startDate).getTime() === parseDateSafe(tournament.endDate).getTime() ? (
+                      format(parseDateSafe(tournament.startDate), 'MMM d, yyyy')
+                    ) : (
+                      <>
+                        {format(parseDateSafe(tournament.startDate), 'MMM d')} - {format(parseDateSafe(tournament.endDate), 'MMM d, yyyy')}
+                      </>
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
