@@ -197,6 +197,12 @@ export async function GET(
       const lastName = assignment.athlete.user.lastName || ''
       const fullName = firstName && lastName ? `${firstName} ${lastName}` : assignment.athlete.user.name
 
+      // Extract concurrent squad name (last part after dash, or full name if no dash)
+      const squadName = assignment.squad.name
+      const concurrentSquad = squadName.includes(' - ')
+        ? squadName.split(' - ').pop() || squadName
+        : squadName
+
       return {
         // Primary columns in requested order
         'Shooter ID': assignment.athlete.shooterId || '',
@@ -206,7 +212,7 @@ export async function GET(
         'Full Name': fullName,
         'Participant Concurrent': assignment.athlete.divisionOverride || assignment.athlete.division || '',
         'Skeet': disciplineDisplay,
-        'Concurrent Squad': assignment.squad.name,
+        'Concurrent Squad': concurrentSquad,
         'Squad Position': assignment.position || '',
         'Shooting Time': assignment.squad.timeSlot.startTime || '',
 
