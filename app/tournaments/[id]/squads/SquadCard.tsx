@@ -96,8 +96,11 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
 
     if (oldIndex === -1 || newIndex === -1) return
 
-    // Optimistically update UI
-    const reordered = arrayMove(sortedMembers, oldIndex, newIndex)
+    // Optimistically update UI - reorder and update position values
+    const reordered = arrayMove(sortedMembers, oldIndex, newIndex).map((member: any, index: number) => ({
+      ...member,
+      position: index + 1
+    }))
     setSortedMembers(reordered)
 
     // Update positions on server
