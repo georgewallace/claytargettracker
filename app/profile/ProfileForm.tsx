@@ -156,8 +156,8 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
             required
           >
             <option value="">Select Gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
           </select>
           <p className="text-xs text-gray-500 mt-1">
             Required for tournament HOA calculations

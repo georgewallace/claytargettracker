@@ -30,6 +30,12 @@ interface EditAthleteFormProps {
   athlete: Athlete
 }
 
+// Helper function to convert gender code to display value
+const getGenderDisplay = (gender: string | null): string => {
+  if (!gender) return ''
+  return gender === 'M' ? 'Male' : gender === 'F' ? 'Female' : gender
+}
+
 export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
   const router = useRouter()
   const yearOptions = getYearOptions()
@@ -300,7 +306,7 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
               <div className="text-sm font-medium text-gray-900">Gender</div>
               <div className="text-xs text-gray-600 mt-1">Only the athlete can change this</div>
             </div>
-            <div className="text-lg font-semibold text-gray-700">{athlete.gender}</div>
+            <div className="text-lg font-semibold text-gray-700">{getGenderDisplay(athlete.gender)}</div>
           </div>
         </div>
       )}

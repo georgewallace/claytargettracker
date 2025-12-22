@@ -149,13 +149,18 @@ async function processAthleteImport(data: any[], results: any) {
       // Calculate division
       const division = calculateDivision(grade)
 
+      // Normalize gender to M/F format (accept both old and new formats)
+      let normalizedGender: string | null = null
+      if (gender === 'M' || gender === 'male') normalizedGender = 'M'
+      else if (gender === 'F' || gender === 'female') normalizedGender = 'F'
+
       // Create athlete profile
       await prisma.athlete.create({
         data: {
           userId,
           teamId: team?.id || null,
           grade: grade || null,
-          gender: gender === 'male' || gender === 'female' ? gender : null,
+          gender: normalizedGender,
           division,
           nscaClass: nscaClass || null,
           ataClass: ataClass || null,

@@ -283,8 +283,8 @@ export default function SignupPage() {
                     <input
                       type="radio"
                       name="gender"
-                      value="male"
-                      checked={gender === 'male'}
+                      value="M"
+                      checked={gender === 'M'}
                       onChange={(e) => setGender(e.target.value)}
                       className="mr-2"
                       required
@@ -295,8 +295,8 @@ export default function SignupPage() {
                     <input
                       type="radio"
                       name="gender"
-                      value="female"
-                      checked={gender === 'female'}
+                      value="F"
+                      checked={gender === 'F'}
                       onChange={(e) => setGender(e.target.value)}
                       className="mr-2"
                     />

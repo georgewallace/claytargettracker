@@ -259,11 +259,11 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           hoaResults[disciplineId] = {
             combined: [],
             male: [...athletesWithThisDiscipline]
-              .filter(s => s.gender === 'male')
+              .filter(s => s.gender === 'M')
               .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
               .slice(0, 3),
             female: [...athletesWithThisDiscipline]
-              .filter(s => s.gender === 'female')
+              .filter(s => s.gender === 'F')
               .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
               .slice(0, 3)
           }
@@ -294,12 +294,12 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       if (tournament.hoaSeparateGender) {
         // Separate HAA for males and females
         haaMaleathletes = [...allathletes]
-          .filter(s => s.disciplineCount > 0 && s.gender === 'male')
+          .filter(s => s.disciplineCount > 0 && s.gender === 'M')
           .sort((a, b) => b.totalScore - a.totalScore)
           .slice(0, 3)
 
         haaFemaleathletes = [...allathletes]
-          .filter(s => s.disciplineCount > 0 && s.gender === 'female')
+          .filter(s => s.disciplineCount > 0 && s.gender === 'F')
           .sort((a, b) => b.totalScore - a.totalScore)
           .slice(0, 3)
       } else {
