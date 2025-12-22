@@ -116,7 +116,14 @@ async function processScoreImport(tournamentId: string, data: any[]) {
       // Construct name from available fields
       const shooterName = fullName || (firstName && lastName ? `${firstName} ${lastName}` : null)
 
+      // Skip rows with no ID/name or placeholder names like "x x", "x", etc.
       if (!shooterId && !shooterName) {
+        results.skipped++
+        continue
+      }
+
+      // Skip placeholder/invalid names
+      if (shooterName && (shooterName.toLowerCase() === 'x' || shooterName.toLowerCase() === 'x x' || shooterName.trim().length < 2)) {
         results.skipped++
         continue
       }
@@ -282,7 +289,14 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
       // Construct name from available fields
       const shooterName = fullName || (firstName && lastName ? `${firstName} ${lastName}` : null)
 
+      // Skip rows with no ID/name or placeholder names like "x x", "x", etc.
       if (!shooterId && !shooterName) {
+        results.skipped++
+        continue
+      }
+
+      // Skip placeholder/invalid names
+      if (shooterName && (shooterName.toLowerCase() === 'x' || shooterName.toLowerCase() === 'x x' || shooterName.trim().length < 2)) {
         results.skipped++
         continue
       }
@@ -493,6 +507,7 @@ async function importDisciplineScores({
       data: roundScores.map((targets, idx) => ({
         shootId: shoot.id,
         roundNumber: idx + 1,
+        stationNumber: null,
         targets,
         maxTargets: 25
       }))
@@ -503,6 +518,7 @@ async function importDisciplineScores({
     await prisma.score.createMany({
       data: stationScores.map((targets, idx) => ({
         shootId: shoot.id,
+        roundNumber: null,
         stationNumber: idx + 1,
         targets,
         maxTargets: 10 // Varies by station, but 10 is common
