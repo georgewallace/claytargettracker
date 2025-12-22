@@ -92,6 +92,7 @@ async function processAthleteImport(data: any[], results: any) {
       const nscaClass = row['NSCA Class']?.toString().trim()
       const ataClass = row['ATA Class']?.toString().trim()
       const nssaClass = row['NSSA Class']?.toString().trim()
+      const shooterId = row['Shooter ID']?.toString().trim()
 
       if (!firstName || !lastName) {
         results.skipped++
@@ -165,6 +166,7 @@ async function processAthleteImport(data: any[], results: any) {
           nscaClass: nscaClass || null,
           ataClass: ataClass || null,
           nssaClass: nssaClass || null,
+          shooterId: shooterId || null,
           isActive: true
         }
       })

@@ -109,18 +109,42 @@ async function processScoreImport(tournamentId: string, data: any[]) {
   for (const row of data) {
     try {
       const shooterId = row['Shooter ID']?.toString().trim()
-      if (!shooterId) {
+      const fullName = row['Full Name']?.toString().trim()
+      const firstName = row['First Name']?.toString().trim()
+      const lastName = row['Last Name']?.toString().trim()
+
+      // Construct name from available fields
+      const shooterName = fullName || (firstName && lastName ? `${firstName} ${lastName}` : null)
+
+      if (!shooterId && !shooterName) {
         results.skipped++
         continue
       }
 
-      // Find athlete by shooterId
-      const athlete = await prisma.athlete.findFirst({
-        where: { shooterId }
-      })
+      // Find athlete by shooterId first, then fall back to name
+      let athlete = null
+
+      if (shooterId) {
+        athlete = await prisma.athlete.findFirst({
+          where: { shooterId },
+          include: { user: true }
+        })
+      }
+
+      // If not found by shooterId, try matching by name
+      if (!athlete && shooterName) {
+        athlete = await prisma.athlete.findFirst({
+          where: {
+            user: {
+              name: shooterName
+            }
+          },
+          include: { user: true }
+        })
+      }
 
       if (!athlete) {
-        results.errors.push(`Athlete not found with ID: ${shooterId}`)
+        results.errors.push(`Athlete not found: ${shooterName || shooterId}`)
         continue
       }
 
@@ -251,18 +275,42 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
   for (const row of data) {
     try {
       const shooterId = row['Shooter ID']?.toString().trim()
-      if (!shooterId) {
+      const fullName = row['Full Name']?.toString().trim()
+      const firstName = row['First Name']?.toString().trim()
+      const lastName = row['Last Name']?.toString().trim()
+
+      // Construct name from available fields
+      const shooterName = fullName || (firstName && lastName ? `${firstName} ${lastName}` : null)
+
+      if (!shooterId && !shooterName) {
         results.skipped++
         continue
       }
 
-      // Find athlete by shooterId
-      const athlete = await prisma.athlete.findFirst({
-        where: { shooterId }
-      })
+      // Find athlete by shooterId first, then fall back to name
+      let athlete = null
+
+      if (shooterId) {
+        athlete = await prisma.athlete.findFirst({
+          where: { shooterId },
+          include: { user: true }
+        })
+      }
+
+      // If not found by shooterId, try matching by name
+      if (!athlete && shooterName) {
+        athlete = await prisma.athlete.findFirst({
+          where: {
+            user: {
+              name: shooterName
+            }
+          },
+          include: { user: true }
+        })
+      }
 
       if (!athlete) {
-        results.errors.push(`Athlete not found with ID: ${shooterId}`)
+        results.errors.push(`Athlete not found: ${shooterName || shooterId}`)
         continue
       }
 

@@ -99,15 +99,11 @@ export default function athleteCard({ athlete, isDragging: isDraggingProp, onRem
     >
       <div className="flex items-start justify-between gap-1">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1 flex-wrap">
+          {/* Line 1: Name + Division */}
+          <div className="flex items-center gap-1">
             <div className="font-medium text-xs text-gray-900 truncate">
               {athlete.user.name}
             </div>
-            {position !== undefined && (
-              <span className="inline-block px-1 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700 flex-shrink-0">
-                Pos #{position}
-              </span>
-            )}
             {athlete.division && (
               <span className={`inline-block px-1 py-0.5 rounded text-xs font-medium ${getDivisionColor(athlete.division)} flex-shrink-0`}>
                 {getDivisionAcronym(athlete.division)}
@@ -115,6 +111,14 @@ export default function athleteCard({ athlete, isDragging: isDraggingProp, onRem
             )}
           </div>
 
+          {/* Line 2: Position */}
+          {position !== undefined && (
+            <div className="text-xs text-gray-600 mt-0.5">
+              Pos #{position}
+            </div>
+          )}
+
+          {/* Line 3: Team */}
           {athlete.team && (
             <div className="text-xs text-gray-500 truncate mt-0.5">
               {athlete.team.name}

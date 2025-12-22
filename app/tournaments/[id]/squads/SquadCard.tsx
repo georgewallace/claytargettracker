@@ -48,7 +48,7 @@ function SortableMember({ member, disciplineId, timeSlotId, onRemove, removing }
         title="Drag to reorder position in squad"
       >
         <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7m-7 7h12" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </div>
       <AthleteCard
