@@ -27,6 +27,8 @@ interface Tournament {
   shootOffTargetsPerRound: number
   shootOffStartStation: string | null
   shootOffRequiresPerfect: boolean
+  // Leaderboard Configuration
+  leaderboardTabInterval: number | null
 }
 
 interface athletescore {
@@ -96,16 +98,19 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     const views: ('divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa')[] =
       ['divisions', 'classes', 'teams', 'hoa-haa', 'squads']
 
+    // Use configured interval or default to 15 seconds
+    const tabInterval = tournament.leaderboardTabInterval || 15000
+
     const interval = setInterval(() => {
       setActiveView(current => {
         const currentIndex = views.indexOf(current)
         const nextIndex = (currentIndex + 1) % views.length
         return views[nextIndex]
       })
-    }, 15000) // Cycle every 15 seconds
+    }, tabInterval)
 
     return () => clearInterval(interval)
-  }, [autoRefresh])
+  }, [autoRefresh, tournament.leaderboardTabInterval])
 
   // Fullscreen toggle
   const toggleFullscreen = () => {

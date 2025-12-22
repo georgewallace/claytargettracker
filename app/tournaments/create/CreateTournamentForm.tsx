@@ -27,6 +27,7 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
   const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>(
     disciplines.map(d => d.id) // Default: all disciplines selected
   )
+  const [leaderboardTabInterval, setLeaderboardTabInterval] = useState(15000) // Default 15 seconds
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -47,7 +48,9 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
         disciplineIds: selectedDisciplines,
         // Feature toggles - always enabled
         enableScores: true,
-        enableLeaderboard: true
+        enableLeaderboard: true,
+        // Leaderboard configuration
+        leaderboardTabInterval
       }
       
       console.log('Submitting tournament with payload:', JSON.stringify(payload, null, 2))
@@ -246,6 +249,28 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           placeholder="Add tournament details, rules, and any other information..."
         />
+      </div>
+
+      {/* Leaderboard Tab Interval */}
+      <div>
+        <label htmlFor="leaderboardTabInterval" className="block text-sm font-medium text-gray-700 mb-2">
+          Leaderboard Tab Switching Interval
+        </label>
+        <select
+          id="leaderboardTabInterval"
+          value={leaderboardTabInterval}
+          onChange={(e) => setLeaderboardTabInterval(parseInt(e.target.value))}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="10000">10 seconds</option>
+          <option value="15000">15 seconds (default)</option>
+          <option value="20000">20 seconds</option>
+          <option value="30000">30 seconds</option>
+          <option value="60000">1 minute</option>
+        </select>
+        <p className="text-xs text-gray-500 mt-1">
+          How often the leaderboard automatically switches between tabs when in auto-refresh mode
+        </p>
       </div>
 
       <div className="flex gap-4">
