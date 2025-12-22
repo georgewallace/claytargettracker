@@ -95,20 +95,31 @@ export async function GET(
       const hasTrap = registeredDisciplines.includes('trap') ? 'Yes' : 'No'
       const hasSportingClays = registeredDisciplines.includes('sporting_clays') ? 'Yes' : 'No'
 
+      // Construct full name
+      const firstName = athlete.user.firstName || ''
+      const lastName = athlete.user.lastName || ''
+      const fullName = firstName && lastName ? `${firstName} ${lastName}` : athlete.user.name
+
       return {
+        // Primary columns in requested order
         'Shooter ID': athlete.shooterId || '',
-        'First Name': athlete.user.firstName || '',
-        'Last Name': athlete.user.lastName || '',
+        'First Name': firstName,
+        'Last Name': lastName,
+        'Full Name': fullName,
         'Birthdate': birthDate,
         'Sex': athlete.gender || '',
+        'Skeet Event': hasSkeet === 'Yes' ? 'Y' : 'N',
+        'Trap Event': hasTrap === 'Yes' ? 'Y' : 'N',
+        'Sporting Event': hasSportingClays === 'Yes' ? 'Y' : 'N',
+        'Total Amount': '',
+        'Paid': '',
+        'Shooting Team': athlete.team?.name || '',
+        'Age Concurrent': athlete.divisionOverride || athlete.division || '',
+
+        // Additional columns
         'Contact Phone #': athlete.user.phone || '',
         'Contact Email': athlete.user.email,
-        'Shooting Team': athlete.team?.name || '',
         'Grade': athlete.grade || '',
-        'Age Concurrent': athlete.divisionOverride || athlete.division || '',
-        'Skeet': hasSkeet,
-        'Trap': hasTrap,
-        'Sporting Clays': hasSportingClays,
         'NSSA Class': athlete.nssaClass || '',
         'ATA Class': athlete.ataClass || '',
         'NSCA Class': athlete.nscaClass || '',
