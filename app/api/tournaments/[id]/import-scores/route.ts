@@ -667,6 +667,7 @@ async function importDisciplineScores({
   concurrentPlace,
   classPlace,
   teamPlace,
+  hoaPlace,
   individualRank,
   teamRank,
   teamScore,
@@ -681,6 +682,7 @@ async function importDisciplineScores({
   concurrentPlace?: number
   classPlace?: number
   teamPlace?: number
+  hoaPlace?: number
   individualRank?: number
   teamRank?: number
   teamScore?: number

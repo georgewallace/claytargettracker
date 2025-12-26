@@ -67,6 +67,8 @@ interface SquadScore {
   members: string[]
   isComplete: boolean
   completionPercentage: number
+  division: string | null
+  disciplineId: string
 }
 
 interface LeaderboardProps {
@@ -216,12 +218,28 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       timeSlot.squads.forEach((squad: any) => {
         let squadTotal = 0
         let membersWithScores = 0
+        const divisions: Record<string, number> = {}
 
         squad.members.forEach((member: any) => {
           const athletescore = athletescores[member.athleteId]
           if (athletescore && athletescore.totalScore > 0) {
             squadTotal += athletescore.totalScore
             membersWithScores++
+
+            // Track division counts to determine squad division
+            if (athletescore.division) {
+              divisions[athletescore.division] = (divisions[athletescore.division] || 0) + 1
+            }
+          }
+        })
+
+        // Determine squad division (most common division among members)
+        let squadDivision: string | null = null
+        let maxCount = 0
+        Object.entries(divisions).forEach(([div, count]) => {
+          if (count > maxCount) {
+            maxCount = count
+            squadDivision = div
           }
         })
 
@@ -236,7 +254,9 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           memberCount: squad.members.length,
           members: [], // Member names not available in optimized query
           isComplete,
-          completionPercentage: squad.members.length > 0 ? Math.round((membersWithScores / squad.members.length) * 100) : 0
+          completionPercentage: squad.members.length > 0 ? Math.round((membersWithScores / squad.members.length) * 100) : 0,
+          division: squadDivision,
+          disciplineId: timeSlot.disciplineId
         })
       })
     })
@@ -808,72 +828,108 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
       {/* Squads View - Compact Grid */}
       {activeView === 'squads' && (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-          <div className="mb-3">
-            <h2 className="text-lg font-bold text-gray-900">👥 Squad Standings</h2>
-            <p className="text-gray-600 text-xs">
-              Ranked by total squad score • {squadScores.length} squad{squadScores.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            {squadScores.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
-                    <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Squad</th>
-                    <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Team</th>
-                    <th className="px-2 py-1 text-center text-xs font-semibold text-gray-600">Athletes</th>
-                    <th className="px-2 py-1 text-center text-xs font-semibold text-gray-600">Status</th>
-                    <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Score</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {[...squadScores]
-                    .sort((a, b) => b.totalScore - a.totalScore)
-                    .map((squad, idx) => (
-                      <tr
-                        key={squad.squadId}
-                        className={`transition ${
-                          idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'
-                        } ${!squad.isComplete ? 'border-l-2 border-l-yellow-400' : ''}`}
-                      >
-                        <td className="px-2 py-1 text-gray-600">
-                          {idx < 3 ? getMedal(idx) : `${idx + 1}`}
-                        </td>
-                        <td className="px-2 py-1 text-xs font-medium text-gray-900 truncate max-w-[200px]" title={squad.squadName}>
-                          {squad.squadName}
-                        </td>
-                        <td className="px-2 py-1 text-xs text-gray-600 truncate max-w-[120px]" title={squad.teamName || 'Mixed'}>
-                          {squad.teamName || 'Mixed'}
-                        </td>
-                        <td className="px-2 py-1 text-xs text-gray-600 text-center">
-                          {squad.memberCount}
-                        </td>
-                        <td className="px-2 py-1 text-center">
-                          {squad.isComplete ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                              ✓
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
-                              {squad.completionPercentage}%
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-1 text-right text-xs font-bold text-gray-900 bg-white">
-                          {squad.totalScore}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                No squads with scores yet
+        <div className="space-y-3">
+          {tournament.disciplines.map((td: any) => {
+            const disciplineId = td.disciplineId
+            const discipline = td.discipline
+
+            // Get squads for this discipline
+            const disciplineSquads = squadScores.filter(s => s.disciplineId === disciplineId)
+
+            if (disciplineSquads.length === 0) return null
+
+            // Group squads by division
+            const squadsByDivision: Record<string, SquadScore[]> = {}
+            disciplineSquads.forEach(squad => {
+              const division = squad.division || 'Mixed'
+              if (!squadsByDivision[division]) {
+                squadsByDivision[division] = []
+              }
+              squadsByDivision[division].push(squad)
+            })
+
+            // Sort divisions from highest to youngest
+            const divisionOrder = ['college', 'varsity', 'junior varsity', 'intermediate', 'novice']
+            const sortedDivisions = Object.keys(squadsByDivision).sort((a, b) => {
+              const aIndex = divisionOrder.indexOf(a.toLowerCase())
+              const bIndex = divisionOrder.indexOf(b.toLowerCase())
+              if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex
+              if (aIndex !== -1) return -1
+              if (bIndex !== -1) return 1
+              return a.localeCompare(b)
+            })
+
+            return (
+              <div key={disciplineId} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+                {/* Discipline Header */}
+                <div className="mb-3">
+                  <h2 className="text-lg font-bold text-gray-900">👥 {discipline.displayName} - Squad Standings</h2>
+                  <p className="text-gray-600 text-xs">
+                    {sortedDivisions.length} division{sortedDivisions.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+
+                {/* Squad Tables Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2">
+                  {sortedDivisions.map(division => {
+                    const divisionSquads = squadsByDivision[division]
+                      .sort((a, b) => b.totalScore - a.totalScore)
+
+                    return (
+                      <div key={`${disciplineId}-${division}`} className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="bg-white p-2 border-b border-gray-200">
+                          <h3 className="text-sm font-bold text-gray-900">{division}</h3>
+                          <p className="text-gray-600 text-xs">
+                            {divisionSquads.length} squad{divisionSquads.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-xs">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                                <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Squad</th>
+                                <th className="px-2 py-1 text-center text-xs font-semibold text-gray-600">Ath</th>
+                                <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {divisionSquads.map((squad, idx) => (
+                                <tr
+                                  key={squad.squadId}
+                                  className={`transition ${
+                                    idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'
+                                  } ${!squad.isComplete ? 'border-l-2 border-l-yellow-400' : ''}`}
+                                >
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                  </td>
+                                  <td className="px-2 py-1 font-medium text-gray-900 text-xs truncate max-w-[120px]" title={squad.squadName}>
+                                    {squad.squadName}
+                                    {!squad.isComplete && (
+                                      <span className="ml-1 text-yellow-600 text-xs" title={`${squad.completionPercentage}% complete`}>
+                                        ⚠
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-2 py-1 text-xs text-gray-600 text-center">
+                                    {squad.memberCount}
+                                  </td>
+                                  <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                    {squad.totalScore}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-            )}
-          </div>
+            )
+          })}
         </div>
       )}
 
