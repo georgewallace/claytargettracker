@@ -311,34 +311,23 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           athlete => athlete.disciplineScores[disciplineId] !== undefined
         )
 
-        if (tournament.hoaSeparateGender) {
-          // Separate by gender
-          hoaResults[disciplineId] = {
-            combined: [],
-            male: [...athletesWithThisDiscipline]
-              .filter(s => s.gender === 'M')
-              .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
-              .slice(0, 3),
-            female: [...athletesWithThisDiscipline]
-              .filter(s => s.gender === 'F')
-              .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
-              .slice(0, 3)
-          }
-        } else {
-          // Combined gender
-          hoaResults[disciplineId] = {
-            combined: [...athletesWithThisDiscipline]
-              .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
-              .slice(0, 3),
-            male: [],
-            female: []
-          }
+        // Always separate by gender
+        hoaResults[disciplineId] = {
+          combined: [],
+          male: [...athletesWithThisDiscipline]
+            .filter(s => s.gender === 'M')
+            .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
+            .slice(0, 3),
+          female: [...athletesWithThisDiscipline]
+            .filter(s => s.gender === 'F')
+            .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
+            .slice(0, 3)
         }
       })
     }
 
     return hoaResults
-  }, [allathletes, tournament.enableHOA, tournament.hoaSeparateGender, tournament.disciplines])
+  }, [allathletes, tournament.enableHOA, tournament.disciplines])
 
   // MEMOIZED: HAA (High All-Around) - All disciplines combined
   // PERFORMANCE: Only recalculates when athlete scores or config changes
@@ -348,24 +337,16 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     let haaFemaleathletes: athletescore[] = []
 
     if (tournament.enableHAA) {
-      if (tournament.hoaSeparateGender) {
-        // Separate HAA for males and females
-        haaMaleathletes = [...allathletes]
-          .filter(s => s.disciplineCount > 0 && s.gender === 'M')
-          .sort((a, b) => b.totalScore - a.totalScore)
-          .slice(0, 3)
+      // Always separate HAA for males and females
+      haaMaleathletes = [...allathletes]
+        .filter(s => s.disciplineCount > 0 && s.gender === 'M')
+        .sort((a, b) => b.totalScore - a.totalScore)
+        .slice(0, 3)
 
-        haaFemaleathletes = [...allathletes]
-          .filter(s => s.disciplineCount > 0 && s.gender === 'F')
-          .sort((a, b) => b.totalScore - a.totalScore)
-          .slice(0, 3)
-      } else {
-        // Combined HAA
-        haaathletes = [...allathletes]
-          .filter(s => s.disciplineCount > 0)
-          .sort((a, b) => b.totalScore - a.totalScore)
-          .slice(0, 3)
-      }
+      haaFemaleathletes = [...allathletes]
+        .filter(s => s.disciplineCount > 0 && s.gender === 'F')
+        .sort((a, b) => b.totalScore - a.totalScore)
+        .slice(0, 3)
     }
 
     // Collect all HAA winners for exclusion from division leaderboards
@@ -376,7 +357,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     ])
 
     return { haaathletes, haaMaleathletes, haaFemaleathletes, haaWinnerIds }
-  }, [allathletes, tournament.enableHAA, tournament.hoaSeparateGender])
+  }, [allathletes, tournament.enableHAA])
 
 
   // Get medal emoji
@@ -580,44 +561,38 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {/* HAA Combined or Male */}
-                {(!tournament.hoaSeparateGender || (tournament.hoaSeparateGender && haaMaleathletes.length > 0)) && (
+                {/* HAA Male */}
+                {haaMaleathletes.length > 0 && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
-                    <h3 className="text-sm font-bold text-gray-900 mb-2">
-                      {tournament.hoaSeparateGender ? 'Male' : 'Combined'}
-                    </h3>
-                    {(tournament.hoaSeparateGender ? haaMaleathletes : haaathletes).length > 0 ? (
-                      <div className="space-y-1">
-                        {(tournament.hoaSeparateGender ? haaMaleathletes : haaathletes).map((athlete, idx) => {
-                          const officialPlace = athlete.haaIndividualPlace
-                          return (
-                            <div
-                              key={athlete.athleteId}
-                              className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
-                            >
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span className="text-lg">{officialPlace ? `${officialPlace}` : (getMedal(idx) || `${idx + 1}`)}</span>
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
-                                  <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
-                                </div>
-                              </div>
-                              <div className="text-right ml-2">
-                                <div className="text-base font-bold text-gray-900">{athlete.totalScore}</div>
-                                <div className="text-xs text-gray-600">{athlete.disciplineCount} disc</div>
+                    <h3 className="text-sm font-bold text-gray-900 mb-2">Male</h3>
+                    <div className="space-y-1">
+                      {haaMaleathletes.map((athlete, idx) => {
+                        const officialPlace = athlete.haaIndividualPlace
+                        return (
+                          <div
+                            key={athlete.athleteId}
+                            className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className="text-lg">{officialPlace ? `${officialPlace}` : (getMedal(idx) || `${idx + 1}`)}</span>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
+                                <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
                               </div>
                             </div>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <div className="text-center py-4 text-gray-500 text-xs">No scores yet</div>
-                    )}
+                            <div className="text-right ml-2">
+                              <div className="text-base font-bold text-gray-900">{athlete.totalScore}</div>
+                              <div className="text-xs text-gray-600">{athlete.disciplineCount} disc</div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
 
                 {/* HAA Female */}
-                {tournament.hoaSeparateGender && haaFemaleathletes.length > 0 && (
+                {haaFemaleathletes.length > 0 && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
                     <h3 className="text-sm font-bold text-gray-900 mb-2">Female</h3>
                     <div className="space-y-1">
@@ -659,9 +634,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
                 if (!hoaResults) return null
 
-                const hasResults = tournament.hoaSeparateGender
-                  ? (hoaResults.male.length > 0 || hoaResults.female.length > 0)
-                  : hoaResults.combined.length > 0
+                const hasResults = hoaResults.male.length > 0 || hoaResults.female.length > 0
 
                 if (!hasResults) return null
 
@@ -673,40 +646,34 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                      {/* HOA Combined or Male */}
-                      {(!tournament.hoaSeparateGender || (tournament.hoaSeparateGender && hoaResults.male.length > 0)) && (
+                      {/* HOA Male */}
+                      {hoaResults.male.length > 0 && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
-                          <h3 className="text-sm font-bold text-gray-900 mb-2">
-                            {tournament.hoaSeparateGender ? 'Male' : 'Combined'}
-                          </h3>
-                          {(tournament.hoaSeparateGender ? hoaResults.male : hoaResults.combined).length > 0 ? (
-                            <div className="space-y-1">
-                              {(tournament.hoaSeparateGender ? hoaResults.male : hoaResults.combined).map((athlete, idx) => (
-                                <div
-                                  key={athlete.athleteId}
-                                  className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
-                                >
-                                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                                    <span className="text-lg">{getMedal(idx) || `${idx + 1}`}</span>
-                                    <div className="min-w-0 flex-1">
-                                      <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
-                                      <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
-                                    </div>
-                                  </div>
-                                  <div className="text-right ml-2">
-                                    <div className="text-base font-bold text-gray-900">{athlete.disciplineScores[disciplineId]}</div>
+                          <h3 className="text-sm font-bold text-gray-900 mb-2">Male</h3>
+                          <div className="space-y-1">
+                            {hoaResults.male.map((athlete, idx) => (
+                              <div
+                                key={athlete.athleteId}
+                                className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
+                              >
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <span className="text-lg">{getMedal(idx) || `${idx + 1}`}</span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
+                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
                                   </div>
                                 </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-center py-4 text-gray-500 text-xs">No scores yet</div>
-                          )}
+                                <div className="text-right ml-2">
+                                  <div className="text-base font-bold text-gray-900">{athlete.disciplineScores[disciplineId]}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
                       {/* HOA Female */}
-                      {tournament.hoaSeparateGender && hoaResults.female.length > 0 && (
+                      {hoaResults.female.length > 0 && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
                           <h3 className="text-sm font-bold text-gray-900 mb-2">Female</h3>
                           <div className="space-y-1">
