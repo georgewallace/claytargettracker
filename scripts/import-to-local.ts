@@ -213,6 +213,46 @@ async function main() {
     }
     console.log(`✅ Imported ${data.registrationDisciplines.length} registration disciplines\n`)
 
+    // 12.5. Import Time Slot Preferences
+    if (data.timeSlotPreferences && data.timeSlotPreferences.length > 0) {
+      console.log('⏰ Importing Time Slot Preferences...')
+      for (const pref of data.timeSlotPreferences) {
+        await prisma.timeSlotPreference.upsert({
+          where: { id: pref.id },
+          update: {
+            ...pref,
+            createdAt: new Date(pref.createdAt)
+          },
+          create: {
+            ...pref,
+            createdAt: new Date(pref.createdAt)
+          }
+        })
+      }
+      console.log(`✅ Imported ${data.timeSlotPreferences.length} time slot preferences\n`)
+    }
+
+    // 12.6. Import Team Tournament Registrations
+    if (data.teamTournamentRegistrations && data.teamTournamentRegistrations.length > 0) {
+      console.log('🏆 Importing Team Tournament Registrations...')
+      for (const teamReg of data.teamTournamentRegistrations) {
+        await prisma.teamTournamentRegistration.upsert({
+          where: { id: teamReg.id },
+          update: {
+            ...teamReg,
+            createdAt: new Date(teamReg.createdAt),
+            updatedAt: new Date(teamReg.updatedAt)
+          },
+          create: {
+            ...teamReg,
+            createdAt: new Date(teamReg.createdAt),
+            updatedAt: new Date(teamReg.updatedAt)
+          }
+        })
+      }
+      console.log(`✅ Imported ${data.teamTournamentRegistrations.length} team tournament registrations\n`)
+    }
+
     // 13. Import Shoots (map shooterId to athleteId and discipline IDs)
     console.log('🎯 Importing Shoots...')
     for (const shoot of data.shoots) {

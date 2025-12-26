@@ -33,8 +33,8 @@ async function main() {
     console.log('👨‍🏫 Fetching Team Coaches...')
     data.teamCoaches = await prisma.teamCoach.findMany()
 
-    console.log('🎯 Fetching Shooters...')
-    data.shooters = await prisma.shooter.findMany()
+    console.log('🎯 Fetching Athletes...')
+    data.athletes = await prisma.athlete.findMany()
 
     console.log('🏅 Fetching Tournaments...')
     data.tournaments = await prisma.tournament.findMany()
@@ -57,14 +57,20 @@ async function main() {
     console.log('📋 Fetching Registration Disciplines...')
     data.registrationDisciplines = await prisma.registrationDiscipline.findMany()
 
+    console.log('⏰ Fetching Time Slot Preferences...')
+    data.timeSlotPreferences = await prisma.timeSlotPreference.findMany()
+
+    console.log('🏆 Fetching Team Tournament Registrations...')
+    data.teamTournamentRegistrations = await prisma.teamTournamentRegistration.findMany()
+
     console.log('🎯 Fetching Shoots...')
     data.shoots = await prisma.shoot.findMany()
 
     console.log('📊 Fetching Scores...')
     data.scores = await prisma.score.findMany()
 
-    console.log('📊 Fetching Shooter Averages...')
-    data.shooterAverages = await prisma.shooterAverage.findMany()
+    console.log('📊 Fetching Athlete Averages...')
+    data.athleteAverages = await prisma.athleteAverage.findMany()
 
     console.log('📨 Fetching Team Join Requests...')
     data.teamJoinRequests = await prisma.teamJoinRequest.findMany()
@@ -80,7 +86,7 @@ async function main() {
     console.log(`   - ${data.users.length} users`)
     console.log(`   - ${data.teams.length} teams`)
     console.log(`   - ${data.teamCoaches.length} team coaches`)
-    console.log(`   - ${data.shooters.length} shooters`)
+    console.log(`   - ${data.athletes.length} athletes`)
     console.log(`   - ${data.tournaments.length} tournaments`)
     console.log(`   - ${data.tournamentDisciplines.length} tournament disciplines`)
     console.log(`   - ${data.timeSlots.length} time slots`)
@@ -88,9 +94,11 @@ async function main() {
     console.log(`   - ${data.squadMembers.length} squad members`)
     console.log(`   - ${data.registrations.length} registrations`)
     console.log(`   - ${data.registrationDisciplines.length} registration disciplines`)
+    console.log(`   - ${data.timeSlotPreferences.length} time slot preferences`)
+    console.log(`   - ${data.teamTournamentRegistrations.length} team tournament registrations`)
     console.log(`   - ${data.shoots.length} shoots`)
     console.log(`   - ${data.scores.length} scores`)
-    console.log(`   - ${data.shooterAverages.length} shooter averages`)
+    console.log(`   - ${data.athleteAverages.length} athlete averages`)
     console.log(`   - ${data.teamJoinRequests.length} team join requests`)
 
   } catch (error) {
