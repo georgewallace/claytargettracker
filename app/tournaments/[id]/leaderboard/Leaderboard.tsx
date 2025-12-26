@@ -216,16 +216,26 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     }, {} as Record<string, athletescore>)
 
     tournament.timeSlots.forEach((timeSlot: any) => {
+      const disciplineId = timeSlot.disciplineId
+
       timeSlot.squads.forEach((squad: any) => {
         let squadTotal = 0
         let membersWithScores = 0
         const divisions: Record<string, number> = {}
+        const memberNames: string[] = []
 
         squad.members.forEach((member: any) => {
           const athletescore = athletescores[member.athleteId]
-          if (athletescore && athletescore.totalScore > 0) {
-            squadTotal += athletescore.totalScore
-            membersWithScores++
+          if (athletescore) {
+            // Only add the score for THIS discipline, not total score across all disciplines
+            const disciplineScore = athletescore.disciplineScores[disciplineId] || 0
+            if (disciplineScore > 0) {
+              squadTotal += disciplineScore
+              membersWithScores++
+            }
+
+            // Add athlete name to members list
+            memberNames.push(athletescore.athleteName)
 
             // Track division counts to determine squad division
             if (athletescore.division) {
@@ -253,11 +263,11 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           teamLogoUrl: null,
           totalScore: squadTotal,
           memberCount: squad.members.length,
-          members: [], // Member names not available in optimized query
+          members: memberNames,
           isComplete,
           completionPercentage: squad.members.length > 0 ? Math.round((membersWithScores / squad.members.length) * 100) : 0,
           division: squadDivision,
-          disciplineId: timeSlot.disciplineId
+          disciplineId: disciplineId
         })
       })
     })
@@ -884,13 +894,20 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                   <td className="px-2 py-1 text-gray-600">
                                     {idx < 3 ? getMedal(idx) : `${idx + 1}`}
                                   </td>
-                                  <td className="px-2 py-1 font-medium text-gray-900 text-xs truncate max-w-[120px]" title={squad.squadName}>
-                                    {squad.squadName}
-                                    {!squad.isComplete && (
-                                      <span className="ml-1 text-yellow-600 text-xs" title={`${squad.completionPercentage}% complete`}>
-                                        ⚠
-                                      </span>
-                                    )}
+                                  <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                    <div className="flex flex-col">
+                                      <div className="font-bold">
+                                        {squad.squadName}
+                                        {!squad.isComplete && (
+                                          <span className="ml-1 text-yellow-600 text-xs" title={`${squad.completionPercentage}% complete`}>
+                                            ⚠
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-xs text-gray-600 mt-0.5">
+                                        {squad.members.join(', ')}
+                                      </div>
+                                    </div>
                                   </td>
                                   <td className="px-2 py-1 text-xs text-gray-600 text-center">
                                     {squad.memberCount}
