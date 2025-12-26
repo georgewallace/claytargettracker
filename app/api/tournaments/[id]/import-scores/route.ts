@@ -195,34 +195,61 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
       }
 
       // Extract HAA placement data (applies to all disciplines)
-      // Check for gender-specific columns first, then fall back to general columns
+      // Parse text-based placement values like "HAA Champion", "HAA Men's Champion", etc.
       let haaIndividualPlace: number | undefined
       let haaConcurrent: string | undefined
 
       const athleteGender = athlete.gender
+      const haaPlaceText = row['HAA Individual Place']?.toString().trim() || ''
 
-      // Try gender-specific columns first
-      if (athleteGender === 'M') {
-        haaIndividualPlace = row['HAA Male Place'] ? parseInt(row['HAA Male Place']) :
-                            row['HAA Men Place'] ? parseInt(row['HAA Men Place']) : undefined
-        haaConcurrent = row['HAA Male Concurrent']?.toString().trim() ||
-                       row['HAA Men Concurrent']?.toString().trim() || undefined
-      } else if (athleteGender === 'F') {
-        haaIndividualPlace = row['HAA Female Place'] ? parseInt(row['HAA Female Place']) :
-                            row['HAA Ladies Place'] ? parseInt(row['HAA Ladies Place']) :
-                            row['HAA Women Place'] ? parseInt(row['HAA Women Place']) : undefined
-        haaConcurrent = row['HAA Female Concurrent']?.toString().trim() ||
-                       row['HAA Ladies Concurrent']?.toString().trim() ||
-                       row['HAA Women Concurrent']?.toString().trim() || undefined
+      // Parse HAA placement text to numeric value
+      if (haaPlaceText) {
+        const lowerText = haaPlaceText.toLowerCase()
+
+        // Check if this is a gender-specific placement
+        const isMale = lowerText.includes("men's") || lowerText.includes("mens") || lowerText.includes("male")
+        const isFemale = lowerText.includes("lady's") || lowerText.includes("ladies") || lowerText.includes("female") || lowerText.includes("women")
+
+        // Only assign if it matches athlete's gender or is gender-neutral
+        const genderMatches = !isMale && !isFemale ||
+                             (isMale && athleteGender === 'M') ||
+                             (isFemale && athleteGender === 'F')
+
+        if (genderMatches) {
+          // Map text to placement number
+          if (lowerText.includes('champion') && !lowerText.includes('runner')) {
+            haaIndividualPlace = 1
+          } else if (lowerText.includes('runner up') || lowerText.includes('runner-up')) {
+            haaIndividualPlace = 2
+          } else if (lowerText.includes('third') || lowerText.includes('3rd')) {
+            haaIndividualPlace = 3
+          } else if (lowerText.includes('fourth') || lowerText.includes('4th')) {
+            haaIndividualPlace = 4
+          } else if (lowerText.includes('fifth') || lowerText.includes('5th')) {
+            haaIndividualPlace = 5
+          }
+        }
       }
 
-      // Fall back to general columns if gender-specific not found
+      // Try numeric columns as fallback
       if (!haaIndividualPlace) {
-        haaIndividualPlace = row['HAA Individual Place'] ? parseInt(row['HAA Individual Place']) : undefined
+        if (athleteGender === 'M') {
+          haaIndividualPlace = row['HAA Male Place'] ? parseInt(row['HAA Male Place']) :
+                              row['HAA Men Place'] ? parseInt(row['HAA Men Place']) : undefined
+        } else if (athleteGender === 'F') {
+          haaIndividualPlace = row['HAA Female Place'] ? parseInt(row['HAA Female Place']) :
+                              row['HAA Ladies Place'] ? parseInt(row['HAA Ladies Place']) :
+                              row['HAA Women Place'] ? parseInt(row['HAA Women Place']) : undefined
+        }
       }
-      if (!haaConcurrent) {
-        haaConcurrent = row['HAA Concurrent']?.toString().trim() || undefined
-      }
+
+      // Get HAA Concurrent (division)
+      haaConcurrent = row['HAA Concurrent']?.toString().trim() ||
+                     row['HAA Male Concurrent']?.toString().trim() ||
+                     row['HAA Men Concurrent']?.toString().trim() ||
+                     row['HAA Female Concurrent']?.toString().trim() ||
+                     row['HAA Ladies Concurrent']?.toString().trim() ||
+                     row['HAA Women Concurrent']?.toString().trim() || undefined
 
       let imported = false
 
