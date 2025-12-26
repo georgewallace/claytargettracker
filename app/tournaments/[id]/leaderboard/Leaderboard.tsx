@@ -348,12 +348,19 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     let haaFemaleathletes: athletescore[] = []
 
     if (tournament.enableHAA) {
-      // Always separate HAA for males and females
+      // Overall HAA (all genders combined)
+      haaathletes = [...allathletes]
+        .filter(s => s.disciplineCount > 0)
+        .sort((a, b) => b.totalScore - a.totalScore)
+        .slice(0, 3)
+
+      // HAA for males
       haaMaleathletes = [...allathletes]
         .filter(s => s.disciplineCount > 0 && s.gender === 'M')
         .sort((a, b) => b.totalScore - a.totalScore)
         .slice(0, 3)
 
+      // HAA for females
       haaFemaleathletes = [...allathletes]
         .filter(s => s.disciplineCount > 0 && s.gender === 'F')
         .sort((a, b) => b.totalScore - a.totalScore)
@@ -583,63 +590,135 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                 <p className="text-gray-600 text-xs">All Disciplines Combined</p>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className={`grid gap-2 ${singleColumnMode ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-3'}`}>
+                {/* HAA Overall */}
+                {haaathletes.length > 0 && (
+                  <div className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'max-w-none' : ''}`}>
+                    <div className="bg-white p-2 border-b border-gray-200">
+                      <h3 className="text-sm font-bold text-gray-900">Overall</h3>
+                      <p className="text-gray-600 text-xs">
+                        {haaathletes.length} athlete{haaathletes.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
+                            <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {haaathletes.map((athlete, idx) => {
+                            const officialPlace = athlete.haaIndividualPlace
+                            return (
+                              <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                                <td className="px-2 py-1 text-gray-600">
+                                  {officialPlace ? `${officialPlace}` : (idx < 3 ? getMedal(idx) : `${idx + 1}`)}
+                                </td>
+                                <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                  <div className="flex flex-col">
+                                    <div className="font-bold truncate">{athlete.athleteName}</div>
+                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                                  </div>
+                                </td>
+                                <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                  {athlete.totalScore}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 {/* HAA Male */}
                 {haaMaleathletes.length > 0 && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
-                    <h3 className="text-sm font-bold text-gray-900 mb-2">Male</h3>
-                    <div className="space-y-1">
-                      {haaMaleathletes.map((athlete, idx) => {
-                        const officialPlace = athlete.haaIndividualPlace
-                        return (
-                          <div
-                            key={athlete.athleteId}
-                            className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <span className="text-lg">{officialPlace ? `${officialPlace}` : (getMedal(idx) || `${idx + 1}`)}</span>
-                              <div className="min-w-0 flex-1">
-                                <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
-                                <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
-                              </div>
-                            </div>
-                            <div className="text-right ml-2">
-                              <div className="text-base font-bold text-gray-900">{athlete.totalScore}</div>
-                              <div className="text-xs text-gray-600">{athlete.disciplineCount} disc</div>
-                            </div>
-                          </div>
-                        )
-                      })}
+                  <div className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'max-w-none' : ''}`}>
+                    <div className="bg-white p-2 border-b border-gray-200">
+                      <h3 className="text-sm font-bold text-gray-900">Male</h3>
+                      <p className="text-gray-600 text-xs">
+                        {haaMaleathletes.length} athlete{haaMaleathletes.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
+                            <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {haaMaleathletes.map((athlete, idx) => {
+                            const officialPlace = athlete.haaIndividualPlace
+                            return (
+                              <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                                <td className="px-2 py-1 text-gray-600">
+                                  {officialPlace ? `${officialPlace}` : (idx < 3 ? getMedal(idx) : `${idx + 1}`)}
+                                </td>
+                                <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                  <div className="flex flex-col">
+                                    <div className="font-bold truncate">{athlete.athleteName}</div>
+                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                                  </div>
+                                </td>
+                                <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                  {athlete.totalScore}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
 
                 {/* HAA Female */}
                 {haaFemaleathletes.length > 0 && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
-                    <h3 className="text-sm font-bold text-gray-900 mb-2">Female</h3>
-                    <div className="space-y-1">
-                      {haaFemaleathletes.map((athlete, idx) => {
-                        const officialPlace = athlete.haaIndividualPlace
-                        return (
-                          <div
-                            key={athlete.athleteId}
-                            className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <span className="text-lg">{officialPlace ? `${officialPlace}` : (getMedal(idx) || `${idx + 1}`)}</span>
-                              <div className="min-w-0 flex-1">
-                                <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
-                                <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
-                              </div>
-                            </div>
-                            <div className="text-right ml-2">
-                              <div className="text-base font-bold text-gray-900">{athlete.totalScore}</div>
-                              <div className="text-xs text-gray-600">{athlete.disciplineCount} disc</div>
-                            </div>
-                          </div>
-                        )
-                      })}
+                  <div className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'max-w-none' : ''}`}>
+                    <div className="bg-white p-2 border-b border-gray-200">
+                      <h3 className="text-sm font-bold text-gray-900">Female</h3>
+                      <p className="text-gray-600 text-xs">
+                        {haaFemaleathletes.length} athlete{haaFemaleathletes.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
+                            <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {haaFemaleathletes.map((athlete, idx) => {
+                            const officialPlace = athlete.haaIndividualPlace
+                            return (
+                              <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                                <td className="px-2 py-1 text-gray-600">
+                                  {officialPlace ? `${officialPlace}` : (idx < 3 ? getMedal(idx) : `${idx + 1}`)}
+                                </td>
+                                <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                  <div className="flex flex-col">
+                                    <div className="font-bold truncate">{athlete.athleteName}</div>
+                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                                  </div>
+                                </td>
+                                <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                  {athlete.totalScore}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
@@ -668,55 +747,85 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                       <p className="text-gray-600 text-xs">High Over All for this discipline</p>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <div className={`grid gap-2 ${singleColumnMode ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
                       {/* HOA Male */}
                       {hoaResults.male.length > 0 && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
-                          <h3 className="text-sm font-bold text-gray-900 mb-2">Male</h3>
-                          <div className="space-y-1">
-                            {hoaResults.male.map((athlete, idx) => (
-                              <div
-                                key={athlete.athleteId}
-                                className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
-                              >
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                  <span className="text-lg">{getMedal(idx) || `${idx + 1}`}</span>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
-                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
-                                  </div>
-                                </div>
-                                <div className="text-right ml-2">
-                                  <div className="text-base font-bold text-gray-900">{athlete.disciplineScores[disciplineId]}</div>
-                                </div>
-                              </div>
-                            ))}
+                        <div className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'max-w-none' : ''}`}>
+                          <div className="bg-white p-2 border-b border-gray-200">
+                            <h3 className="text-sm font-bold text-gray-900">Male</h3>
+                            <p className="text-gray-600 text-xs">
+                              {hoaResults.male.length} athlete{hoaResults.male.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-xs">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
+                                  <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200">
+                                {hoaResults.male.map((athlete, idx) => (
+                                  <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                                    <td className="px-2 py-1 text-gray-600">
+                                      {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                    </td>
+                                    <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                      <div className="flex flex-col">
+                                        <div className="font-bold truncate">{athlete.athleteName}</div>
+                                        <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                                      </div>
+                                    </td>
+                                    <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                      {athlete.disciplineScores[disciplineId]}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
                       )}
 
                       {/* HOA Female */}
                       {hoaResults.female.length > 0 && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
-                          <h3 className="text-sm font-bold text-gray-900 mb-2">Female</h3>
-                          <div className="space-y-1">
-                            {hoaResults.female.map((athlete, idx) => (
-                              <div
-                                key={athlete.athleteId}
-                                className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
-                              >
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                  <span className="text-lg">{getMedal(idx) || `${idx + 1}`}</span>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
-                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
-                                  </div>
-                                </div>
-                                <div className="text-right ml-2">
-                                  <div className="text-base font-bold text-gray-900">{athlete.disciplineScores[disciplineId]}</div>
-                                </div>
-                              </div>
-                            ))}
+                        <div className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'max-w-none' : ''}`}>
+                          <div className="bg-white p-2 border-b border-gray-200">
+                            <h3 className="text-sm font-bold text-gray-900">Female</h3>
+                            <p className="text-gray-600 text-xs">
+                              {hoaResults.female.length} athlete{hoaResults.female.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-xs">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
+                                  <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200">
+                                {hoaResults.female.map((athlete, idx) => (
+                                  <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                                    <td className="px-2 py-1 text-gray-600">
+                                      {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                    </td>
+                                    <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                      <div className="flex flex-col">
+                                        <div className="font-bold truncate">{athlete.athleteName}</div>
+                                        <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                                      </div>
+                                    </td>
+                                    <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                      {athlete.disciplineScores[disciplineId]}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
                       )}
