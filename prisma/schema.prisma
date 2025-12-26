@@ -294,18 +294,26 @@ model TimeSlotPreference {
 }
 
 model Shoot {
-  id           String     @id @default(cuid())
-  tournamentId String
-  athleteId    String
-  disciplineId String
-  date         DateTime   @default(now())
-  notes        String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  scores       Score[]
-  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
-  athlete      Athlete    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  id                  String     @id @default(cuid())
+  tournamentId        String
+  athleteId           String
+  disciplineId        String
+  date                DateTime   @default(now())
+  notes               String?
+  concurrentPlace     Int?
+  classPlace          Int?
+  teamPlace           Int?
+  individualRank      Int?
+  teamRank            Int?
+  teamScore           Int?
+  haaIndividualPlace  Int?
+  haaConcurrent       String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  scores              Score[]
+  discipline          Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  athlete             Athlete    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  tournament          Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, athleteId, disciplineId])
 }

@@ -60,6 +60,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             disciplineId: true,
             updatedAt: true,
             createdAt: true,
+            concurrentPlace: true,
+            classPlace: true,
+            teamPlace: true,
+            individualRank: true,
+            teamRank: true,
+            teamScore: true,
+            haaIndividualPlace: true,
+            haaConcurrent: true,
             athlete: {
               select: {
                 id: true,

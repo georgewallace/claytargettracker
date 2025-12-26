@@ -42,9 +42,19 @@ interface athletescore {
   ataClass: string | null
   nssaClass: string | null
   disciplineScores: Record<string, number>
+  disciplinePlacements: Record<string, {
+    concurrentPlace?: number
+    classPlace?: number
+    teamPlace?: number
+    individualRank?: number
+    teamRank?: number
+    teamScore?: number
+  }>
   totalScore: number
   disciplineCount: number
-  lastUpdated: Date | null // Track when scores were last updated
+  lastUpdated: Date | null
+  haaIndividualPlace?: number
+  haaConcurrent?: string
 }
 
 interface SquadScore {
@@ -150,16 +160,38 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           ataClass: shoot.athlete.ataClass || null,
           nssaClass: shoot.athlete.nssaClass || null,
           disciplineScores: {},
+          disciplinePlacements: {},
           totalScore: 0,
           disciplineCount: 0,
-          lastUpdated: null
+          lastUpdated: null,
+          haaIndividualPlace: shoot.haaIndividualPlace || undefined,
+          haaConcurrent: shoot.haaConcurrent || undefined
         }
       }
 
       const disciplineTotal = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
       athletescores[key].disciplineScores[shoot.disciplineId] = disciplineTotal
+
+      // Store placement data for this discipline
+      athletescores[key].disciplinePlacements[shoot.disciplineId] = {
+        concurrentPlace: shoot.concurrentPlace || undefined,
+        classPlace: shoot.classPlace || undefined,
+        teamPlace: shoot.teamPlace || undefined,
+        individualRank: shoot.individualRank || undefined,
+        teamRank: shoot.teamRank || undefined,
+        teamScore: shoot.teamScore || undefined
+      }
+
       athletescores[key].totalScore += disciplineTotal
       athletescores[key].disciplineCount++
+
+      // Use HAA data from any shoot (they should all be the same)
+      if (shoot.haaIndividualPlace) {
+        athletescores[key].haaIndividualPlace = shoot.haaIndividualPlace
+      }
+      if (shoot.haaConcurrent) {
+        athletescores[key].haaConcurrent = shoot.haaConcurrent
+      }
 
       // Track the most recent update
       const shootUpdated = new Date(shoot.updatedAt)
@@ -355,9 +387,22 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
   }
 
   // Get unique divisions (filter out null/undefined)
+  // Sort from highest to youngest: college, varsity, junior varsity, intermediate, novice
+  const divisionOrder = ['college', 'varsity', 'junior varsity', 'intermediate', 'novice']
   const divisions = Array.from(
     new Set(allathletes.map(s => s.division).filter((d): d is string => Boolean(d)))
-  ).sort()
+  ).sort((a, b) => {
+    const aIndex = divisionOrder.indexOf(a.toLowerCase())
+    const bIndex = divisionOrder.indexOf(b.toLowerCase())
+    // If both divisions are in the order list, sort by their position
+    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex
+    // If only a is in the list, it comes first
+    if (aIndex !== -1) return -1
+    // If only b is in the list, it comes first
+    if (bIndex !== -1) return 1
+    // Otherwise, sort alphabetically
+    return a.localeCompare(b)
+  })
   
   // Group athletes by discipline AND division
   const athletesByDisciplineAndDivision: Record<string, Record<string, athletescore[]>> = {}
@@ -523,24 +568,27 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                     </h3>
                     {(tournament.hoaSeparateGender ? haaMaleathletes : haaathletes).length > 0 ? (
                       <div className="space-y-1">
-                        {(tournament.hoaSeparateGender ? haaMaleathletes : haaathletes).map((athlete, idx) => (
-                          <div
-                            key={athlete.athleteId}
-                            className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <span className="text-lg">{getMedal(idx) || `${idx + 1}`}</span>
-                              <div className="min-w-0 flex-1">
-                                <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
-                                <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                        {(tournament.hoaSeparateGender ? haaMaleathletes : haaathletes).map((athlete, idx) => {
+                          const officialPlace = athlete.haaIndividualPlace
+                          return (
+                            <div
+                              key={athlete.athleteId}
+                              className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <span className="text-lg">{officialPlace ? `${officialPlace}` : (getMedal(idx) || `${idx + 1}`)}</span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
+                                  <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                                </div>
+                              </div>
+                              <div className="text-right ml-2">
+                                <div className="text-base font-bold text-gray-900">{athlete.totalScore}</div>
+                                <div className="text-xs text-gray-600">{athlete.disciplineCount} disc</div>
                               </div>
                             </div>
-                            <div className="text-right ml-2">
-                              <div className="text-base font-bold text-gray-900">{athlete.totalScore}</div>
-                              <div className="text-xs text-gray-600">{athlete.disciplineCount} disc</div>
-                            </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     ) : (
                       <div className="text-center py-4 text-gray-500 text-xs">No scores yet</div>
@@ -553,24 +601,27 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
                     <h3 className="text-sm font-bold text-gray-900 mb-2">Female</h3>
                     <div className="space-y-1">
-                      {haaFemaleathletes.map((athlete, idx) => (
-                        <div
-                          key={athlete.athleteId}
-                          className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
-                        >
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <span className="text-lg">{getMedal(idx) || `${idx + 1}`}</span>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
-                              <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                      {haaFemaleathletes.map((athlete, idx) => {
+                        const officialPlace = athlete.haaIndividualPlace
+                        return (
+                          <div
+                            key={athlete.athleteId}
+                            className={`flex items-center justify-between p-2 rounded ${idx < 3 ? 'bg-yellow-50' : 'bg-white'}`}
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className="text-lg">{officialPlace ? `${officialPlace}` : (getMedal(idx) || `${idx + 1}`)}</span>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-bold text-gray-900 truncate">{athlete.athleteName}</div>
+                                <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                              </div>
+                            </div>
+                            <div className="text-right ml-2">
+                              <div className="text-base font-bold text-gray-900">{athlete.totalScore}</div>
+                              <div className="text-xs text-gray-600">{athlete.disciplineCount} disc</div>
                             </div>
                           </div>
-                          <div className="text-right ml-2">
-                            <div className="text-base font-bold text-gray-900">{athlete.totalScore}</div>
-                            <div className="text-xs text-gray-600">{athlete.disciplineCount} disc</div>
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -712,6 +763,8 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                           <tbody className="divide-y divide-gray-200">
                             {athletes.map((athlete, idx) => {
                               const isRecent = isRecentlyUpdated(athlete.lastUpdated)
+                              const placement = athlete.disciplinePlacements[disciplineId]
+                              const officialPlace = placement?.concurrentPlace
                               return (
                                 <tr
                                   key={athlete.athleteId}
@@ -723,7 +776,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                   title={athlete.teamName || 'Independent'}
                                 >
                                   <td className="px-2 py-1 text-gray-600">
-                                    {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                    {officialPlace ? `${officialPlace}` : (idx < 3 ? getMedal(idx) : `${idx + 1}`)}
                                   </td>
                                   <td className="px-2 py-1 font-medium text-gray-900 text-xs truncate max-w-[120px]" title={athlete.athleteName}>
                                     {athlete.athleteName}
@@ -902,6 +955,8 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                               {classathletes.map((athlete, idx) => {
                                 const isRecent = isRecentlyUpdated(athlete.lastUpdated)
                                 const score = athlete.disciplineScores[disciplineId] || 0
+                                const placement = athlete.disciplinePlacements[disciplineId]
+                                const officialPlace = placement?.classPlace
                                 return (
                                   <tr
                                     key={athlete.athleteId}
@@ -913,7 +968,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                     title={athlete.teamName || 'Independent'}
                                   >
                                     <td className="px-2 py-1 text-gray-600">
-                                      {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                      {officialPlace ? `${officialPlace}` : (idx < 3 ? getMedal(idx) : `${idx + 1}`)}
                                     </td>
                                     <td className="px-2 py-1 font-medium text-gray-900 text-xs truncate max-w-[120px]" title={athlete.athleteName}>
                                       {athlete.athleteName}

@@ -34,18 +34,18 @@ export async function POST(
     const arrayBuffer = await file.arrayBuffer()
     const workbook = XLSX.read(arrayBuffer)
 
-    // Try new format first (Shooter History), then fall back to old format (Tournament List)
+    // Only accept "Shooter History" or "Shooter Scores" sheets
     let sheet = workbook.Sheets['Shooter History']
-    let useNewFormat = true
+    let sheetName = 'Shooter History'
 
     if (!sheet) {
-      sheet = workbook.Sheets['Tournament List']
-      useNewFormat = false
+      sheet = workbook.Sheets['Shooter Scores']
+      sheetName = 'Shooter Scores'
     }
 
     if (!sheet) {
       return NextResponse.json(
-        { error: 'Neither "Shooter History" nor "Tournament List" sheet found in Excel file' },
+        { error: 'Import failed: Excel file must contain a sheet named "Shooter History" or "Shooter Scores"' },
         { status: 400 }
       )
     }
@@ -53,10 +53,8 @@ export async function POST(
     // Parse to JSON
     const data = XLSX.utils.sheet_to_json(sheet)
 
-    // Process scores based on format
-    const results = useNewFormat
-      ? await processShooterHistoryImport(tournamentId, data)
-      : await processScoreImport(tournamentId, data)
+    // Process scores using the Shooter History import format (both sheets use same format)
+    const results = await processShooterHistoryImport(tournamentId, data)
 
     return NextResponse.json(results)
 
@@ -70,179 +68,6 @@ export async function POST(
       { status: 500 }
     )
   }
-}
-
-async function processScoreImport(tournamentId: string, data: any[]) {
-  const results = {
-    success: 0,
-    errors: [] as string[],
-    updated: [] as string[],
-    skipped: 0
-  }
-
-  // Get tournament and its disciplines
-  const tournament = await prisma.tournament.findUnique({
-    where: { id: tournamentId },
-    include: {
-      disciplines: {
-        include: { discipline: true }
-      }
-    }
-  })
-
-  if (!tournament) {
-    throw new Error('Tournament not found')
-  }
-
-  // Get discipline ID mappings
-  const skeetDiscipline = tournament.disciplines.find(d =>
-    d.discipline.name === 'skeet'
-  )
-  const trapDiscipline = tournament.disciplines.find(d =>
-    d.discipline.name === 'trap'
-  )
-  const sportingDiscipline = tournament.disciplines.find(d =>
-    d.discipline.name === 'sporting_clays'
-  )
-
-  // Process each row (athlete)
-  for (const row of data) {
-    try {
-      const shooterId = row['Shooter ID']?.toString().trim()
-      const fullName = row['Full Name']?.toString().trim()
-      const firstName = row['First Name']?.toString().trim()
-      const lastName = row['Last Name']?.toString().trim()
-
-      // Construct name from available fields
-      const shooterName = fullName || (firstName && lastName ? `${firstName} ${lastName}` : null)
-
-      // Skip rows with no ID/name or placeholder names like "x x", "x", etc.
-      if (!shooterId && !shooterName) {
-        results.skipped++
-        continue
-      }
-
-      // Skip placeholder/invalid names
-      if (shooterName && (shooterName.toLowerCase() === 'x' || shooterName.toLowerCase() === 'x x' || shooterName.trim().length < 2)) {
-        results.skipped++
-        continue
-      }
-
-      // Find athlete by shooterId first, then fall back to name
-      let athlete = null
-
-      if (shooterId) {
-        athlete = await prisma.athlete.findFirst({
-          where: { shooterId },
-          include: { user: true }
-        })
-      }
-
-      // If not found by shooterId, try matching by name
-      if (!athlete && shooterName) {
-        athlete = await prisma.athlete.findFirst({
-          where: {
-            user: {
-              name: shooterName
-            }
-          },
-          include: { user: true }
-        })
-      }
-
-      if (!athlete) {
-        results.errors.push(`Athlete not found: ${shooterName || shooterId}`)
-        continue
-      }
-
-      // Import Skeet scores
-      if (skeetDiscipline && row['Skeet Event'] === 'Y') {
-        try {
-          const roundScores = [
-            row['Round 1'],
-            row['Round 2'],
-            row['Round 3'],
-            row['Round 4']
-          ].map(s => {
-            const score = parseInt(s)
-            return isNaN(score) ? null : score
-          }).filter((s): s is number => s !== null)
-
-          if (roundScores.length > 0) {
-            await importDisciplineScores({
-              athleteId: athlete.id,
-              tournamentId,
-              disciplineId: skeetDiscipline.disciplineId,
-              roundScores
-            })
-            results.updated.push(`${shooterId} - Skeet (${roundScores.length} rounds)`)
-          }
-        } catch (err) {
-          results.errors.push(`${shooterId} - Skeet import failed: ${err}`)
-        }
-      }
-
-      // Import Trap scores
-      if (trapDiscipline && row['Trap Event'] === 'Y') {
-        try {
-          const roundScores = [
-            row['Trap Round 1'],
-            row['Trap Round 2'],
-            row['Trap Round 3'],
-            row['Trap Round 4']
-          ].map(s => {
-            const score = parseInt(s)
-            return isNaN(score) ? null : score
-          }).filter((s): s is number => s !== null)
-
-          if (roundScores.length > 0) {
-            await importDisciplineScores({
-              athleteId: athlete.id,
-              tournamentId,
-              disciplineId: trapDiscipline.disciplineId,
-              roundScores
-            })
-            results.updated.push(`${shooterId} - Trap (${roundScores.length} rounds)`)
-          }
-        } catch (err) {
-          results.errors.push(`${shooterId} - Trap import failed: ${err}`)
-        }
-      }
-
-      // Import Sporting Clays scores
-      if (sportingDiscipline && row['Sporting Event'] === 'Y') {
-        try {
-          const stationScores = []
-          for (let i = 1; i <= 20; i++) {
-            const score = parseInt(row[`Station ${i}`])
-            if (!isNaN(score)) {
-              stationScores.push(score)
-            }
-          }
-
-          if (stationScores.length > 0) {
-            await importDisciplineScores({
-              athleteId: athlete.id,
-              tournamentId,
-              disciplineId: sportingDiscipline.disciplineId,
-              stationScores
-            })
-            results.updated.push(`${shooterId} - Sporting (${stationScores.length} stations)`)
-          }
-        } catch (err) {
-          results.errors.push(`${shooterId} - Sporting import failed: ${err}`)
-        }
-      }
-
-      results.success++
-
-    } catch (error) {
-      const shooterId = row['Shooter ID'] || 'Unknown'
-      results.errors.push(`Error processing ${shooterId}: ${error}`)
-    }
-  }
-
-  return results
 }
 
 async function processShooterHistoryImport(tournamentId: string, data: any[]) {
@@ -278,6 +103,45 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
     d.discipline.name === 'sporting_clays'
   )
 
+  // BATCH OPTIMIZATION: Collect all shooter IDs and names upfront
+  const shooterIds = new Set<string>()
+  const shooterNames = new Set<string>()
+
+  for (const row of data) {
+    const shooterId = row['Shooter ID']?.toString().trim()
+    const fullName = row['Full Name']?.toString().trim()
+    const firstName = row['First Name']?.toString().trim()
+    const lastName = row['Last Name']?.toString().trim()
+    const shooterName = fullName || (firstName && lastName ? `${firstName} ${lastName}` : null)
+
+    if (shooterId) shooterIds.add(shooterId)
+    if (shooterName && shooterName.toLowerCase() !== 'x' && shooterName.toLowerCase() !== 'x x' && shooterName.trim().length >= 2) {
+      shooterNames.add(shooterName)
+    }
+  }
+
+  // BATCH OPTIMIZATION: Fetch all athletes in one query
+  const athletes = await prisma.athlete.findMany({
+    where: {
+      OR: [
+        { shooterId: { in: Array.from(shooterIds) } },
+        { user: { name: { in: Array.from(shooterNames) } } }
+      ]
+    },
+    include: { user: true }
+  })
+
+  // Create lookup maps
+  const athleteByShooterId = new Map(
+    athletes.filter(a => a.shooterId).map(a => [a.shooterId!, a])
+  )
+  const athleteByName = new Map(
+    athletes.map(a => [a.user.name, a])
+  )
+
+  // BATCH OPTIMIZATION: Collect all class updates to apply in bulk
+  const classUpdatesMap = new Map<string, any>()
+
   // Process each row (athlete)
   for (const row of data) {
     try {
@@ -301,32 +165,38 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         continue
       }
 
-      // Find athlete by shooterId first, then fall back to name
+      // Find athlete using pre-loaded map
       let athlete = null
-
       if (shooterId) {
-        athlete = await prisma.athlete.findFirst({
-          where: { shooterId },
-          include: { user: true }
-        })
+        athlete = athleteByShooterId.get(shooterId)
       }
-
-      // If not found by shooterId, try matching by name
       if (!athlete && shooterName) {
-        athlete = await prisma.athlete.findFirst({
-          where: {
-            user: {
-              name: shooterName
-            }
-          },
-          include: { user: true }
-        })
+        athlete = athleteByName.get(shooterName)
       }
 
       if (!athlete) {
         results.errors.push(`Athlete not found: ${shooterName || shooterId}`)
         continue
       }
+
+      // Collect athlete class data if present in the spreadsheet
+      const skeetClass = row['Skeet Class']?.toString().trim()
+      const trapClass = row['Trap Class']?.toString().trim()
+      const sportingClass = row['Sporting Class']?.toString().trim()
+
+      const classUpdates: any = {}
+      if (skeetClass) classUpdates.nssaClass = skeetClass
+      if (trapClass) classUpdates.ataClass = trapClass
+      if (sportingClass) classUpdates.nscaClass = sportingClass
+
+      // Collect class updates for batch processing
+      if (Object.keys(classUpdates).length > 0) {
+        classUpdatesMap.set(athlete.id, classUpdates)
+      }
+
+      // Extract HAA placement data (applies to all disciplines)
+      const haaIndividualPlace = row['HAA Individual Place'] ? parseInt(row['HAA Individual Place']) : undefined
+      const haaConcurrent = row['HAA Concurrent']?.toString().trim() || undefined
 
       let imported = false
 
@@ -336,12 +206,28 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         try {
           const score = parseInt(skeetScore.toString().trim())
           if (!isNaN(score) && score > 0) {
+            // Extract placement data
+            const concurrentPlace = row['Skeet Concurrent Place'] ? parseInt(row['Skeet Concurrent Place']) : undefined
+            const classPlace = row['Skeet Class Place'] ? parseInt(row['Skeet Class Place']) : undefined
+            const teamPlace = row['Skeet Team Place'] ? parseInt(row['Skeet Team Place']) : undefined
+            const individualRank = row['Skeet Individual Rank'] ? parseInt(row['Skeet Individual Rank']) : undefined
+            const teamRank = row['Skeet Team Rank'] ? parseInt(row['Skeet Team Rank']) : undefined
+            const teamScore = row['Skeet Team Score'] ? parseInt(row['Skeet Team Score']) : undefined
+
             await importSingleScore({
               athleteId: athlete.id,
               tournamentId,
               disciplineId: skeetDiscipline.disciplineId,
               totalScore: score,
-              maxScore: 100
+              maxScore: 100,
+              concurrentPlace,
+              classPlace,
+              teamPlace,
+              individualRank,
+              teamRank,
+              teamScore,
+              haaIndividualPlace,
+              haaConcurrent
             })
             results.updated.push(`${shooterId} - Skeet (${score})`)
             imported = true
@@ -357,12 +243,28 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         try {
           const score = parseInt(trapScore.toString().trim())
           if (!isNaN(score) && score > 0) {
+            // Extract placement data
+            const concurrentPlace = row['Trap Concurrent Place'] ? parseInt(row['Trap Concurrent Place']) : undefined
+            const classPlace = row['Trap Class Place'] ? parseInt(row['Trap Class Place']) : undefined
+            const teamPlace = row['Trap Team Place'] ? parseInt(row['Trap Team Place']) : undefined
+            const individualRank = row['Trap Individual Rank'] ? parseInt(row['Trap Individual Rank']) : undefined
+            const teamRank = row['Trap Team Rank'] ? parseInt(row['Trap Team Rank']) : undefined
+            const teamScore = row['Trap Team Score'] ? parseInt(row['Trap Team Score']) : undefined
+
             await importSingleScore({
               athleteId: athlete.id,
               tournamentId,
               disciplineId: trapDiscipline.disciplineId,
               totalScore: score,
-              maxScore: 100
+              maxScore: 100,
+              concurrentPlace,
+              classPlace,
+              teamPlace,
+              individualRank,
+              teamRank,
+              teamScore,
+              haaIndividualPlace,
+              haaConcurrent
             })
             results.updated.push(`${shooterId} - Trap (${score})`)
             imported = true
@@ -378,12 +280,28 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         try {
           const score = parseInt(sportingScore.toString().trim())
           if (!isNaN(score) && score > 0) {
+            // Extract placement data
+            const concurrentPlace = row['Sporting Concurrent Place'] ? parseInt(row['Sporting Concurrent Place']) : undefined
+            const classPlace = row['Sporting Class Place'] ? parseInt(row['Sporting Class Place']) : undefined
+            const teamPlace = row['Sporting Team Place'] ? parseInt(row['Sporting Team Place']) : undefined
+            const individualRank = row['Sporting Individual Rank'] ? parseInt(row['Sporting Individual Rank']) : undefined
+            const teamRank = row['Sporting Team Rank'] ? parseInt(row['Sporting Team Rank']) : undefined
+            const teamScore = row['Sporting Team Score'] ? parseInt(row['Sporting Team Score']) : undefined
+
             await importSingleScore({
               athleteId: athlete.id,
               tournamentId,
               disciplineId: sportingDiscipline.disciplineId,
               totalScore: score,
-              maxScore: 100
+              maxScore: 100,
+              concurrentPlace,
+              classPlace,
+              teamPlace,
+              individualRank,
+              teamRank,
+              teamScore,
+              haaIndividualPlace,
+              haaConcurrent
             })
             results.updated.push(`${shooterId} - Sporting (${score})`)
             imported = true
@@ -405,6 +323,18 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
     }
   }
 
+  // BATCH OPTIMIZATION: Apply all class updates in a transaction
+  if (classUpdatesMap.size > 0) {
+    await prisma.$transaction(
+      Array.from(classUpdatesMap.entries()).map(([athleteId, updates]) =>
+        prisma.athlete.update({
+          where: { id: athleteId },
+          data: updates
+        })
+      )
+    )
+  }
+
   return results
 }
 
@@ -413,15 +343,31 @@ async function importSingleScore({
   tournamentId,
   disciplineId,
   totalScore,
-  maxScore
+  maxScore,
+  concurrentPlace,
+  classPlace,
+  teamPlace,
+  individualRank,
+  teamRank,
+  teamScore,
+  haaIndividualPlace,
+  haaConcurrent
 }: {
   athleteId: string
   tournamentId: string
   disciplineId: string
   totalScore: number
   maxScore: number
+  concurrentPlace?: number
+  classPlace?: number
+  teamPlace?: number
+  individualRank?: number
+  teamRank?: number
+  teamScore?: number
+  haaIndividualPlace?: number
+  haaConcurrent?: string
 }) {
-  // Find or create Shoot record
+  // Find or create Shoot record with placement data
   let shoot = await prisma.shoot.findUnique({
     where: {
       tournamentId_athleteId_disciplineId: {
@@ -437,7 +383,30 @@ async function importSingleScore({
       data: {
         athleteId,
         tournamentId,
-        disciplineId
+        disciplineId,
+        concurrentPlace,
+        classPlace,
+        teamPlace,
+        individualRank,
+        teamRank,
+        teamScore,
+        haaIndividualPlace,
+        haaConcurrent
+      }
+    })
+  } else {
+    // Update existing shoot with placement data
+    shoot = await prisma.shoot.update({
+      where: { id: shoot.id },
+      data: {
+        concurrentPlace,
+        classPlace,
+        teamPlace,
+        individualRank,
+        teamRank,
+        teamScore,
+        haaIndividualPlace,
+        haaConcurrent
       }
     })
   }
@@ -464,19 +433,35 @@ async function importDisciplineScores({
   tournamentId,
   disciplineId,
   roundScores,
-  stationScores
+  stationScores,
+  concurrentPlace,
+  classPlace,
+  teamPlace,
+  individualRank,
+  teamRank,
+  teamScore,
+  haaIndividualPlace,
+  haaConcurrent
 }: {
   athleteId: string
   tournamentId: string
   disciplineId: string
   roundScores?: number[]
   stationScores?: number[]
+  concurrentPlace?: number
+  classPlace?: number
+  teamPlace?: number
+  individualRank?: number
+  teamRank?: number
+  teamScore?: number
+  haaIndividualPlace?: number
+  haaConcurrent?: string
 }) {
   // Calculate total
   const totalTargets = [...(roundScores || []), ...(stationScores || [])]
     .reduce((sum, score) => sum + score, 0)
 
-  // Find or create Shoot record
+  // Find or create Shoot record with placement data
   let shoot = await prisma.shoot.findUnique({
     where: {
       tournamentId_athleteId_disciplineId: {
@@ -492,7 +477,30 @@ async function importDisciplineScores({
       data: {
         athleteId,
         tournamentId,
-        disciplineId
+        disciplineId,
+        concurrentPlace,
+        classPlace,
+        teamPlace,
+        individualRank,
+        teamRank,
+        teamScore,
+        haaIndividualPlace,
+        haaConcurrent
+      }
+    })
+  } else {
+    // Update existing shoot with placement data
+    shoot = await prisma.shoot.update({
+      where: { id: shoot.id },
+      data: {
+        concurrentPlace,
+        classPlace,
+        teamPlace,
+        individualRank,
+        teamRank,
+        teamScore,
+        haaIndividualPlace,
+        haaConcurrent
       }
     })
   }
