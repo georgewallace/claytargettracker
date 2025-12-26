@@ -3,6 +3,68 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import * as XLSX from 'xlsx'
 
+// Helper function to parse placement text like "Varsity Men's Skeet Runner Up" or "HOA Lady's Skeet Champion"
+function parsePlacementText(text: string, athleteGender: string | null, athleteDivision: string | null): {
+  concurrentPlace?: number
+  hoaPlace?: number
+} {
+  if (!text) return {}
+
+  const lowerText = text.toLowerCase().trim()
+  const result: { concurrentPlace?: number; hoaPlace?: number } = {}
+
+  // Determine if this is HOA or division-specific
+  const isHOA = lowerText.startsWith('hoa ')
+
+  // Check gender matching
+  const isMale = lowerText.includes("men's") || lowerText.includes("mens") || lowerText.includes("male")
+  const isFemale = lowerText.includes("lady's") || lowerText.includes("ladies") || lowerText.includes("female") || lowerText.includes("women")
+  const genderMatches = !isMale && !isFemale ||
+                       (isMale && athleteGender === 'M') ||
+                       (isFemale && athleteGender === 'F')
+
+  if (!genderMatches) return {}
+
+  // Check division matching (if it's not HOA)
+  if (!isHOA && athleteDivision) {
+    const divisionLower = athleteDivision.toLowerCase()
+    // Common division name variations
+    const divisionVariations = [
+      divisionLower,
+      divisionLower.replace(' ', ''),
+      divisionLower.replace('junior varsity', 'jr varsity'),
+      divisionLower.replace('jr varsity', 'junior varsity')
+    ]
+
+    const divisionMatches = divisionVariations.some(div => lowerText.includes(div))
+    if (!divisionMatches) return {}
+  }
+
+  // Extract placement number
+  let place: number | undefined
+  if (lowerText.includes('champion') && !lowerText.includes('runner')) {
+    place = 1
+  } else if (lowerText.includes('runner up') || lowerText.includes('runner-up')) {
+    place = 2
+  } else if (lowerText.includes('3rd') || lowerText.includes('third')) {
+    place = 3
+  } else if (lowerText.includes('4th') || lowerText.includes('fourth')) {
+    place = 4
+  } else if (lowerText.includes('5th') || lowerText.includes('fifth')) {
+    place = 5
+  }
+
+  if (place) {
+    if (isHOA) {
+      result.hoaPlace = place
+    } else {
+      result.concurrentPlace = place
+    }
+  }
+
+  return result
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -261,17 +323,30 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
           if (!isNaN(score) && score > 0) {
             // Extract placement data - check for gender-specific columns
             const gender = athlete.gender
-            const concurrentPlace = (gender === 'M'
+            const athleteDivision = athlete.division
+
+            // Get the raw placement column value (could be text or number)
+            const concurrentPlaceRaw = (gender === 'M'
               ? (row['Skeet Male Concurrent Place'] || row['Skeet Men Concurrent Place'] || row['Skeet Concurrent Place'])
               : gender === 'F'
               ? (row['Skeet Female Concurrent Place'] || row['Skeet Ladies Concurrent Place'] || row['Skeet Women Concurrent Place'] || row['Skeet Concurrent Place'])
               : row['Skeet Concurrent Place']
-            ) ? parseInt((gender === 'M'
-              ? (row['Skeet Male Concurrent Place'] || row['Skeet Men Concurrent Place'] || row['Skeet Concurrent Place'])
-              : gender === 'F'
-              ? (row['Skeet Female Concurrent Place'] || row['Skeet Ladies Concurrent Place'] || row['Skeet Women Concurrent Place'] || row['Skeet Concurrent Place'])
-              : row['Skeet Concurrent Place']
-            )) : undefined
+            )
+
+            // Try parsing as text first
+            const placementText = concurrentPlaceRaw?.toString().trim()
+            const parsedPlacement = placementText ? parsePlacementText(placementText, gender, athleteDivision) : {}
+
+            // Use parsed values or fall back to numeric parsing
+            let concurrentPlace = parsedPlacement.concurrentPlace
+            let hoaPlace = parsedPlacement.hoaPlace
+
+            if (!concurrentPlace && concurrentPlaceRaw) {
+              const numericValue = parseInt(concurrentPlaceRaw.toString())
+              if (!isNaN(numericValue)) {
+                concurrentPlace = numericValue
+              }
+            }
 
             const classPlace = (gender === 'M'
               ? (row['Skeet Male Class Place'] || row['Skeet Men Class Place'] || row['Skeet Class Place'])
@@ -299,6 +374,7 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
               concurrentPlace,
               classPlace,
               teamPlace,
+              hoaPlace,
               individualRank,
               teamRank,
               teamScore,
@@ -321,17 +397,30 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
           if (!isNaN(score) && score > 0) {
             // Extract placement data - check for gender-specific columns
             const gender = athlete.gender
-            const concurrentPlace = (gender === 'M'
+            const athleteDivision = athlete.division
+
+            // Get the raw placement column value (could be text or number)
+            const concurrentPlaceRaw = (gender === 'M'
               ? (row['Trap Male Concurrent Place'] || row['Trap Men Concurrent Place'] || row['Trap Concurrent Place'])
               : gender === 'F'
               ? (row['Trap Female Concurrent Place'] || row['Trap Ladies Concurrent Place'] || row['Trap Women Concurrent Place'] || row['Trap Concurrent Place'])
               : row['Trap Concurrent Place']
-            ) ? parseInt((gender === 'M'
-              ? (row['Trap Male Concurrent Place'] || row['Trap Men Concurrent Place'] || row['Trap Concurrent Place'])
-              : gender === 'F'
-              ? (row['Trap Female Concurrent Place'] || row['Trap Ladies Concurrent Place'] || row['Trap Women Concurrent Place'] || row['Trap Concurrent Place'])
-              : row['Trap Concurrent Place']
-            )) : undefined
+            )
+
+            // Try parsing as text first
+            const placementText = concurrentPlaceRaw?.toString().trim()
+            const parsedPlacement = placementText ? parsePlacementText(placementText, gender, athleteDivision) : {}
+
+            // Use parsed values or fall back to numeric parsing
+            let concurrentPlace = parsedPlacement.concurrentPlace
+            let hoaPlace = parsedPlacement.hoaPlace
+
+            if (!concurrentPlace && concurrentPlaceRaw) {
+              const numericValue = parseInt(concurrentPlaceRaw.toString())
+              if (!isNaN(numericValue)) {
+                concurrentPlace = numericValue
+              }
+            }
 
             const classPlace = (gender === 'M'
               ? (row['Trap Male Class Place'] || row['Trap Men Class Place'] || row['Trap Class Place'])
@@ -359,6 +448,7 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
               concurrentPlace,
               classPlace,
               teamPlace,
+              hoaPlace,
               individualRank,
               teamRank,
               teamScore,
@@ -381,17 +471,30 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
           if (!isNaN(score) && score > 0) {
             // Extract placement data - check for gender-specific columns
             const gender = athlete.gender
-            const concurrentPlace = (gender === 'M'
+            const athleteDivision = athlete.division
+
+            // Get the raw placement column value (could be text or number)
+            const concurrentPlaceRaw = (gender === 'M'
               ? (row['Sporting Male Concurrent Place'] || row['Sporting Men Concurrent Place'] || row['Sporting Concurrent Place'])
               : gender === 'F'
               ? (row['Sporting Female Concurrent Place'] || row['Sporting Ladies Concurrent Place'] || row['Sporting Women Concurrent Place'] || row['Sporting Concurrent Place'])
               : row['Sporting Concurrent Place']
-            ) ? parseInt((gender === 'M'
-              ? (row['Sporting Male Concurrent Place'] || row['Sporting Men Concurrent Place'] || row['Sporting Concurrent Place'])
-              : gender === 'F'
-              ? (row['Sporting Female Concurrent Place'] || row['Sporting Ladies Concurrent Place'] || row['Sporting Women Concurrent Place'] || row['Sporting Concurrent Place'])
-              : row['Sporting Concurrent Place']
-            )) : undefined
+            )
+
+            // Try parsing as text first
+            const placementText = concurrentPlaceRaw?.toString().trim()
+            const parsedPlacement = placementText ? parsePlacementText(placementText, gender, athleteDivision) : {}
+
+            // Use parsed values or fall back to numeric parsing
+            let concurrentPlace = parsedPlacement.concurrentPlace
+            let hoaPlace = parsedPlacement.hoaPlace
+
+            if (!concurrentPlace && concurrentPlaceRaw) {
+              const numericValue = parseInt(concurrentPlaceRaw.toString())
+              if (!isNaN(numericValue)) {
+                concurrentPlace = numericValue
+              }
+            }
 
             const classPlace = (gender === 'M'
               ? (row['Sporting Male Class Place'] || row['Sporting Men Class Place'] || row['Sporting Class Place'])
@@ -419,6 +522,7 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
               concurrentPlace,
               classPlace,
               teamPlace,
+              hoaPlace,
               individualRank,
               teamRank,
               teamScore,
@@ -469,6 +573,7 @@ async function importSingleScore({
   concurrentPlace,
   classPlace,
   teamPlace,
+  hoaPlace,
   individualRank,
   teamRank,
   teamScore,
@@ -483,6 +588,7 @@ async function importSingleScore({
   concurrentPlace?: number
   classPlace?: number
   teamPlace?: number
+  hoaPlace?: number
   individualRank?: number
   teamRank?: number
   teamScore?: number
@@ -509,6 +615,7 @@ async function importSingleScore({
         concurrentPlace,
         classPlace,
         teamPlace,
+        hoaPlace,
         individualRank,
         teamRank,
         teamScore,
@@ -524,6 +631,7 @@ async function importSingleScore({
         concurrentPlace,
         classPlace,
         teamPlace,
+        hoaPlace,
         individualRank,
         teamRank,
         teamScore,
@@ -603,6 +711,7 @@ async function importDisciplineScores({
         concurrentPlace,
         classPlace,
         teamPlace,
+        hoaPlace,
         individualRank,
         teamRank,
         teamScore,
@@ -618,6 +727,7 @@ async function importDisciplineScores({
         concurrentPlace,
         classPlace,
         teamPlace,
+        hoaPlace,
         individualRank,
         teamRank,
         teamScore,

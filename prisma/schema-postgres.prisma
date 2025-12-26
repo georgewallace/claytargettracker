@@ -333,6 +333,7 @@ model Shoot {
   concurrentPlace     Int?
   classPlace          Int?
   teamPlace           Int?
+  hoaPlace            Int?
   individualRank      Int?
   teamRank            Int?
   teamScore           Int?
