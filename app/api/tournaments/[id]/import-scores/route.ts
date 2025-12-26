@@ -195,8 +195,34 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
       }
 
       // Extract HAA placement data (applies to all disciplines)
-      const haaIndividualPlace = row['HAA Individual Place'] ? parseInt(row['HAA Individual Place']) : undefined
-      const haaConcurrent = row['HAA Concurrent']?.toString().trim() || undefined
+      // Check for gender-specific columns first, then fall back to general columns
+      let haaIndividualPlace: number | undefined
+      let haaConcurrent: string | undefined
+
+      const athleteGender = athlete.gender
+
+      // Try gender-specific columns first
+      if (athleteGender === 'M') {
+        haaIndividualPlace = row['HAA Male Place'] ? parseInt(row['HAA Male Place']) :
+                            row['HAA Men Place'] ? parseInt(row['HAA Men Place']) : undefined
+        haaConcurrent = row['HAA Male Concurrent']?.toString().trim() ||
+                       row['HAA Men Concurrent']?.toString().trim() || undefined
+      } else if (athleteGender === 'F') {
+        haaIndividualPlace = row['HAA Female Place'] ? parseInt(row['HAA Female Place']) :
+                            row['HAA Ladies Place'] ? parseInt(row['HAA Ladies Place']) :
+                            row['HAA Women Place'] ? parseInt(row['HAA Women Place']) : undefined
+        haaConcurrent = row['HAA Female Concurrent']?.toString().trim() ||
+                       row['HAA Ladies Concurrent']?.toString().trim() ||
+                       row['HAA Women Concurrent']?.toString().trim() || undefined
+      }
+
+      // Fall back to general columns if gender-specific not found
+      if (!haaIndividualPlace) {
+        haaIndividualPlace = row['HAA Individual Place'] ? parseInt(row['HAA Individual Place']) : undefined
+      }
+      if (!haaConcurrent) {
+        haaConcurrent = row['HAA Concurrent']?.toString().trim() || undefined
+      }
 
       let imported = false
 
@@ -206,9 +232,32 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         try {
           const score = parseInt(skeetScore.toString().trim())
           if (!isNaN(score) && score > 0) {
-            // Extract placement data
-            const concurrentPlace = row['Skeet Concurrent Place'] ? parseInt(row['Skeet Concurrent Place']) : undefined
-            const classPlace = row['Skeet Class Place'] ? parseInt(row['Skeet Class Place']) : undefined
+            // Extract placement data - check for gender-specific columns
+            const gender = athlete.gender
+            const concurrentPlace = (gender === 'M'
+              ? (row['Skeet Male Concurrent Place'] || row['Skeet Men Concurrent Place'] || row['Skeet Concurrent Place'])
+              : gender === 'F'
+              ? (row['Skeet Female Concurrent Place'] || row['Skeet Ladies Concurrent Place'] || row['Skeet Women Concurrent Place'] || row['Skeet Concurrent Place'])
+              : row['Skeet Concurrent Place']
+            ) ? parseInt((gender === 'M'
+              ? (row['Skeet Male Concurrent Place'] || row['Skeet Men Concurrent Place'] || row['Skeet Concurrent Place'])
+              : gender === 'F'
+              ? (row['Skeet Female Concurrent Place'] || row['Skeet Ladies Concurrent Place'] || row['Skeet Women Concurrent Place'] || row['Skeet Concurrent Place'])
+              : row['Skeet Concurrent Place']
+            )) : undefined
+
+            const classPlace = (gender === 'M'
+              ? (row['Skeet Male Class Place'] || row['Skeet Men Class Place'] || row['Skeet Class Place'])
+              : gender === 'F'
+              ? (row['Skeet Female Class Place'] || row['Skeet Ladies Class Place'] || row['Skeet Women Class Place'] || row['Skeet Class Place'])
+              : row['Skeet Class Place']
+            ) ? parseInt((gender === 'M'
+              ? (row['Skeet Male Class Place'] || row['Skeet Men Class Place'] || row['Skeet Class Place'])
+              : gender === 'F'
+              ? (row['Skeet Female Class Place'] || row['Skeet Ladies Class Place'] || row['Skeet Women Class Place'] || row['Skeet Class Place'])
+              : row['Skeet Class Place']
+            )) : undefined
+
             const teamPlace = row['Skeet Team Place'] ? parseInt(row['Skeet Team Place']) : undefined
             const individualRank = row['Skeet Individual Rank'] ? parseInt(row['Skeet Individual Rank']) : undefined
             const teamRank = row['Skeet Team Rank'] ? parseInt(row['Skeet Team Rank']) : undefined
@@ -243,9 +292,32 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         try {
           const score = parseInt(trapScore.toString().trim())
           if (!isNaN(score) && score > 0) {
-            // Extract placement data
-            const concurrentPlace = row['Trap Concurrent Place'] ? parseInt(row['Trap Concurrent Place']) : undefined
-            const classPlace = row['Trap Class Place'] ? parseInt(row['Trap Class Place']) : undefined
+            // Extract placement data - check for gender-specific columns
+            const gender = athlete.gender
+            const concurrentPlace = (gender === 'M'
+              ? (row['Trap Male Concurrent Place'] || row['Trap Men Concurrent Place'] || row['Trap Concurrent Place'])
+              : gender === 'F'
+              ? (row['Trap Female Concurrent Place'] || row['Trap Ladies Concurrent Place'] || row['Trap Women Concurrent Place'] || row['Trap Concurrent Place'])
+              : row['Trap Concurrent Place']
+            ) ? parseInt((gender === 'M'
+              ? (row['Trap Male Concurrent Place'] || row['Trap Men Concurrent Place'] || row['Trap Concurrent Place'])
+              : gender === 'F'
+              ? (row['Trap Female Concurrent Place'] || row['Trap Ladies Concurrent Place'] || row['Trap Women Concurrent Place'] || row['Trap Concurrent Place'])
+              : row['Trap Concurrent Place']
+            )) : undefined
+
+            const classPlace = (gender === 'M'
+              ? (row['Trap Male Class Place'] || row['Trap Men Class Place'] || row['Trap Class Place'])
+              : gender === 'F'
+              ? (row['Trap Female Class Place'] || row['Trap Ladies Class Place'] || row['Trap Women Class Place'] || row['Trap Class Place'])
+              : row['Trap Class Place']
+            ) ? parseInt((gender === 'M'
+              ? (row['Trap Male Class Place'] || row['Trap Men Class Place'] || row['Trap Class Place'])
+              : gender === 'F'
+              ? (row['Trap Female Class Place'] || row['Trap Ladies Class Place'] || row['Trap Women Class Place'] || row['Trap Class Place'])
+              : row['Trap Class Place']
+            )) : undefined
+
             const teamPlace = row['Trap Team Place'] ? parseInt(row['Trap Team Place']) : undefined
             const individualRank = row['Trap Individual Rank'] ? parseInt(row['Trap Individual Rank']) : undefined
             const teamRank = row['Trap Team Rank'] ? parseInt(row['Trap Team Rank']) : undefined
@@ -280,9 +352,32 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         try {
           const score = parseInt(sportingScore.toString().trim())
           if (!isNaN(score) && score > 0) {
-            // Extract placement data
-            const concurrentPlace = row['Sporting Concurrent Place'] ? parseInt(row['Sporting Concurrent Place']) : undefined
-            const classPlace = row['Sporting Class Place'] ? parseInt(row['Sporting Class Place']) : undefined
+            // Extract placement data - check for gender-specific columns
+            const gender = athlete.gender
+            const concurrentPlace = (gender === 'M'
+              ? (row['Sporting Male Concurrent Place'] || row['Sporting Men Concurrent Place'] || row['Sporting Concurrent Place'])
+              : gender === 'F'
+              ? (row['Sporting Female Concurrent Place'] || row['Sporting Ladies Concurrent Place'] || row['Sporting Women Concurrent Place'] || row['Sporting Concurrent Place'])
+              : row['Sporting Concurrent Place']
+            ) ? parseInt((gender === 'M'
+              ? (row['Sporting Male Concurrent Place'] || row['Sporting Men Concurrent Place'] || row['Sporting Concurrent Place'])
+              : gender === 'F'
+              ? (row['Sporting Female Concurrent Place'] || row['Sporting Ladies Concurrent Place'] || row['Sporting Women Concurrent Place'] || row['Sporting Concurrent Place'])
+              : row['Sporting Concurrent Place']
+            )) : undefined
+
+            const classPlace = (gender === 'M'
+              ? (row['Sporting Male Class Place'] || row['Sporting Men Class Place'] || row['Sporting Class Place'])
+              : gender === 'F'
+              ? (row['Sporting Female Class Place'] || row['Sporting Ladies Class Place'] || row['Sporting Women Class Place'] || row['Sporting Class Place'])
+              : row['Sporting Class Place']
+            ) ? parseInt((gender === 'M'
+              ? (row['Sporting Male Class Place'] || row['Sporting Men Class Place'] || row['Sporting Class Place'])
+              : gender === 'F'
+              ? (row['Sporting Female Class Place'] || row['Sporting Ladies Class Place'] || row['Sporting Women Class Place'] || row['Sporting Class Place'])
+              : row['Sporting Class Place']
+            )) : undefined
+
             const teamPlace = row['Sporting Team Place'] ? parseInt(row['Sporting Team Place']) : undefined
             const individualRank = row['Sporting Individual Rank'] ? parseInt(row['Sporting Individual Rank']) : undefined
             const teamRank = row['Sporting Team Rank'] ? parseInt(row['Sporting Team Rank']) : undefined
