@@ -593,7 +593,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
               <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-1 lg:grid-cols-3 gap-2'}>
                 {/* HAA Overall */}
                 {haaathletes.length > 0 && (
-                  <div className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'flex-shrink-0 min-w-[300px]' : ''}`}>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                     <div className="bg-white p-2 border-b border-gray-200">
                       <h3 className="text-sm font-bold text-gray-900">Overall</h3>
                       <p className="text-gray-600 text-xs">
@@ -637,7 +637,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
                 {/* HAA Male */}
                 {haaMaleathletes.length > 0 && (
-                  <div className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'flex-shrink-0 min-w-[300px]' : ''}`}>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                     <div className="bg-white p-2 border-b border-gray-200">
                       <h3 className="text-sm font-bold text-gray-900">Male</h3>
                       <p className="text-gray-600 text-xs">
@@ -681,7 +681,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
                 {/* HAA Female */}
                 {haaFemaleathletes.length > 0 && (
-                  <div className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'flex-shrink-0 min-w-[300px]' : ''}`}>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                     <div className="bg-white p-2 border-b border-gray-200">
                       <h3 className="text-sm font-bold text-gray-900">Female</h3>
                       <p className="text-gray-600 text-xs">
@@ -750,7 +750,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                     <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-1 lg:grid-cols-2 gap-2'}>
                       {/* HOA Male */}
                       {hoaResults.male.length > 0 && (
-                        <div className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'flex-shrink-0 min-w-[300px]' : ''}`}>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                           <div className="bg-white p-2 border-b border-gray-200">
                             <h3 className="text-sm font-bold text-gray-900">Male</h3>
                             <p className="text-gray-600 text-xs">
@@ -791,7 +791,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
                       {/* HOA Female */}
                       {hoaResults.female.length > 0 && (
-                        <div className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'flex-shrink-0 min-w-[300px]' : ''}`}>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                           <div className="bg-white p-2 border-b border-gray-200">
                             <h3 className="text-sm font-bold text-gray-900">Female</h3>
                             <p className="text-gray-600 text-xs">
@@ -840,7 +840,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
       {/* Divisions View - Compact Grid with Classes Styling */}
       {activeView === 'divisions' && (
-        <div className="space-y-3">
+        <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
           {tournament.disciplines.map((td: any) => {
             const disciplineId = td.disciplineId
             const discipline = td.discipline
@@ -851,7 +851,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             }
 
             return (
-              <div key={disciplineId} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+              <div key={disciplineId} className={`bg-white border border-gray-200 rounded-lg shadow-sm p-3 ${singleColumnMode ? 'flex-1 min-w-0' : ''}`}>
                 {/* Discipline Header */}
                 <div className="mb-3">
                   <h2 className="text-lg font-bold text-gray-900">{discipline.displayName}</h2>
@@ -861,9 +861,9 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                 </div>
 
                 {/* Division Tables Grid - More columns to fit on one screen */}
-                <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2'}>
+                <div className={singleColumnMode ? 'flex flex-col gap-2' : 'grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2'}>
                   {Object.entries(disciplineDivisions).map(([division, athletes]) => (
-                    <div key={`${disciplineId}-${division}`} className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'flex-shrink-0 min-w-[300px]' : ''}`}>
+                    <div key={`${disciplineId}-${division}`} className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                       <div className="bg-white p-2 border-b border-gray-200">
                         <h3 className="text-sm font-bold text-gray-900">{division}</h3>
                         <p className="text-gray-600 text-xs">
@@ -927,7 +927,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
       {/* Squads View - Compact Grid */}
       {activeView === 'squads' && (
-        <div className="space-y-3">
+        <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
           {tournament.disciplines.map((td: any) => {
             const disciplineId = td.disciplineId
             const discipline = td.discipline
@@ -959,7 +959,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             })
 
             return (
-              <div key={disciplineId} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+              <div key={disciplineId} className={`bg-white border border-gray-200 rounded-lg shadow-sm p-3 ${singleColumnMode ? 'flex-1 min-w-0' : ''}`}>
                 {/* Discipline Header */}
                 <div className="mb-3">
                   <h2 className="text-lg font-bold text-gray-900">👥 {discipline.displayName} - Squad Standings</h2>
@@ -969,13 +969,13 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                 </div>
 
                 {/* Squad Tables Grid */}
-                <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2'}>
+                <div className={singleColumnMode ? 'flex flex-col gap-2' : 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2'}>
                   {sortedDivisions.map(division => {
                     const divisionSquads = squadsByDivision[division]
                       .sort((a, b) => b.totalScore - a.totalScore)
 
                     return (
-                      <div key={`${disciplineId}-${division}`} className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'flex-shrink-0 min-w-[300px]' : ''}`}>
+                      <div key={`${disciplineId}-${division}`} className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                         <div className="bg-white p-2 border-b border-gray-200">
                           <h3 className="text-sm font-bold text-gray-900">{division}</h3>
                           <p className="text-gray-600 text-xs">
@@ -1041,7 +1041,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
       {/* Classes View - Compact Grid */}
       {activeView === 'classes' && (
-        <div className="space-y-3">
+        <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
           {tournament.disciplines.map((tournamentDiscipline: any) => {
             const disciplineId = tournamentDiscipline.disciplineId
             const disciplineName = tournamentDiscipline.discipline.displayName
@@ -1081,7 +1081,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             })
 
             return (
-              <div key={disciplineId} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+              <div key={disciplineId} className={`bg-white border border-gray-200 rounded-lg shadow-sm p-3 ${singleColumnMode ? 'flex-1 min-w-0' : ''}`}>
                 {/* Discipline Header */}
                 <div className="mb-3">
                   <h2 className="text-lg font-bold text-gray-900">{disciplineName} - Class Rankings</h2>
@@ -1091,13 +1091,13 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                 </div>
 
                 {/* Class Tables Grid */}
-                <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2'}>
+                <div className={singleColumnMode ? 'flex flex-col gap-2' : 'grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2'}>
                   {sortedClasses.map(athleteClass => {
                     const classathletes = athletesByClass[athleteClass]
                       .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
 
                     return (
-                      <div key={athleteClass} className={`bg-gray-50 border border-gray-200 rounded-lg overflow-hidden ${singleColumnMode ? 'flex-shrink-0 min-w-[300px]' : ''}`}>
+                      <div key={athleteClass} className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                         <div className="bg-white p-2 border-b border-gray-200">
                           <h3 className="text-sm font-bold text-gray-900">Class {athleteClass}</h3>
                           <p className="text-gray-600 text-xs">
