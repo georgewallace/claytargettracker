@@ -97,23 +97,52 @@ export async function POST(
     const workbook = XLSX.read(arrayBuffer)
 
     // Only accept "Shooter History" or "Shooter Scores" sheets
-    let sheet = workbook.Sheets['Shooter History']
-    let sheetName = 'Shooter History'
+    const shooterHistorySheet = workbook.Sheets['Shooter History']
+    const shooterScoresSheet = workbook.Sheets['Shooter Scores']
 
-    if (!sheet) {
-      sheet = workbook.Sheets['Shooter Scores']
-      sheetName = 'Shooter Scores'
+    // Check if both sheets exist
+    if (shooterHistorySheet && shooterScoresSheet) {
+      // Check if both have data
+      const historyData = XLSX.utils.sheet_to_json(shooterHistorySheet)
+      const scoresData = XLSX.utils.sheet_to_json(shooterScoresSheet)
+
+      if (historyData.length > 0 && scoresData.length > 0) {
+        return NextResponse.json(
+          { error: 'Import failed: Excel file contains both "Shooter History" and "Shooter Scores" sheets with data. Please remove one of them.' },
+          { status: 400 }
+        )
+      }
     }
 
-    if (!sheet) {
+    // Determine which sheet to use based on existence and data
+    let sheet = null
+    let sheetName = ''
+    let data: any[] = []
+
+    if (shooterHistorySheet) {
+      const historyData = XLSX.utils.sheet_to_json(shooterHistorySheet)
+      if (historyData.length > 0) {
+        sheet = shooterHistorySheet
+        sheetName = 'Shooter History'
+        data = historyData
+      }
+    }
+
+    if (!sheet && shooterScoresSheet) {
+      const scoresData = XLSX.utils.sheet_to_json(shooterScoresSheet)
+      if (scoresData.length > 0) {
+        sheet = shooterScoresSheet
+        sheetName = 'Shooter Scores'
+        data = scoresData
+      }
+    }
+
+    if (!sheet || data.length === 0) {
       return NextResponse.json(
-        { error: 'Import failed: Excel file must contain a sheet named "Shooter History" or "Shooter Scores"' },
+        { error: 'Import failed: Excel file must contain a sheet named "Shooter History" or "Shooter Scores" with data' },
         { status: 400 }
       )
     }
-
-    // Parse to JSON
-    const data = XLSX.utils.sheet_to_json(sheet)
 
     // Process scores using the Shooter History import format (both sheets use same format)
     const results = await processShooterHistoryImport(tournamentId, data)
@@ -168,6 +197,10 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
   // BATCH OPTIMIZATION: Collect all shooter IDs and names upfront
   const shooterIds = new Set<string>()
   const shooterNames = new Set<string>()
+
+  // Track squad divisions from Excel for later squad updates
+  // Map: athleteId -> { skeetDivision, trapDivision, sportingDivision }
+  const athleteSquadDivisions = new Map<string, { skeet?: string, trap?: string, sporting?: string }>()
 
   for (const row of data) {
     const shooterId = row['Shooter ID']?.toString().trim()
@@ -321,6 +354,14 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         try {
           const score = parseInt(skeetScore.toString().trim())
           if (!isNaN(score) && score > 0) {
+            // Track Skeet squad division from Excel
+            const skeetSquadDivision = row['Skeet Squad Concurrent']?.toString().trim()
+            if (skeetSquadDivision) {
+              const divData = athleteSquadDivisions.get(athlete.id) || {}
+              divData.skeet = skeetSquadDivision
+              athleteSquadDivisions.set(athlete.id, divData)
+            }
+
             // Extract placement data - check for gender-specific columns
             const gender = athlete.gender
             const athleteDivision = athlete.division
@@ -395,6 +436,14 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         try {
           const score = parseInt(trapScore.toString().trim())
           if (!isNaN(score) && score > 0) {
+            // Track Trap squad division from Excel
+            const trapSquadDivision = row['Trap Squad Concurrent']?.toString().trim()
+            if (trapSquadDivision) {
+              const divData = athleteSquadDivisions.get(athlete.id) || {}
+              divData.trap = trapSquadDivision
+              athleteSquadDivisions.set(athlete.id, divData)
+            }
+
             // Extract placement data - check for gender-specific columns
             const gender = athlete.gender
             const athleteDivision = athlete.division
@@ -469,6 +518,14 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         try {
           const score = parseInt(sportingScore.toString().trim())
           if (!isNaN(score) && score > 0) {
+            // Track Sporting squad division from Excel
+            const sportingSquadDivision = row['Sporting Squad Concurrent']?.toString().trim()
+            if (sportingSquadDivision) {
+              const divData = athleteSquadDivisions.get(athlete.id) || {}
+              divData.sporting = sportingSquadDivision
+              athleteSquadDivisions.set(athlete.id, divData)
+            }
+
             // Extract placement data - check for gender-specific columns
             const gender = athlete.gender
             const athleteDivision = athlete.division
@@ -559,6 +616,71 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         })
       )
     )
+  }
+
+  // Update squad divisions based on Excel data
+  if (athleteSquadDivisions.size > 0) {
+    // Get all squads for this tournament with their members
+    const squads = await prisma.squad.findMany({
+      where: {
+        timeSlot: {
+          tournamentId
+        }
+      },
+      include: {
+        members: true,
+        timeSlot: {
+          include: {
+            discipline: true
+          }
+        }
+      }
+    })
+
+    // Update each squad's division based on its members' Excel data
+    const squadUpdates: Array<Promise<any>> = []
+
+    for (const squad of squads) {
+      if (squad.members.length === 0) continue
+
+      // Determine the discipline from the time slot
+      const disciplineName = squad.timeSlot.discipline.name
+
+      // Find the squad division from any member's Excel data
+      let squadDivision: string | null = null
+
+      for (const member of squad.members) {
+        const divData = athleteSquadDivisions.get(member.athleteId)
+        if (divData) {
+          if (disciplineName === 'skeet' && divData.skeet) {
+            squadDivision = divData.skeet
+            break
+          } else if (disciplineName === 'trap' && divData.trap) {
+            squadDivision = divData.trap
+            break
+          } else if (disciplineName === 'sporting_clays' && divData.sporting) {
+            squadDivision = divData.sporting
+            break
+          }
+        }
+      }
+
+      // Only update if we found a division and it's different from current
+      if (squadDivision && squad.division !== squadDivision) {
+        squadUpdates.push(
+          prisma.squad.update({
+            where: { id: squad.id },
+            data: { division: squadDivision }
+          })
+        )
+      }
+    }
+
+    // Execute all squad updates
+    if (squadUpdates.length > 0) {
+      await Promise.all(squadUpdates)
+      results.updated.push(`Updated ${squadUpdates.length} squad division(s)`)
+    }
   }
 
   return results

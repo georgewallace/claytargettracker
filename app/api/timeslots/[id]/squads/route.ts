@@ -55,7 +55,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id: timeSlotId } = await params
-    const { name, capacity, notes } = await request.json()
+    const { name, capacity, notes, division } = await request.json()
 
     // Check permissions (coach or admin)
     if (user.role !== 'coach' && user.role !== 'admin') {
@@ -68,8 +68,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Validate time slot exists
     const timeSlot = await prisma.timeSlot.findUnique({
       where: { id: timeSlotId },
-      include: { 
-        tournament: true 
+      include: {
+        tournament: true
       }
     })
 
@@ -83,7 +83,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         timeSlotId,
         name: name || 'Squad',
         capacity: capacity || timeSlot.squadCapacity,
-        notes
+        notes,
+        division: division || null
       },
       include: {
         members: {

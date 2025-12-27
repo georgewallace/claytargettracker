@@ -5,7 +5,6 @@ import { format } from 'date-fns'
 import Link from 'next/link'
 import RegisterButton from './RegisterButton'
 import CoachRegistration from './CoachRegistration'
-import ExportRegistrationsButton from './ExportRegistrationsButton'
 import ExportComprehensiveButton from './ExportComprehensiveButton'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 import RegistrationList from './RegistrationList'
@@ -330,10 +329,6 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                       Shoot-Offs
                     </Link>
                   )}
-                  <ExportRegistrationsButton
-                    registrations={tournament.registrations}
-                    tournamentName={tournament.name}
-                  />
                   <ExportComprehensiveButton
                     tournamentId={tournament.id}
                     tournamentName={tournament.name}

@@ -55,6 +55,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       updateData.notes = body.notes
     }
 
+    if (body.division !== undefined) {
+      updateData.division = body.division || null
+    }
+
     // Update the squad
     const squad = await prisma.squad.update({
       where: { id: squadId },

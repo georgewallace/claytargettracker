@@ -237,22 +237,26 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             // Add athlete name to members list
             memberNames.push(athletescore.athleteName)
 
-            // Track division counts to determine squad division
+            // Track division counts for fallback calculation
             if (athletescore.division) {
               divisions[athletescore.division] = (divisions[athletescore.division] || 0) + 1
             }
           }
         })
 
-        // Determine squad division (most common division among members)
-        let squadDivision: string | null = null
-        let maxCount = 0
-        Object.entries(divisions).forEach(([div, count]) => {
-          if (count > maxCount) {
-            maxCount = count
-            squadDivision = div
-          }
-        })
+        // Use squad's assigned division, fall back to most common member division if not set
+        let squadDivision: string | null = squad.division || null
+
+        // Fallback: If squad doesn't have division set, calculate from members
+        if (!squadDivision) {
+          let maxCount = 0
+          Object.entries(divisions).forEach(([div, count]) => {
+            if (count > maxCount) {
+              maxCount = count
+              squadDivision = div
+            }
+          })
+        }
 
         const isComplete = membersWithScores === squad.members.length && squad.members.length > 0
 
