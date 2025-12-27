@@ -614,11 +614,10 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                           {haaathletes.map((athlete, idx) => {
-                            const officialPlace = athlete.haaIndividualPlace
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
-                                  {officialPlace ? `${officialPlace}` : (idx < 3 ? getMedal(idx) : `${idx + 1}`)}
+                                  {idx < 3 ? getMedal(idx) : `${idx + 1}`}
                                 </td>
                                 <td className="px-2 py-1 font-medium text-gray-900 text-xs">
                                   <div className="flex flex-col">
@@ -658,11 +657,10 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                           {haaMaleathletes.map((athlete, idx) => {
-                            const officialPlace = athlete.haaIndividualPlace
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
-                                  {officialPlace ? `${officialPlace}` : (idx < 3 ? getMedal(idx) : `${idx + 1}`)}
+                                  {idx < 3 ? getMedal(idx) : `${idx + 1}`}
                                 </td>
                                 <td className="px-2 py-1 font-medium text-gray-900 text-xs">
                                   <div className="flex flex-col">
@@ -702,11 +700,10 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                           {haaFemaleathletes.map((athlete, idx) => {
-                            const officialPlace = athlete.haaIndividualPlace
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
-                                  {officialPlace ? `${officialPlace}` : (idx < 3 ? getMedal(idx) : `${idx + 1}`)}
+                                  {idx < 3 ? getMedal(idx) : `${idx + 1}`}
                                 </td>
                                 <td className="px-2 py-1 font-medium text-gray-900 text-xs">
                                   <div className="flex flex-col">
@@ -885,8 +882,6 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                           <tbody className="divide-y divide-gray-200">
                             {athletes.map((athlete, idx) => {
                               const isRecent = isRecentlyUpdated(athlete.lastUpdated)
-                              const placement = athlete.disciplinePlacements[disciplineId]
-                              const officialPlace = placement?.concurrentPlace
                               return (
                                 <tr
                                   key={athlete.athleteId}
@@ -898,7 +893,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                   title={athlete.teamName || 'Independent'}
                                 >
                                   <td className="px-2 py-1 text-gray-600">
-                                    {officialPlace ? `${officialPlace}` : (idx < 3 ? getMedal(idx) : `${idx + 1}`)}
+                                    {idx < 3 ? getMedal(idx) : `${idx + 1}`}
                                   </td>
                                   <td className="px-2 py-1 font-medium text-gray-900 text-xs truncate max-w-[120px]" title={athlete.athleteName}>
                                     {athlete.athleteName}
@@ -1120,8 +1115,6 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                               {classathletes.map((athlete, idx) => {
                                 const isRecent = isRecentlyUpdated(athlete.lastUpdated)
                                 const score = athlete.disciplineScores[disciplineId] || 0
-                                const placement = athlete.disciplinePlacements[disciplineId]
-                                const officialPlace = placement?.classPlace
                                 return (
                                   <tr
                                     key={athlete.athleteId}
@@ -1133,7 +1126,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                     title={athlete.teamName || 'Independent'}
                                   >
                                     <td className="px-2 py-1 text-gray-600">
-                                      {officialPlace ? `${officialPlace}` : (idx < 3 ? getMedal(idx) : `${idx + 1}`)}
+                                      {idx < 3 ? getMedal(idx) : `${idx + 1}`}
                                     </td>
                                     <td className="px-2 py-1 font-medium text-gray-900 text-xs truncate max-w-[120px]" title={athlete.athleteName}>
                                       {athlete.athleteName}
