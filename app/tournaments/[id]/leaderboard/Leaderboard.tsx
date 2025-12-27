@@ -322,17 +322,17 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           athlete => athlete.disciplineScores[disciplineId] !== undefined
         )
 
-        // Always separate by gender
+        // Always separate by gender - only champion and runner up (top 2)
         hoaResults[disciplineId] = {
           combined: [],
           male: [...athletesWithThisDiscipline]
             .filter(s => s.gender === 'M')
             .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
-            .slice(0, 3),
+            .slice(0, 2),
           female: [...athletesWithThisDiscipline]
             .filter(s => s.gender === 'F')
             .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
-            .slice(0, 3)
+            .slice(0, 2)
         }
       })
     }
@@ -348,23 +348,26 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     let haaFemaleathletes: athletescore[] = []
 
     if (tournament.enableHAA) {
-      // Overall HAA (all genders combined)
+      // Overall HAA (all genders combined) - champion and runner up only (top 2)
       haaathletes = [...allathletes]
         .filter(s => s.disciplineCount > 0)
         .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, 3)
+        .slice(0, 2)
 
-      // HAA for males
+      // Get Overall HAA winner IDs to exclude from gender-specific categories
+      const overallHAAWinnerIds = new Set(haaathletes.map(s => s.athleteId))
+
+      // HAA for males - exclude Overall HAA winners, champion and runner up only (top 2)
       haaMaleathletes = [...allathletes]
-        .filter(s => s.disciplineCount > 0 && s.gender === 'M')
+        .filter(s => s.disciplineCount > 0 && s.gender === 'M' && !overallHAAWinnerIds.has(s.athleteId))
         .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, 3)
+        .slice(0, 2)
 
-      // HAA for females
+      // HAA for females - exclude Overall HAA winners, champion and runner up only (top 2)
       haaFemaleathletes = [...allathletes]
-        .filter(s => s.disciplineCount > 0 && s.gender === 'F')
+        .filter(s => s.disciplineCount > 0 && s.gender === 'F' && !overallHAAWinnerIds.has(s.athleteId))
         .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, 3)
+        .slice(0, 2)
     }
 
     // Collect all HAA winners for exclusion from division leaderboards
