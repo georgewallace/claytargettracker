@@ -226,13 +226,15 @@ model Squad {
   capacity   Int      @default(5)
   teamOnly   Boolean  @default(false) // If true, only athletes from the same team can join
   notes      String?
+  division   String?  // Squad division (e.g., "Varsity", "Junior Varsity", "Open")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  
+
   timeSlot TimeSlot      @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
   members  SquadMember[]
-  
+
   @@index([timeSlotId])
+  @@index([division])
 }
 
 model SquadMember {
