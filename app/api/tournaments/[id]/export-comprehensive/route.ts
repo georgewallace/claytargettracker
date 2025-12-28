@@ -198,7 +198,7 @@ export async function GET(
       return {
         // Primary columns in requested order
         'Shooter ID': assignment.athlete.shooterId || '',
-        'Team': assignment.squad.team?.name || 'Unaffiliated',
+        'Team': assignment.squad.team?.name || assignment.athlete.team?.name || 'Unaffiliated',
         'First Name': firstName,
         'Last Name': lastName,
         'Full Name': fullName,
