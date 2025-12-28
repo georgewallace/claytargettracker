@@ -326,23 +326,23 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           athlete => athlete.disciplineScores[disciplineId] !== undefined
         )
 
-        // Always separate by gender - only champion and runner up (top 2)
+        // Always separate by gender - use configured place limits from Tournament Setup
         hoaResults[disciplineId] = {
           combined: [],
           male: [...athletesWithThisDiscipline]
             .filter(s => s.gender === 'M')
             .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
-            .slice(0, 2),
+            .slice(0, tournament.hoaMenPlaces || 2),
           female: [...athletesWithThisDiscipline]
             .filter(s => s.gender === 'F')
             .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
-            .slice(0, 2)
+            .slice(0, tournament.hoaLadyPlaces || 2)
         }
       })
     }
 
     return hoaResults
-  }, [allathletes, tournament.enableHOA, tournament.disciplines])
+  }, [allathletes, tournament.enableHOA, tournament.disciplines, tournament.hoaMenPlaces, tournament.hoaLadyPlaces])
 
   // MEMOIZED: HAA (High All-Around) - All disciplines combined
   // PERFORMANCE: Only recalculates when athlete scores or config changes
@@ -367,6 +367,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           return !isGenderSpecific
         })
         .sort((a, b) => (a.haaIndividualPlace || 999) - (b.haaIndividualPlace || 999))
+        .slice(0, tournament.haaOverallPlaces || 2)
 
       // Get Overall HAA winner IDs to exclude from gender-specific categories
       const overallHAAWinnerIds = new Set(haaathletes.map(s => s.athleteId))
@@ -379,6 +380,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           return concurrent.includes("men") || concurrent.includes("male")
         })
         .sort((a, b) => (a.haaIndividualPlace || 999) - (b.haaIndividualPlace || 999))
+        .slice(0, tournament.haaMenPlaces || 2)
 
       // HAA for females - only show athletes with haaIndividualPlace and gender-specific designation
       haaFemaleathletes = [...allathletes]
@@ -389,6 +391,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                  concurrent.includes("female") || concurrent.includes("women")
         })
         .sort((a, b) => (a.haaIndividualPlace || 999) - (b.haaIndividualPlace || 999))
+        .slice(0, tournament.haaLadyPlaces || 2)
     }
 
     // Collect all HAA winners for exclusion from division leaderboards
@@ -399,7 +402,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     ])
 
     return { haaathletes, haaMaleathletes, haaFemaleathletes, haaWinnerIds }
-  }, [allathletes, tournament.enableHAA])
+  }, [allathletes, tournament.enableHAA, tournament.haaOverallPlaces, tournament.haaMenPlaces, tournament.haaLadyPlaces])
 
 
   // Get medal emoji

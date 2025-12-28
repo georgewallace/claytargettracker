@@ -142,6 +142,12 @@ model Tournament {
   haaCoreDisciplines      String?
   hoaExcludesHAA          Boolean                      @default(true)
   haaExcludesDivision     Boolean                      @default(true)
+  haaOverallPlaces        Int?                         @default(2)
+  haaMenPlaces            Int?                         @default(2)
+  haaLadyPlaces           Int?                         @default(2)
+  hoaOverallPlaces        Int?                         @default(0)
+  hoaMenPlaces            Int?                         @default(2)
+  hoaLadyPlaces           Int?                         @default(2)
   enableShootOffs         Boolean                      @default(false)
   shootOffTriggers        String?
   shootOffFormat          String                       @default("sudden_death")

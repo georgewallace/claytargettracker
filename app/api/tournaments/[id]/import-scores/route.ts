@@ -96,6 +96,40 @@ export async function POST(
     const arrayBuffer = await file.arrayBuffer()
     const workbook = XLSX.read(arrayBuffer)
 
+    // Read Tournament Setup sheet if it exists and update tournament configuration
+    const tournamentSetupSheet = workbook.Sheets['Tournament Setup']
+    if (tournamentSetupSheet) {
+      const setupData = XLSX.utils.sheet_to_json(tournamentSetupSheet, { header: 1, defval: '' }) as any[]
+
+      // Extract HAA/HOA configuration from specific rows
+      // Row 20: Places for HAA (Overall) - Column B (index 1)
+      // Row 21: Places for HAA Men - Column B (index 1)
+      // Row 22: Places for HAA Lady - Column B (index 1)
+      // Row 26: Places for HOA (Overall) - Column B (index 1)
+      // Row 27: Places for HOA Men - Column B (index 1)
+      // Row 28: Places for HOA Lady - Column B (index 1)
+
+      const haaOverallPlaces = setupData[20]?.[1] || 2
+      const haaMenPlaces = setupData[21]?.[1] || 2
+      const haaLadyPlaces = setupData[22]?.[1] || 2
+      const hoaOverallPlaces = setupData[26]?.[1] || 0
+      const hoaMenPlaces = setupData[27]?.[1] || 2
+      const hoaLadyPlaces = setupData[28]?.[1] || 2
+
+      // Update tournament configuration
+      await prisma.tournament.update({
+        where: { id: tournamentId },
+        data: {
+          haaOverallPlaces: typeof haaOverallPlaces === 'number' ? haaOverallPlaces : 2,
+          haaMenPlaces: typeof haaMenPlaces === 'number' ? haaMenPlaces : 2,
+          haaLadyPlaces: typeof haaLadyPlaces === 'number' ? haaLadyPlaces : 2,
+          hoaOverallPlaces: typeof hoaOverallPlaces === 'number' ? hoaOverallPlaces : 0,
+          hoaMenPlaces: typeof hoaMenPlaces === 'number' ? hoaMenPlaces : 2,
+          hoaLadyPlaces: typeof hoaLadyPlaces === 'number' ? hoaLadyPlaces : 2
+        } as any
+      })
+    }
+
     // Only accept "Shooter History" or "Shooter Scores" sheets
     const shooterHistorySheet = workbook.Sheets['Shooter History']
     const shooterScoresSheet = workbook.Sheets['Shooter Scores']

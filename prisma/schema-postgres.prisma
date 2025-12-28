@@ -155,7 +155,13 @@ model Tournament {
   haaCoreDisciplines  String? // JSON array of discipline IDs for HAA (e.g., ["trap", "skeet", "sporting_clays"])
   hoaExcludesHAA      Boolean @default(true)  // If true, HOA winners can't win HAA
   haaExcludesDivision Boolean @default(true)  // If true, HAA winners can't win 1st in their division
-  
+  haaOverallPlaces    Int?    @default(2)     // Number of places to award for HAA Overall (from Tournament Setup sheet)
+  haaMenPlaces        Int?    @default(2)     // Number of places to award for HAA Men (from Tournament Setup sheet)
+  haaLadyPlaces       Int?    @default(2)     // Number of places to award for HAA Lady (from Tournament Setup sheet)
+  hoaOverallPlaces    Int?    @default(0)     // Number of places to award for HOA Overall (from Tournament Setup sheet)
+  hoaMenPlaces        Int?    @default(2)     // Number of places to award for HOA Men per discipline (from Tournament Setup sheet)
+  hoaLadyPlaces       Int?    @default(2)     // Number of places to award for HOA Lady per discipline (from Tournament Setup sheet)
+
   // Shoot-Off Configuration
   enableShootOffs          Boolean @default(false)  // Enable shoot-offs for this tournament
   shootOffTriggers         String? // JSON: when to trigger shoot-offs (e.g., ["podium", "top5", "perfect"])
