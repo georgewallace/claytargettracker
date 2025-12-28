@@ -129,7 +129,24 @@ export async function POST(
     }
 
     if (!sheet && shooterScoresSheet) {
-      const scoresData = XLSX.utils.sheet_to_json(shooterScoresSheet)
+      let scoresData = XLSX.utils.sheet_to_json(shooterScoresSheet)
+
+      // Check if first row has expected headers (Shooter ID, First Name, etc.)
+      // If not, the sheet might have an extra title row that needs to be skipped
+      if (scoresData.length > 0) {
+        const firstRow = scoresData[0]
+        const hasValidHeaders = firstRow && (
+          'Shooter ID' in firstRow ||
+          'First Name' in firstRow ||
+          'Last Name' in firstRow
+        )
+
+        if (!hasValidHeaders) {
+          // Re-read with Row 1 as headers (skip Row 0)
+          scoresData = XLSX.utils.sheet_to_json(shooterScoresSheet, { range: 1 })
+        }
+      }
+
       if (scoresData.length > 0) {
         sheet = shooterScoresSheet
         sheetName = 'Shooter Scores'
