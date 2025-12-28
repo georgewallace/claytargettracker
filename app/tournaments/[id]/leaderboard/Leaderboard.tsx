@@ -1263,7 +1263,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                               </div>
                             </div>
                             <div className="text-right ml-2">
-                              <div className="text-base font-bold text-gray-900">{team.teamTotal}</div>
+                              <div className="text-base font-bold text-gray-900">{Math.floor(team.teamTotal)}</div>
                             </div>
                           </div>
                         </div>
@@ -1278,7 +1278,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                   {idx + 1}. {athlete.athleteName}
                                 </span>
                                 <span className="text-gray-900 font-bold">
-                                  {athlete.disciplineScores[disciplineId]}
+                                  {Math.floor(athlete.disciplineScores[disciplineId])}
                                 </span>
                               </div>
                             ))}
