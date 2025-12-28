@@ -135,6 +135,7 @@ export async function GET(
       include: {
         squad: {
           include: {
+            team: true,
             timeSlot: {
               include: {
                 discipline: true
@@ -162,7 +163,7 @@ export async function GET(
         { squad: { timeSlot: { startTime: 'asc' } } },
         { position: 'asc' }
       ]
-    })
+    }) as any[]
 
     const squads = squadAssignments.map(assignment => {
       const disciplineName = assignment.squad.timeSlot.discipline.name
@@ -197,7 +198,7 @@ export async function GET(
       return {
         // Primary columns in requested order
         'Shooter ID': assignment.athlete.shooterId || '',
-        'Team': assignment.athlete.team?.name || '',
+        'Team': assignment.squad.team?.name || 'Unaffiliated',
         'First Name': firstName,
         'Last Name': lastName,
         'Full Name': fullName,
