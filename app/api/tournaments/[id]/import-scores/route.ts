@@ -135,7 +135,7 @@ export async function POST(
       // If not, the sheet might have an extra title row that needs to be skipped
       if (scoresData.length > 0) {
         const firstRow = scoresData[0]
-        const hasValidHeaders = firstRow && (
+        const hasValidHeaders = firstRow && typeof firstRow === 'object' && (
           'Shooter ID' in firstRow ||
           'First Name' in firstRow ||
           'Last Name' in firstRow
