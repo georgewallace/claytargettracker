@@ -134,8 +134,8 @@ export async function POST(
       // Check if first row has expected headers (Shooter ID, First Name, etc.)
       // If not, the sheet might have an extra title row that needs to be skipped
       if (scoresData.length > 0) {
-        const firstRow = scoresData[0]
-        const hasValidHeaders = firstRow && typeof firstRow === 'object' && (
+        const firstRow = scoresData[0] as Record<string, any>
+        const hasValidHeaders = firstRow && (
           'Shooter ID' in firstRow ||
           'First Name' in firstRow ||
           'Last Name' in firstRow
@@ -215,9 +215,13 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
   const shooterIds = new Set<string>()
   const shooterNames = new Set<string>()
 
-  // Track squad divisions from Excel for later squad updates
-  // Map: athleteId -> { skeetDivision, trapDivision, sportingDivision }
-  const athleteSquadDivisions = new Map<string, { skeet?: string, trap?: string, sporting?: string }>()
+  // Track squad divisions and teams from Excel for later squad updates
+  // Map: athleteId -> { skeet: { division, team }, trap: { division, team }, sporting: { division, team } }
+  const athleteSquadData = new Map<string, {
+    skeet?: { division: string, team: string }
+    trap?: { division: string, team: string }
+    sporting?: { division: string, team: string }
+  }>()
 
   for (const row of data) {
     const shooterId = row['Shooter ID']?.toString().trim()
@@ -369,14 +373,15 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
       const skeetScore = row[' Skeet Score '] || row['Skeet Score']
       if (skeetDiscipline && skeetScore) {
         try {
-          const score = parseInt(skeetScore.toString().trim())
+          const score = parseFloat(skeetScore.toString().trim())
           if (!isNaN(score) && score > 0) {
-            // Track Skeet squad division from Excel
+            // Track Skeet squad division and team from Excel
             const skeetSquadDivision = row['Skeet Squad Concurrent']?.toString().trim()
-            if (skeetSquadDivision) {
-              const divData = athleteSquadDivisions.get(athlete.id) || {}
-              divData.skeet = skeetSquadDivision
-              athleteSquadDivisions.set(athlete.id, divData)
+            const teamName = row['Team']?.toString().trim() || ''
+            if (skeetSquadDivision && teamName) {
+              const squadData = athleteSquadData.get(athlete.id) || {}
+              squadData.skeet = { division: skeetSquadDivision, team: teamName }
+              athleteSquadData.set(athlete.id, squadData)
             }
 
             // Extract placement data - check for gender-specific columns
@@ -451,14 +456,15 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
       const trapScore = row[' Trap Score '] || row['Trap Score']
       if (trapDiscipline && trapScore) {
         try {
-          const score = parseInt(trapScore.toString().trim())
+          const score = parseFloat(trapScore.toString().trim())
           if (!isNaN(score) && score > 0) {
-            // Track Trap squad division from Excel
+            // Track Trap squad division and team from Excel
             const trapSquadDivision = row['Trap Squad Concurrent']?.toString().trim()
-            if (trapSquadDivision) {
-              const divData = athleteSquadDivisions.get(athlete.id) || {}
-              divData.trap = trapSquadDivision
-              athleteSquadDivisions.set(athlete.id, divData)
+            const teamName = row['Team']?.toString().trim() || ''
+            if (trapSquadDivision && teamName) {
+              const squadData = athleteSquadData.get(athlete.id) || {}
+              squadData.trap = { division: trapSquadDivision, team: teamName }
+              athleteSquadData.set(athlete.id, squadData)
             }
 
             // Extract placement data - check for gender-specific columns
@@ -533,14 +539,15 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
       const sportingScore = row[' Sporting Score '] || row['Sporting Score']
       if (sportingDiscipline && sportingScore) {
         try {
-          const score = parseInt(sportingScore.toString().trim())
+          const score = parseFloat(sportingScore.toString().trim())
           if (!isNaN(score) && score > 0) {
-            // Track Sporting squad division from Excel
+            // Track Sporting squad division and team from Excel
             const sportingSquadDivision = row['Sporting Squad Concurrent']?.toString().trim()
-            if (sportingSquadDivision) {
-              const divData = athleteSquadDivisions.get(athlete.id) || {}
-              divData.sporting = sportingSquadDivision
-              athleteSquadDivisions.set(athlete.id, divData)
+            const teamName = row['Team']?.toString().trim() || ''
+            if (sportingSquadDivision && teamName) {
+              const squadData = athleteSquadData.get(athlete.id) || {}
+              squadData.sporting = { division: sportingSquadDivision, team: teamName }
+              athleteSquadData.set(athlete.id, squadData)
             }
 
             // Extract placement data - check for gender-specific columns
@@ -635,8 +642,8 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
     )
   }
 
-  // Update squad divisions based on Excel data
-  if (athleteSquadDivisions.size > 0) {
+  // Update squad divisions and teams based on Excel data
+  if (athleteSquadData.size > 0) {
     // Get all squads for this tournament with their members
     const squads = await prisma.squad.findMany({
       where: {
@@ -652,9 +659,28 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
           }
         }
       }
+    }) as any[] as Array<{
+      id: string
+      teamId: string | null
+      division: string | null
+      capacity: number
+      members: { id: string, athleteId: string }[]
+      timeSlot: {
+        discipline: { name: string }
+      }
+    }>
+
+    // Get all teams for looking up teamId by name
+    const teams = await prisma.team.findMany({
+      select: {
+        id: true,
+        name: true
+      }
     })
 
-    // Update each squad's division based on its members' Excel data
+    const teamByName = new Map(teams.map(t => [t.name.toLowerCase(), t.id]))
+
+    // Update each squad's division and teamId based on its members' Excel data
     const squadUpdates: Array<Promise<any>> = []
 
     for (const squad of squads) {
@@ -666,28 +692,60 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
       // Find the squad division from any member's Excel data
       let squadDivision: string | null = null
 
+      // Collect all team names from members to check if they're all the same
+      const memberTeamNames = new Set<string>()
+
       for (const member of squad.members) {
-        const divData = athleteSquadDivisions.get(member.athleteId)
-        if (divData) {
-          if (disciplineName === 'skeet' && divData.skeet) {
-            squadDivision = divData.skeet
-            break
-          } else if (disciplineName === 'trap' && divData.trap) {
-            squadDivision = divData.trap
-            break
-          } else if (disciplineName === 'sporting_clays' && divData.sporting) {
-            squadDivision = divData.sporting
-            break
+        const squadData = athleteSquadData.get(member.athleteId)
+        if (squadData) {
+          if (disciplineName === 'skeet' && squadData.skeet) {
+            if (!squadDivision) squadDivision = squadData.skeet.division
+            if (squadData.skeet.team && squadData.skeet.team.toLowerCase() !== 'unaffiliated') {
+              memberTeamNames.add(squadData.skeet.team.toLowerCase())
+            }
+          } else if (disciplineName === 'trap' && squadData.trap) {
+            if (!squadDivision) squadDivision = squadData.trap.division
+            if (squadData.trap.team && squadData.trap.team.toLowerCase() !== 'unaffiliated') {
+              memberTeamNames.add(squadData.trap.team.toLowerCase())
+            }
+          } else if (disciplineName === 'sporting_clays' && squadData.sporting) {
+            if (!squadDivision) squadDivision = squadData.sporting.division
+            if (squadData.sporting.team && squadData.sporting.team.toLowerCase() !== 'unaffiliated') {
+              memberTeamNames.add(squadData.sporting.team.toLowerCase())
+            }
           }
         }
       }
 
-      // Only update if we found a division and it's different from current
-      if (squadDivision && squad.division !== squadDivision) {
+      // Determine teamId
+      // Set to null (Unaffiliated) if:
+      // 1. Squad is partial (less than capacity), OR
+      // 2. Members are from different teams, OR
+      // 3. Any member is explicitly marked as "Unaffiliated"
+      let teamId: string | null = null
+      const isPartialSquad = squad.members.length < squad.capacity
+      const hasMixedTeams = memberTeamNames.size > 1
+      const hasUnaffiliatedMembers = memberTeamNames.size === 0
+
+      if (!isPartialSquad && !hasMixedTeams && !hasUnaffiliatedMembers && memberTeamNames.size === 1) {
+        // All members from same team and squad is full
+        const teamName = Array.from(memberTeamNames)[0]
+        teamId = teamByName.get(teamName) || null
+      }
+
+      // Check if squad needs updating
+      const needsUpdate = (squadDivision && squad.division !== squadDivision) ||
+                          (squad.teamId !== teamId)
+
+      if (needsUpdate) {
+        const updateData: any = {}
+        if (squadDivision) updateData.division = squadDivision
+        if (squad.teamId !== teamId) updateData.teamId = teamId
+
         squadUpdates.push(
           prisma.squad.update({
             where: { id: squad.id },
-            data: { division: squadDivision }
+            data: updateData
           })
         )
       }

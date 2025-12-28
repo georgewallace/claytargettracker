@@ -630,7 +630,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                   </div>
                                 </td>
                                 <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                  {athlete.totalScore}
+                                  {Math.floor(athlete.totalScore)}
                                 </td>
                               </tr>
                             )
@@ -673,7 +673,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                   </div>
                                 </td>
                                 <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                  {athlete.totalScore}
+                                  {Math.floor(athlete.totalScore)}
                                 </td>
                               </tr>
                             )
@@ -716,7 +716,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                   </div>
                                 </td>
                                 <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                  {athlete.totalScore}
+                                  {Math.floor(athlete.totalScore)}
                                 </td>
                               </tr>
                             )
@@ -783,7 +783,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                       </div>
                                     </td>
                                     <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                      {athlete.disciplineScores[disciplineId]}
+                                      {Math.floor(athlete.disciplineScores[disciplineId])}
                                     </td>
                                   </tr>
                                 ))}
@@ -824,7 +824,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                       </div>
                                     </td>
                                     <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                      {athlete.disciplineScores[disciplineId]}
+                                      {Math.floor(athlete.disciplineScores[disciplineId])}
                                     </td>
                                   </tr>
                                 ))}
@@ -1024,7 +1024,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                     {squad.memberCount}
                                   </td>
                                   <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                    {squad.totalScore}
+                                    {Math.floor(squad.totalScore)}
                                   </td>
                                 </tr>
                               ))}
@@ -1137,7 +1137,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                       {isRecent && <span className="ml-1 text-green-600">✨</span>}
                                     </td>
                                     <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                      {score}
+                                      {Math.floor(score)}
                                     </td>
                                   </tr>
                                 )

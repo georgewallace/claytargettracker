@@ -43,6 +43,7 @@ model Team {
   coaches                 TeamCoach[]
   joinRequests            TeamJoinRequest[]
   tournamentRegistrations TeamTournamentRegistration[]
+  squads                  Squad[]
 }
 
 model TeamCoach {
@@ -201,6 +202,7 @@ model TimeSlot {
 model Squad {
   id         String        @id @default(cuid())
   timeSlotId String
+  teamId     String?
   name       String
   capacity   Int           @default(5)
   teamOnly   Boolean       @default(false)
@@ -209,9 +211,11 @@ model Squad {
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
   timeSlot   TimeSlot      @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+  team       Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
   members    SquadMember[]
 
   @@index([timeSlotId])
+  @@index([teamId])
   @@index([division])
 }
 
@@ -326,7 +330,7 @@ model Score {
   shootId       String
   roundNumber   Int?
   stationNumber Int?
-  targets       Int
+  targets       Float
   maxTargets    Int      @default(25)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
