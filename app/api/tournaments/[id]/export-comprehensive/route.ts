@@ -175,7 +175,7 @@ export async function GET(
 
       // Determine if squad has mixed divisions
       const squadDivisions = assignment.squad.members
-        .map(m => m.athlete.divisionOverride || m.athlete.division)
+        .map((m: any) => m.athlete.divisionOverride || m.athlete.division)
         .filter(Boolean)
       const uniqueDivisions = [...new Set(squadDivisions)]
 
