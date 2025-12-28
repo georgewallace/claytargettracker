@@ -378,6 +378,9 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
           } else if (lowerText.includes('fifth') || lowerText.includes('5th')) {
             haaIndividualPlace = 5
           }
+
+          // Store the original HAA Individual Place text (contains gender info like "HAA Men's Champion")
+          haaConcurrent = haaPlaceText
         }
       }
 
@@ -393,13 +396,15 @@ async function processShooterHistoryImport(tournamentId: string, data: any[]) {
         }
       }
 
-      // Get HAA Concurrent (division)
-      haaConcurrent = row['HAA Concurrent']?.toString().trim() ||
-                     row['HAA Male Concurrent']?.toString().trim() ||
-                     row['HAA Men Concurrent']?.toString().trim() ||
-                     row['HAA Female Concurrent']?.toString().trim() ||
-                     row['HAA Ladies Concurrent']?.toString().trim() ||
-                     row['HAA Women Concurrent']?.toString().trim() || undefined
+      // Get HAA Concurrent (division) - only if not already set from HAA Individual Place
+      if (!haaConcurrent) {
+        haaConcurrent = row['HAA Concurrent']?.toString().trim() ||
+                       row['HAA Male Concurrent']?.toString().trim() ||
+                       row['HAA Men Concurrent']?.toString().trim() ||
+                       row['HAA Female Concurrent']?.toString().trim() ||
+                       row['HAA Ladies Concurrent']?.toString().trim() ||
+                       row['HAA Women Concurrent']?.toString().trim() || undefined
+      }
 
       let imported = false
 
