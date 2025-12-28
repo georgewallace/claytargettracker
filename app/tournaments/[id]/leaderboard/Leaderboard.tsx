@@ -352,26 +352,43 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     let haaFemaleathletes: athletescore[] = []
 
     if (tournament.enableHAA) {
-      // Overall HAA (all genders combined) - champion and runner up only (top 2)
+      // Overall HAA - only show athletes with haaIndividualPlace set and no gender designation
       haaathletes = [...allathletes]
-        .filter(s => s.disciplineCount > 0)
-        .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, 2)
+        .filter(s => {
+          if (!s.haaIndividualPlace) return false
+          // Check if haaConcurrent is gender-neutral (no "Men's", "Male", "Lady's", "Ladies", "Female", "Women")
+          const concurrent = (s.haaConcurrent || '').toLowerCase()
+          const isGenderSpecific = concurrent.includes("men") ||
+                                   concurrent.includes("male") ||
+                                   concurrent.includes("lady") ||
+                                   concurrent.includes("ladies") ||
+                                   concurrent.includes("female") ||
+                                   concurrent.includes("women")
+          return !isGenderSpecific
+        })
+        .sort((a, b) => (a.haaIndividualPlace || 999) - (b.haaIndividualPlace || 999))
 
       // Get Overall HAA winner IDs to exclude from gender-specific categories
       const overallHAAWinnerIds = new Set(haaathletes.map(s => s.athleteId))
 
-      // HAA for males - exclude Overall HAA winners, champion and runner up only (top 2)
+      // HAA for males - only show athletes with haaIndividualPlace and gender-specific designation
       haaMaleathletes = [...allathletes]
-        .filter(s => s.disciplineCount > 0 && s.gender === 'M' && !overallHAAWinnerIds.has(s.athleteId))
-        .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, 2)
+        .filter(s => {
+          if (!s.haaIndividualPlace || overallHAAWinnerIds.has(s.athleteId)) return false
+          const concurrent = (s.haaConcurrent || '').toLowerCase()
+          return concurrent.includes("men") || concurrent.includes("male")
+        })
+        .sort((a, b) => (a.haaIndividualPlace || 999) - (b.haaIndividualPlace || 999))
 
-      // HAA for females - exclude Overall HAA winners, champion and runner up only (top 2)
+      // HAA for females - only show athletes with haaIndividualPlace and gender-specific designation
       haaFemaleathletes = [...allathletes]
-        .filter(s => s.disciplineCount > 0 && s.gender === 'F' && !overallHAAWinnerIds.has(s.athleteId))
-        .sort((a, b) => b.totalScore - a.totalScore)
-        .slice(0, 2)
+        .filter(s => {
+          if (!s.haaIndividualPlace || overallHAAWinnerIds.has(s.athleteId)) return false
+          const concurrent = (s.haaConcurrent || '').toLowerCase()
+          return concurrent.includes("lady") || concurrent.includes("ladies") ||
+                 concurrent.includes("female") || concurrent.includes("women")
+        })
+        .sort((a, b) => (a.haaIndividualPlace || 999) - (b.haaIndividualPlace || 999))
     }
 
     // Collect all HAA winners for exclusion from division leaderboards
