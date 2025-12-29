@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useSearchParams, usePathname } from 'next/navigation'
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { format } from 'date-fns'
 import Link from 'next/link'
@@ -27,7 +27,6 @@ interface SquadManagerProps {
 }
 
 export default function SquadManager({ tournament: initialTournament, userRole, coachedTeamId }: SquadManagerProps) {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const [draggedathlete, setDraggedathlete] = useState<any | null>(null)
