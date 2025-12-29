@@ -362,7 +362,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
       setShowAutoAssignModal(false)
       setSuccess(data.message || 'Auto-assignment completed successfully!')
       setTimeout(() => setSuccess(''), 5000)
-      router.refresh()
+      window.location.reload()
     } catch (err: any) {
       setShowAutoAssignModal(false)
       setError(err.message || 'An error occurred during auto-assignment')
@@ -485,7 +485,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
       setShowAddTimeSlot(false)
       setNewTimeSlot({ date: '', startTime: '', endTime: '', squadCapacity: 5, fieldNumber: '' })
       setAvailableTimeSlots([])
-      router.refresh()
+      window.location.reload()
     } catch (err: any) {
       setError(err.message || 'An error occurred while creating time slot')
       setTimeout(() => setError(''), 5000)
@@ -529,7 +529,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
         
         setSuccess('Squad moved successfully!')
         setTimeout(() => setSuccess(''), 3000)
-        router.refresh()
+        window.location.reload()
       } catch (err: any) {
         setError(err.message || 'An error occurred')
         setTimeout(() => setError(''), 5000)
@@ -626,8 +626,8 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
           throw new Error(data.error || 'Failed to assign athlete')
         }
 
-        // Success - refresh from server
-        router.refresh()
+        // Success - reload to ensure state is in sync
+        window.location.reload()
       } catch (err: any) {
         setError(err.message || 'An error occurred')
         setTimeout(() => setError(''), 5000)
@@ -757,8 +757,8 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
 
       setSuccess(`Squad "${squadName}" created and athlete assigned!`)
       setTimeout(() => setSuccess(''), 3000)
-      // Refresh from server to show the new squad and athlete
-      router.refresh()
+      // Reload to ensure state is in sync
+      window.location.reload()
     } catch (err: any) {
       setError(err.message || 'An error occurred')
       setTimeout(() => setError(''), 5000)
@@ -1150,7 +1150,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
                         key={timeSlot.id}
                         timeSlot={enhancedTimeSlot}
                         tournamentId={tournament.id}
-                        onUpdate={() => router.refresh()}
+                        onUpdate={() => window.location.reload()}
                         userRole={userRole}
                         coachedTeamId={coachedTeamId}
                       />
