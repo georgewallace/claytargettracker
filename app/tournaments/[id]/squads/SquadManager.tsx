@@ -40,7 +40,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [activeDiscipline, setActiveDiscipline] = useState<string | null>(null)
   const [autoAssigning, setAutoAssigning] = useState(false)
-  const [tournament, setTournament] = useState(initialTournament) // New: Local state for optimistic updates
+  const tournament = initialTournament // Use prop directly, no local state needed
   const [showAutoAssignModal, setShowAutoAssignModal] = useState(false)
   const [autoAssignOptions, setAutoAssignOptions] = useState({
     keepTeamsTogether: true,
@@ -79,11 +79,6 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
       },
     })
   )
-
-  // Sync local state with prop changes
-  useEffect(() => {
-    setTournament(initialTournament)
-  }, [initialTournament])
 
   // Get current user's team if they're a coach
   useEffect(() => {
@@ -167,7 +162,8 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
   const updateDisciplineParam = (disciplineId: string) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set('discipline', disciplineId)
-    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+    // Use window.history to avoid navigation flash
+    window.history.replaceState(null, '', `${pathname}?${params.toString()}`)
     setActiveDiscipline(disciplineId)
   }
 
@@ -598,48 +594,10 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
         squad.members.some((member: any) => member.athleteId === athleteId)
       )
 
-      // OPTIMISTIC UPDATE: Update local state immediately
-      const previousState = structuredClone(tournament) // Fast deep clone for rollback
-
-      setTournament(prevTournament => {
-        const newTournament = structuredClone(prevTournament)
-
-        // Find and remove athlete from ANY existing squad (across all time slots)
-        for (const slot of newTournament.timeSlots) {
-          for (const squad of slot.squads) {
-            const memberIndex = squad.members.findIndex((m: any) => m.athleteId === athleteId)
-            if (memberIndex !== -1) {
-              squad.members.splice(memberIndex, 1)
-            }
-          }
-        }
-
-        // Add to new squad
-        const targetTimeSlot = newTournament.timeSlots.find((slot: any) => slot.id === timeSlot.id)
-        if (targetTimeSlot) {
-          const targetSquad = targetTimeSlot.squads.find((s: any) => s.id === squadId)
-          if (targetSquad) {
-            const athlete = allathletes.find((a: any) => a.id === athleteId)
-            if (athlete) {
-              targetSquad.members.push({
-                id: `temp-${Date.now()}`, // Temporary ID
-                squadId,
-                athleteId,
-                athlete,
-                createdAt: new Date(),
-                updatedAt: new Date()
-              })
-            }
-          }
-        }
-
-        return newTournament
-      })
-
       setIsSaving(true)
       setError('')
 
-      // Background sync with server
+      // Sync with server
       try {
         // If athlete is in another squad at this time slot, remove them first
         if (existingSquadAtThisTime && existingSquadAtThisTime.id !== squadId) {
@@ -668,11 +626,9 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
           throw new Error(data.error || 'Failed to assign athlete')
         }
 
-        // Success - refresh from server to ensure state is in sync
+        // Success - refresh from server
         router.refresh()
       } catch (err: any) {
-        // ROLLBACK: Restore previous state on error
-        setTournament(previousState)
         setError(err.message || 'An error occurred')
         setTimeout(() => setError(''), 5000)
       } finally {
@@ -759,40 +715,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
     }
     const squadName = `${teamPrefix} - ${newSquadName.trim()}`
 
-    // OPTIMISTIC UPDATE: Add squad and athlete to local state immediately
-    const previousState = structuredClone(tournament)
-    const tempSquadId = `temp-squad-${Date.now()}`
-    const athlete = allathletes.find((a: any) => a.id === athleteId)
-
-    // Create new squad object
-    const newSquad = {
-      id: tempSquadId,
-      name: squadName,
-      capacity: squadCapacity,
-      timeSlotId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      members: athlete ? [{
-        id: `temp-member-${Date.now()}`,
-        squadId: tempSquadId,
-        athleteId,
-        athlete,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }] : []
-    }
-
-    // Fast update - only clone/update the specific timeslot, not entire tournament
-    setTournament(prevTournament => ({
-      ...prevTournament,
-      timeSlots: prevTournament.timeSlots.map((slot: any) =>
-        slot.id === timeSlotId
-          ? { ...slot, squads: [...slot.squads, newSquad] }
-          : slot
-      )
-    }))
-
-    // Close modal AFTER optimistic update so UI updates instantly
+    // Close modal before API call
     setShowCreateSquadModal(false)
     setPendingSquadCreation(null)
     setNewSquadName('')
@@ -801,7 +724,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
     setError('')
     setSuccess('')
 
-    // Background sync with server
+    // Sync with server
     try {
       // Create the squad
       const createResponse = await fetch(`/api/timeslots/${timeSlotId}/squads`, {
@@ -832,36 +755,11 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
         throw new Error(data.error || 'Failed to add athlete to squad')
       }
 
-      // Update local state with real IDs from server (fast shallow update)
-      setTournament(prevTournament => ({
-        ...prevTournament,
-        timeSlots: prevTournament.timeSlots.map((slot: any) =>
-          slot.id === timeSlotId
-            ? {
-                ...slot,
-                squads: slot.squads.map((squad: any) =>
-                  squad.id === tempSquadId
-                    ? {
-                        ...squad,
-                        id: newSquad.id,
-                        members: squad.members.map((member: any, idx: number) =>
-                          idx === 0 ? { ...member, squadId: newSquad.id } : member
-                        )
-                      }
-                    : squad
-                )
-              }
-            : slot
-        )
-      }))
-
       setSuccess(`Squad "${squadName}" created and athlete assigned!`)
       setTimeout(() => setSuccess(''), 3000)
       // Refresh from server to show the new squad and athlete
       router.refresh()
     } catch (err: any) {
-      // ROLLBACK: Restore previous state on error
-      setTournament(previousState)
       setError(err.message || 'An error occurred')
       setTimeout(() => setError(''), 5000)
     } finally {
