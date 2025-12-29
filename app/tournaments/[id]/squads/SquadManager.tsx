@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { format } from 'date-fns'
 import Link from 'next/link'
@@ -28,6 +28,8 @@ interface SquadManagerProps {
 
 export default function SquadManager({ tournament: initialTournament, userRole, coachedTeamId }: SquadManagerProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [draggedathlete, setDraggedathlete] = useState<any | null>(null)
   const [draggedSquad, setDraggedSquad] = useState<any | null>(null)
   const [loading, setLoading] = useState(false)
@@ -147,12 +149,27 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
     return slot?.discipline
   }).filter(Boolean)
 
-  // Set initial active discipline
+  // Set initial active discipline from URL params or default to first discipline
   useEffect(() => {
-    if (!activeDiscipline && tournamentDisciplines.length > 0) {
-      setActiveDiscipline(tournamentDisciplines[0].id)
+    if (tournamentDisciplines.length > 0) {
+      const disciplineParam = searchParams.get('discipline')
+      // Check if URL param exists and is valid
+      if (disciplineParam && tournamentDisciplines.some(d => d.id === disciplineParam)) {
+        setActiveDiscipline(disciplineParam)
+      } else if (!activeDiscipline) {
+        // Default to first discipline if no valid param and no active discipline
+        setActiveDiscipline(tournamentDisciplines[0].id)
+      }
     }
-  }, [tournamentDisciplines, activeDiscipline])
+  }, [tournamentDisciplines, searchParams])
+
+  // Helper function to update URL params when discipline changes
+  const updateDisciplineParam = (disciplineId: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('discipline', disciplineId)
+    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+    setActiveDiscipline(disciplineId)
+  }
 
   // Get unique fields for the active discipline
   const availableFields = activeDiscipline
@@ -652,7 +669,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
         }
 
         // Success - refresh from server to ensure state is in sync
-        window.location.reload()
+        router.refresh()
       } catch (err: any) {
         // ROLLBACK: Restore previous state on error
         setTournament(previousState)
@@ -840,8 +857,8 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
 
       setSuccess(`Squad "${squadName}" created and athlete assigned!`)
       setTimeout(() => setSuccess(''), 3000)
-      // Refresh page to show the new squad and athlete
-      window.location.reload()
+      // Refresh from server to show the new squad and athlete
+      router.refresh()
     } catch (err: any) {
       // ROLLBACK: Restore previous state on error
       setTournament(previousState)
@@ -949,7 +966,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
                 return (
                   <button
                     key={discipline.id}
-                    onClick={() => setActiveDiscipline(discipline.id)}
+                    onClick={() => updateDisciplineParam(discipline.id)}
                     className={`${
                       isActive
                         ? 'border-indigo-500 text-indigo-600'

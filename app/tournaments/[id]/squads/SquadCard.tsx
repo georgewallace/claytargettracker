@@ -189,9 +189,8 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
 
       setShowRemoveModal(false)
       setathleteToRemove(null)
+      // Trigger server refresh to show athlete back in unassigned list
       onUpdate()
-      // Refresh to show athlete back in unassigned list
-      window.location.reload()
     } catch (err: any) {
       alert(err.message || 'An error occurred')
     } finally {

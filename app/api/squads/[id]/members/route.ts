@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 
@@ -29,6 +30,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const squad = await prisma.squad.findUnique({
       where: { id: squadId },
       include: {
+        timeSlot: {
+          select: {
+            tournamentId: true
+          }
+        },
         members: {
           include: {
             athlete: {
@@ -130,6 +136,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     })
 
+    // Revalidate the squad manager page
+    revalidatePath(`/tournaments/${squad.timeSlot.tournamentId}/squads`)
+
     return NextResponse.json(member, { status: 201 })
   } catch (error) {
     console.error('Error adding athlete to squad:', error)
@@ -155,6 +164,18 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Get squad to access tournamentId for revalidation
+    const squad = await prisma.squad.findUnique({
+      where: { id: squadId },
+      select: {
+        timeSlot: {
+          select: {
+            tournamentId: true
+          }
+        }
+      }
+    })
+
     await prisma.squadMember.delete({
       where: {
         squadId_athleteId: {
@@ -163,6 +184,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         }
       }
     })
+
+    // Revalidate the squad manager page
+    if (squad) {
+      revalidatePath(`/tournaments/${squad.timeSlot.tournamentId}/squads`)
+    }
 
     return NextResponse.json({ message: 'Athlete removed from squad' }, { status: 200 })
   } catch (error) {
@@ -197,6 +223,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Get squad to access tournamentId for revalidation
+    const squad = await prisma.squad.findUnique({
+      where: { id: squadId },
+      select: {
+        timeSlot: {
+          select: {
+            tournamentId: true
+          }
+        }
+      }
+    })
+
     // Update positions in a transaction
     await prisma.$transaction(
       updates.map(({ athleteId, position }) =>
@@ -211,6 +249,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         })
       )
     )
+
+    // Revalidate the squad manager page
+    if (squad) {
+      revalidatePath(`/tournaments/${squad.timeSlot.tournamentId}/squads`)
+    }
 
     return NextResponse.json({ message: 'Squad positions updated' }, { status: 200 })
   } catch (error) {

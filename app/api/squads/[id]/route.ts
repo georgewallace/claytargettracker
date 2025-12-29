@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 
@@ -64,6 +65,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       where: { id: squadId },
       data: updateData,
       include: {
+        timeSlot: {
+          select: {
+            tournamentId: true
+          }
+        },
         members: {
           include: {
             athlete: {
@@ -76,6 +82,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         }
       }
     })
+
+    // Revalidate the squad manager page
+    revalidatePath(`/tournaments/${squad.timeSlot.tournamentId}/squads`)
 
     return NextResponse.json(squad, { status: 200 })
   } catch (error) {
@@ -101,10 +110,27 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Get squad to access tournamentId for revalidation before deleting
+    const squad = await prisma.squad.findUnique({
+      where: { id: squadId },
+      select: {
+        timeSlot: {
+          select: {
+            tournamentId: true
+          }
+        }
+      }
+    })
+
     // Delete the squad (cascade will delete squad members)
     await prisma.squad.delete({
       where: { id: squadId }
     })
+
+    // Revalidate the squad manager page
+    if (squad) {
+      revalidatePath(`/tournaments/${squad.timeSlot.tournamentId}/squads`)
+    }
 
     return NextResponse.json({ message: 'Squad deleted successfully' }, { status: 200 })
   } catch (error) {

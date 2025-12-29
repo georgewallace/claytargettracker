@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 
@@ -31,7 +32,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Verify the time slot exists
     const timeSlot = await prisma.timeSlot.findUnique({
-      where: { id: timeSlotId }
+      where: { id: timeSlotId },
+      select: {
+        id: true,
+        tournamentId: true
+      }
     })
 
     if (!timeSlot) {
@@ -60,6 +65,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         }
       }
     })
+
+    // Revalidate the squad manager page
+    revalidatePath(`/tournaments/${timeSlot.tournamentId}/squads`)
 
     return NextResponse.json({
       message: 'Squad moved successfully',
