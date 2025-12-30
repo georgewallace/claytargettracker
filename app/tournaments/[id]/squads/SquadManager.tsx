@@ -32,14 +32,16 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
   const [draggedathlete, setDraggedathlete] = useState<any | null>(null)
   const [draggedSquad, setDraggedSquad] = useState<any | null>(null)
   const [loading, setLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false) // New: Track background save operations
+  const [isSaving, setIsSaving] = useState(false) // Track background save operations
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [showMyTeamOnly, setShowMyTeamOnly] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [activeDiscipline, setActiveDiscipline] = useState<string | null>(null)
   const [autoAssigning, setAutoAssigning] = useState(false)
-  const tournament = initialTournament // Use prop directly, no local state needed
+
+  // CLIENT-SIDE STATE: Track tournament data locally for optimistic updates
+  const [tournament, setTournament] = useState(initialTournament)
   const [showAutoAssignModal, setShowAutoAssignModal] = useState(false)
   const [autoAssignOptions, setAutoAssignOptions] = useState({
     keepTeamsTogether: true,
@@ -78,6 +80,19 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
       },
     })
   )
+
+  // REFRESH DATA: Fetch latest tournament data from server without page reload
+  const refreshTournamentData = async () => {
+    try {
+      const response = await fetch(`/api/tournaments/${tournament.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setTournament(data)
+      }
+    } catch (err) {
+      console.error('Failed to refresh tournament data:', err)
+    }
+  }
 
   // Get current user's team if they're a coach
   useEffect(() => {
@@ -361,7 +376,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
       setShowAutoAssignModal(false)
       setSuccess(data.message || 'Auto-assignment completed successfully!')
       setTimeout(() => setSuccess(''), 5000)
-      window.location.reload()
+      refreshTournamentData()
     } catch (err: any) {
       setShowAutoAssignModal(false)
       setError(err.message || 'An error occurred during auto-assignment')
@@ -484,7 +499,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
       setShowAddTimeSlot(false)
       setNewTimeSlot({ date: '', startTime: '', endTime: '', squadCapacity: 5, fieldNumber: '' })
       setAvailableTimeSlots([])
-      window.location.reload()
+      refreshTournamentData()
     } catch (err: any) {
       setError(err.message || 'An error occurred while creating time slot')
       setTimeout(() => setError(''), 5000)
@@ -526,9 +541,29 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
           throw new Error(data.error || 'Failed to move squad')
         }
         
+        // OPTIMISTIC UPDATE: Update local state immediately
+        setTournament(prevTournament => {
+          const updatedTimeSlots = prevTournament.timeSlots.map(slot => {
+            // Remove squad from old time slot
+            const squadsWithoutMoved = slot.squads.filter((s: any) => s.id !== squadId)
+
+            // Add squad to new time slot
+            if (slot.id === timeSlotId) {
+              const movedSquad = prevTournament.timeSlots
+                .flatMap(s => s.squads)
+                .find((s: any) => s.id === squadId)
+
+              return movedSquad ? { ...slot, squads: [...squadsWithoutMoved, movedSquad] } : slot
+            }
+
+            return { ...slot, squads: squadsWithoutMoved }
+          })
+
+          return { ...prevTournament, timeSlots: updatedTimeSlots }
+        })
+
         setSuccess('Squad moved successfully!')
         setTimeout(() => setSuccess(''), 3000)
-        window.location.reload()
       } catch (err: any) {
         setError(err.message || 'An error occurred')
         setTimeout(() => setError(''), 5000)
@@ -625,8 +660,46 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
           throw new Error(data.error || 'Failed to assign athlete')
         }
 
-        // Success - reload to ensure state is in sync
-        window.location.reload()
+        // OPTIMISTIC UPDATE: Update local state immediately
+        setTournament(prevTournament => {
+          const updatedTimeSlots = prevTournament.timeSlots.map(slot => {
+            const updatedSquads = slot.squads.map((squad: any) => {
+              // Remove athlete from old squad at this time slot
+              if (existingSquadAtThisTime && squad.id === existingSquadAtThisTime.id) {
+                return {
+                  ...squad,
+                  members: squad.members.filter((m: any) => m.athleteId !== athleteId)
+                }
+              }
+
+              // Add athlete to new squad
+              if (squad.id === squadId) {
+                // Find the full athlete object to include complete data
+                const athlete = allathletes.find((a: any) => a.id === athleteId)
+
+                const newMember = {
+                  athleteId,
+                  squadId,
+                  position: squad.members.length + 1,
+                  athlete: athlete || { id: athleteId } // Fallback to minimal data if not found
+                }
+                return {
+                  ...squad,
+                  members: [...squad.members, newMember]
+                }
+              }
+
+              return squad
+            })
+
+            return { ...slot, squads: updatedSquads }
+          })
+
+          return { ...prevTournament, timeSlots: updatedTimeSlots }
+        })
+
+        // Refresh full data in background to ensure sync
+        refreshTournamentData()
       } catch (err: any) {
         setError(err.message || 'An error occurred')
         setTimeout(() => setError(''), 5000)
@@ -756,8 +829,8 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
 
       setSuccess(`Squad "${squadName}" created and athlete assigned!`)
       setTimeout(() => setSuccess(''), 3000)
-      // Reload to ensure state is in sync
-      window.location.reload()
+      // Refresh data to ensure state is in sync
+      refreshTournamentData()
     } catch (err: any) {
       setError(err.message || 'An error occurred')
       setTimeout(() => setError(''), 5000)
@@ -1149,7 +1222,7 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
                         key={timeSlot.id}
                         timeSlot={enhancedTimeSlot}
                         tournamentId={tournament.id}
-                        onUpdate={() => window.location.reload()}
+                        onUpdate={() => refreshTournamentData()}
                         userRole={userRole}
                         coachedTeamId={coachedTeamId}
                       />

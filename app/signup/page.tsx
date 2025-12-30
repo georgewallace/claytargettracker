@@ -14,14 +14,14 @@ export default function SignupPage() {
             href="/signup/athlete"
             className="block w-full px-6 py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
           >
-            🎯 Sign up as Athlete
+            Sign up as Athlete
           </Link>
 
           <Link
             href="/signup/coach"
             className="block w-full px-6 py-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium"
           >
-            👥 Sign up as Coach
+            Sign up as Coach
           </Link>
         </div>
 

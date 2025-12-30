@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, getCurrentUser } from '@/lib/auth'
 
 
 
@@ -8,6 +8,91 @@ interface RouteParams {
   params: Promise<{
     id: string
   }>
+}
+
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  try {
+    const user = await getCurrentUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { id } = await params
+
+    const tournament = await prisma.tournament.findUnique({
+      where: { id },
+      include: {
+        disciplines: {
+          include: {
+            discipline: true
+          }
+        },
+        timeSlots: {
+          include: {
+            discipline: true,
+            squads: {
+              include: {
+                members: {
+                  include: {
+                    athlete: {
+                      include: {
+                        user: true,
+                        team: true
+                      }
+                    }
+                  }
+                }
+              },
+              orderBy: {
+                name: 'asc'
+              }
+            }
+          },
+          orderBy: [
+            { date: 'asc' },
+            { startTime: 'asc' }
+          ]
+        },
+        registrations: {
+          include: {
+            athlete: {
+              include: {
+                user: true,
+                team: true
+              }
+            },
+            disciplines: {
+              include: {
+                discipline: true,
+                timeSlotPreferences: {
+                  include: {
+                    timeSlot: {
+                      include: {
+                        discipline: true
+                      }
+                    }
+                  },
+                  orderBy: {
+                    preference: 'asc'
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+
+    if (!tournament) {
+      return NextResponse.json({ error: 'Tournament not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(tournament)
+  } catch (error) {
+    console.error('Error fetching tournament:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {

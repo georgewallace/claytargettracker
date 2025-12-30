@@ -101,7 +101,6 @@ export default function LoginPage() {
               href="/signup/athlete"
               className="flex flex-col items-center justify-center px-4 py-4 border-2 border-indigo-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition group"
             >
-              <div className="text-3xl mb-2">🎯</div>
               <div className="text-sm font-medium text-gray-900 group-hover:text-indigo-700">
                 Sign up as Athlete
               </div>
@@ -114,7 +113,6 @@ export default function LoginPage() {
               href="/signup/coach"
               className="flex flex-col items-center justify-center px-4 py-4 border-2 border-emerald-200 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 transition group"
             >
-              <div className="text-3xl mb-2">👥</div>
               <div className="text-sm font-medium text-gray-900 group-hover:text-emerald-700">
                 Sign up as Coach
               </div>

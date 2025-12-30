@@ -10,8 +10,8 @@ export const authConfig = {
       const pathname = nextUrl.pathname
       
       // Public pages that don't require authentication
-      const publicPaths = ['/login', '/signup', '/', '/help']
-      const isPublicPage = publicPaths.includes(pathname)
+      const publicPaths = ['/login', '/signup', '/signup/athlete', '/signup/coach', '/', '/help']
+      const isPublicPage = publicPaths.includes(pathname) || pathname.startsWith('/signup/')
       
       if (isPublicPage) {
         return true

@@ -69,6 +69,7 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [athleteToRemove, setathleteToRemove] = useState<any>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [removedAthleteIds, setRemovedAthleteIds] = useState<Set<string>>(new Set())
   const [sortedMembers, setSortedMembers] = useState(
     [...squad.members].sort((a, b) => (a.position || 0) - (b.position || 0))
   )
@@ -96,6 +97,13 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
         .catch(() => {})
     }
   }, [userRole])
+
+  // Sync sortedMembers when squad.members changes (after refresh)
+  useEffect(() => {
+    setSortedMembers([...squad.members].sort((a, b) => (a.position || 0) - (b.position || 0)))
+    // Clear removed athlete IDs since we have fresh data from server
+    setRemovedAthleteIds(new Set())
+  }, [squad.members])
 
   // Handle drag end for reordering within squad
   const handleDragEnd = async (event: any) => {
@@ -200,6 +208,9 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
 
     setRemoving(athleteToRemove.id)
 
+    // OPTIMISTIC UPDATE: Hide athlete immediately
+    setRemovedAthleteIds(prev => new Set(prev).add(athleteToRemove.id))
+
     try {
       const response = await fetch(`/api/squads/${squad.id}/members`, {
         method: 'DELETE',
@@ -209,6 +220,12 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
 
       if (!response.ok) {
         const data = await response.json()
+        // REVERT: If removal failed, show athlete again
+        setRemovedAthleteIds(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(athleteToRemove.id)
+          return newSet
+        })
         throw new Error(data.error || 'Failed to remove athlete')
       }
 
@@ -502,21 +519,23 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
       {/* Squad Members - Horizontal Layout with Sortable Support */}
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
-          items={sortedMembers.map((m: any) => m.id)}
+          items={sortedMembers.filter((m: any) => !removedAthleteIds.has(m.athleteId)).map((m: any) => m.id)}
           strategy={verticalListSortingStrategy}
         >
           <div className="flex items-start gap-2 flex-wrap min-h-[60px]">
-            {sortedMembers.length > 0 ? (
-              sortedMembers.map((member: any) => (
-                <SortableMember
-                  key={member.id}
-                  member={member}
-                  disciplineId={disciplineId}
-                  timeSlotId={squad.timeSlotId}
-                  onRemove={canRemoveAthlete(member.athlete) ? () => handleRemoveClick(member.athlete) : undefined}
-                  removing={removing}
-                />
-              ))
+            {sortedMembers.filter((m: any) => !removedAthleteIds.has(m.athleteId)).length > 0 ? (
+              sortedMembers
+                .filter((m: any) => !removedAthleteIds.has(m.athleteId))
+                .map((member: any, index: number) => (
+                  <SortableMember
+                    key={member.id}
+                    member={{...member, position: index + 1}}
+                    disciplineId={disciplineId}
+                    timeSlotId={squad.timeSlotId}
+                    onRemove={canRemoveAthlete(member.athlete) ? () => handleRemoveClick(member.athlete) : undefined}
+                    removing={removing}
+                  />
+                ))
             ) : (
               <div className="flex-1 text-center py-3 text-gray-400 text-xs">
                 {isOver ? (
