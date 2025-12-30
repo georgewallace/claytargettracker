@@ -121,6 +121,9 @@ export default async function LeaderboardPage({ params }: PageProps) {
             🏆 Live Leaderboard
           </h1>
           <p className="text-2xl text-indigo-200">{tournament.name}</p>
+          <p className="text-sm text-indigo-300 mt-2">
+            Last updated: {new Date(tournament.updatedAt).toLocaleString()}
+          </p>
         </div>
 
         <Leaderboard 
