@@ -924,7 +924,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                     {isRecent && <span className="ml-1 text-green-600">✨</span>}
                                   </td>
                                   <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                    {athlete.disciplineScores[disciplineId]}
+                                    {Math.floor(athlete.disciplineScores[disciplineId] || 0)}
                                   </td>
                                 </tr>
                               )
