@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/auth'
+import { requireAuthWithApiKey } from '@/lib/auth'
 import * as XLSX from 'xlsx'
 
 // Helper function to parse placement text like "Varsity Men's Skeet Runner Up" or "HOA Lady's Skeet Champion"
@@ -70,7 +70,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireAuth()
+    const user = await requireAuthWithApiKey()
     const { id: tournamentId } = await params
 
     // Only admins can import scores

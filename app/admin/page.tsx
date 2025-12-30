@@ -280,6 +280,13 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
               Create Tournament
             </Link>
             <Link
+              href="/admin/api-keys"
+              className="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium"
+            >
+              <span className="mr-2">🔑</span>
+              API Keys
+            </Link>
+            <Link
               href="/admin/coaches"
               className="flex items-center justify-center px-4 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition font-medium"
             >
