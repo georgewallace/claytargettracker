@@ -18,7 +18,6 @@ interface Athlete {
   } | null
   division: string | null
   divisionOverride: string | null
-  calculatedDivision: string | null
   birthMonth: number | null
   birthDay: number | null
   birthYear: number | null
@@ -104,7 +103,7 @@ export default function ManageAthletesPage() {
     // Division filter
     if (divisionFilter) {
       filtered = filtered.filter(a => {
-        const effectiveDivision = a.divisionOverride || a.calculatedDivision
+        const effectiveDivision = a.divisionOverride || a.division
         return effectiveDivision === divisionFilter
       })
     }
@@ -256,7 +255,7 @@ export default function ManageAthletesPage() {
           </div>
           <ul className="divide-y divide-gray-200">
             {filteredAthletes.map((athlete) => {
-              const effectiveDivision = athlete.divisionOverride || athlete.calculatedDivision
+              const effectiveDivision = athlete.divisionOverride || athlete.division
               return (
                 <li key={athlete.id} className="p-6 hover:bg-gray-50">
                   <div className="flex items-center justify-between">
@@ -360,7 +359,7 @@ export default function ManageAthletesPage() {
                       ))}
                     </select>
                     <p className="mt-1 text-xs text-gray-500">
-                      Current calculated division: {editingAthlete.calculatedDivision || 'Not calculated'}
+                      Current calculated division: {editingAthlete.division || 'Not calculated'}
                     </p>
                   </div>
 

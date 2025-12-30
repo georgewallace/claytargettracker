@@ -121,10 +121,10 @@ export const affiliationOptions = [
 
 // Get the effective division (override takes precedence over calculated)
 export function getEffectiveDivision(
-  calculatedDivision: string | null,
+  division: string | null,
   divisionOverride: string | null
 ): string | null {
-  return divisionOverride || calculatedDivision
+  return divisionOverride || division
 }
 
 // Predefined squad names (Division + Number format)

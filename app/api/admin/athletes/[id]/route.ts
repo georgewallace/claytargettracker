@@ -44,9 +44,9 @@ export async function PATCH(
     }
 
     // Calculate new division based on grade if grade is being updated
-    let calculatedDivision = existingAthlete.calculatedDivision
+    let newDivision = existingAthlete.division
     if (grade !== undefined) {
-      calculatedDivision = calculateDivision(grade)
+      newDivision = calculateDivision(grade)
     }
 
     // Update athlete
@@ -55,7 +55,7 @@ export async function PATCH(
       data: {
         divisionOverride: divisionOverride === null ? null : divisionOverride || undefined,
         grade: grade === null ? null : grade || undefined,
-        calculatedDivision: calculatedDivision || undefined,
+        division: newDivision || undefined,
         birthMonth: birthMonth === null ? null : birthMonth || undefined,
         birthDay: birthDay === null ? null : birthDay || undefined,
         birthYear: birthYear === null ? null : birthYear || undefined

@@ -37,6 +37,11 @@ Public Sub PublishScores()
         Exit Sub
     End If
 
+    ' Remove trailing slash from API URL if present
+    If Right(apiUrl, 1) = "/" Then
+        apiUrl = Left(apiUrl, Len(apiUrl) - 1)
+    End If
+
     ' Show status
     Application.StatusBar = "Publishing scores to server..."
     Application.ScreenUpdating = False
@@ -89,6 +94,9 @@ Private Function UploadExcelFile(apiUrl As String, authToken As String, tourname
     ' Build full URL for JSON endpoint
     fullUrl = apiUrl & "/api/tournaments/" & tournamentId & "/import-scores-json"
 
+    ' Debug: Log the URL being called
+    Debug.Print "Posting to URL: " & fullUrl
+
     ' Send request
     http.Open "POST", fullUrl, False
     http.setRequestHeader "Authorization", "Bearer " & authToken
@@ -96,7 +104,11 @@ Private Function UploadExcelFile(apiUrl As String, authToken As String, tourname
     http.send jsonData
 
     ' Get response
-    UploadExcelFile = "Status: " & http.Status & " - " & http.responseText
+    If http.Status = 404 Then
+        UploadExcelFile = "Status: 404 Not Found - URL: " & fullUrl & vbCrLf & "Response: " & http.responseText
+    Else
+        UploadExcelFile = "Status: " & http.Status & " - " & http.responseText
+    End If
 
     Set http = Nothing
     Exit Function

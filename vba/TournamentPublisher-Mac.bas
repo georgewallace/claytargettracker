@@ -1,8 +1,7 @@
 Attribute VB_Name = "TournamentPublisher"
 ' ================================================================
-' Tournament Score Publisher for ClayTargetTracker (Mac Version)
+' Tournament Score Publisher for ClayTargetTracker
 ' Automatically publishes scores from Excel to the web application
-' Uses curl command via MacScript for HTTP requests
 ' ================================================================
 
 Option Explicit
@@ -44,10 +43,9 @@ Public Sub PublishScores()
 
     ' Save the workbook first
     ThisWorkbook.Save
-    filePath = ThisWorkbook.FullName
 
-    ' Upload the file
-    response = UploadExcelFile(apiUrl, authToken, tournamentId, filePath)
+    ' Upload as JSON (no file path needed - reads directly from sheets)
+    response = UploadExcelFile(apiUrl, authToken, tournamentId, "")
 
     ' Log the result
     LogPublishAttempt response
@@ -56,11 +54,11 @@ Public Sub PublishScores()
     Application.StatusBar = False
     Application.ScreenUpdating = True
 
-    If InStr(response, "success") > 0 Or InStr(response, "imported") > 0 Or InStr(response, """message""") > 0 Then
+    If InStr(response, "success") > 0 Or InStr(response, "imported") > 0 Then
         UpdateLastPublishTime
-        MsgBox "Scores published successfully!" & vbCrLf & vbCrLf & "Response: " & Left(response, 200), vbInformation, "Publish Complete"
+        MsgBox "Scores published successfully!", vbInformation, "Publish Complete"
     Else
-        MsgBox "Publish completed. Check the Publish Log for details." & vbCrLf & vbCrLf & "Response: " & Left(response, 200), vbInformation, "Publish Status"
+        MsgBox "Publish completed. Check the Publish Log for details.", vbInformation, "Publish Status"
     End If
 
     Exit Sub
@@ -73,48 +71,120 @@ ErrorHandler:
 End Sub
 
 ' ================================================================
-' Upload Excel File via curl (Mac compatible)
+' Upload Excel Data as JSON via curl (Mac compatible)
+' Much simpler than file upload - reads sheets and sends JSON
 ' ================================================================
 Private Function UploadExcelFile(apiUrl As String, authToken As String, tournamentId As String, filePath As String) As String
     On Error GoTo ErrorHandler
 
-    Dim curlCommand As String
     Dim fullUrl As String
+    Dim tmpDir As String
+    Dim jsonFile As String
     Dim outputFile As String
+    Dim scriptFile As String
     Dim result As String
+    Dim jsonData As String
+    Dim fileNum As Integer
 
-    ' Create output file for curl response
-    outputFile = Environ("TMPDIR") & "curl_response.txt"
+    ' Get temp directory
+    tmpDir = Environ("TMPDIR")
+    If tmpDir = "" Then tmpDir = "/tmp/"
+    If Right(tmpDir, 1) <> "/" Then tmpDir = tmpDir & "/"
 
-    ' Build full URL
-    fullUrl = apiUrl & "/api/tournaments/" & tournamentId & "/import-scores"
+    ' Create temp file paths
+    jsonFile = tmpDir & "ctt_data_" & Format(Now, "yyyymmddhhnnss") & ".json"
+    outputFile = tmpDir & "ctt_response_" & Format(Now, "yyyymmddhhnnss") & ".txt"
+    scriptFile = tmpDir & "ctt_upload_" & Format(Now, "yyyymmddhhnnss") & ".sh"
 
-    ' Build curl command
-    ' Using -F for multipart form data upload
-    curlCommand = "curl -X POST """ & fullUrl & """ " & _
-                  "-H ""Authorization: Bearer " & authToken & """ " & _
-                  "-F ""file=@" & filePath & """ " & _
-                  "-o """ & outputFile & """ " & _
-                  "-w ""%{http_code}"""
+    ' Build full URL for JSON endpoint
+    fullUrl = apiUrl & "/api/tournaments/" & tournamentId & "/import-scores-json"
 
-    ' Execute curl command via MacScript
-    result = MacScript("do shell script """ & curlCommand & """")
+    ' Build JSON from Excel sheets
+    jsonData = BuildJSONFromSheets()
 
-    ' Read response from output file
-    Dim responseText As String
-    responseText = ReadTextFile(outputFile)
+    ' Write JSON to temp file
+    fileNum = FreeFile
+    Open jsonFile For Output As #fileNum
+    Print #fileNum, jsonData
+    Close #fileNum
 
-    ' Combine HTTP status and response
-    UploadExcelFile = "HTTP Status: " & result & vbCrLf & responseText
+    ' Write shell script to execute the upload
+    fileNum = FreeFile
+    Open scriptFile For Output As #fileNum
+    Print #fileNum, "#!/bin/bash"
+    Print #fileNum, "curl -X POST '" & fullUrl & "' \"
+    Print #fileNum, "  -H 'Content-Type: application/json' \"
+    Print #fileNum, "  -H 'Authorization: Bearer " & authToken & "' \"
+    Print #fileNum, "  -d @'" & jsonFile & "' \"
+    Print #fileNum, "  -w '\nHTTP Status: %{http_code}\n' \"
+    Print #fileNum, "  -s"
+    Print #fileNum, ""
+    Print #fileNum, "echo ''"
+    Print #fileNum, "echo 'Press any key to close...'"
+    Print #fileNum, "read -n 1"
+    Close #fileNum
 
-    ' Clean up
+    ' Try MacScript first
     On Error Resume Next
-    Kill outputFile
+    result = MacScript("do shell script ""bash '" & scriptFile & "' 2>&1""")
+    Dim errNum As Integer
+    errNum = Err.Number
+    On Error GoTo ErrorHandler
+
+    ' If MacScript failed, offer manual option
+    If errNum <> 0 Then
+        Dim manualCmd As String
+        manualCmd = "bash '" & scriptFile & "'"
+
+        Dim userChoice As VbMsgBoxResult
+        userChoice = MsgBox("Automatic upload failed. Would you like to:" & vbCrLf & vbCrLf & _
+                           "YES - Copy command to run in Terminal" & vbCrLf & _
+                           "NO - Open Terminal automatically" & vbCrLf & vbCrLf & _
+                           "The command will upload your scores to the server.", _
+                           vbYesNo + vbQuestion, "Manual Upload Required")
+
+        If userChoice = vbYes Then
+            ' Copy command to clipboard (if possible)
+            On Error Resume Next
+            Dim clipboardData As New DataObject
+            clipboardData.SetText manualCmd
+            clipboardData.PutInClipboard
+
+            MsgBox "Command copied to clipboard!" & vbCrLf & vbCrLf & _
+                   "Open Terminal and paste (Cmd+V) to upload scores:" & vbCrLf & vbCrLf & _
+                   manualCmd, vbInformation
+            On Error GoTo ErrorHandler
+        Else
+            ' Try to open Terminal with the command
+            On Error Resume Next
+            MacScript "tell application ""Terminal""" & vbLf & _
+                     "activate" & vbLf & _
+                     "do script ""bash '" & scriptFile & "'""" & vbLf & _
+                     "end tell"
+            On Error GoTo ErrorHandler
+        End If
+
+        UploadExcelFile = "Manual upload required - see dialog for instructions"
+        Exit Function
+    End If
+
+    ' MacScript worked - parse result
+    UploadExcelFile = "Status: " & Trim(result)
+
+    ' Clean up temp files
+    On Error Resume Next
+    Kill jsonFile
+    Kill scriptFile
     On Error GoTo ErrorHandler
 
     Exit Function
 
 ErrorHandler:
+    On Error Resume Next
+    Kill jsonFile
+    Kill outputFile
+    On Error GoTo ErrorHandler
+
     UploadExcelFile = "ERROR: " & Err.Description & " (Error " & Err.Number & ")"
 End Function
 
@@ -139,6 +209,176 @@ Private Function ReadTextFile(filePath As String) As String
     Close #fileNum
 
     ReadTextFile = fileContent
+End Function
+
+' ================================================================
+' Build JSON from Excel Sheets
+' ================================================================
+Private Function BuildJSONFromSheets() As String
+    On Error GoTo ErrorHandler
+
+    Dim json As String
+    Dim sheets As String
+
+    ' Start JSON object
+    json = "{"
+    json = json & """sheets"":{"
+
+    ' Add Tournament Setup sheet if it exists
+    If SheetExists("Tournament Setup") Then
+        sheets = sheets & """Tournament Setup"":" & SheetToJSON("Tournament Setup") & ","
+    End If
+
+    ' Add Shooter History sheet if it exists
+    If SheetExists("Shooter History") Then
+        sheets = sheets & """Shooter History"":" & SheetToJSON("Shooter History") & ","
+    End If
+
+    ' Add Shooter Scores sheet if it exists
+    If SheetExists("Shooter Scores") Then
+        sheets = sheets & """Shooter Scores"":" & SheetToJSON("Shooter Scores") & ","
+    End If
+
+    ' Remove trailing comma if exists
+    If Right(sheets, 1) = "," Then
+        sheets = Left(sheets, Len(sheets) - 1)
+    End If
+
+    json = json & sheets
+    json = json & "}}"
+
+    BuildJSONFromSheets = json
+    Exit Function
+
+ErrorHandler:
+    BuildJSONFromSheets = "{""error"":""" & Err.Description & """}"
+End Function
+
+' ================================================================
+' Convert Sheet to JSON Array
+' ================================================================
+Private Function SheetToJSON(sheetName As String) As String
+    On Error GoTo ErrorHandler
+
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim lastCol As Long
+    Dim row As Long, col As Long
+    Dim json As String
+    Dim cellValue As Variant
+    Dim rowJson As String
+
+    Set ws = ThisWorkbook.Worksheets(sheetName)
+
+    ' Find last row and column with data
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).row
+    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+
+    ' Start array
+    json = "["
+
+    ' Loop through rows
+    For row = 1 To lastRow
+        rowJson = "["
+
+        ' Loop through columns
+        For col = 1 To lastCol
+            cellValue = ws.Cells(row, col).Value
+
+            ' Convert cell value to JSON
+            If IsEmpty(cellValue) Then
+                rowJson = rowJson & "null,"
+            ElseIf IsNumeric(cellValue) Then
+                rowJson = rowJson & cellValue & ","
+            Else
+                ' Escape quotes and special characters in strings
+                Dim strValue As String
+                strValue = CStr(cellValue)
+                strValue = Replace(strValue, "\", "\\")
+                strValue = Replace(strValue, """", "\""")
+                strValue = Replace(strValue, vbCr, "")
+                strValue = Replace(strValue, vbLf, "")
+                strValue = Replace(strValue, vbTab, " ")
+                rowJson = rowJson & """" & strValue & ""","
+            End If
+        Next col
+
+        ' Remove trailing comma and close row array
+        If Right(rowJson, 1) = "," Then
+            rowJson = Left(rowJson, Len(rowJson) - 1)
+        End If
+        rowJson = rowJson & "],"
+
+        json = json & rowJson
+    Next row
+
+    ' Remove trailing comma and close array
+    If Right(json, 1) = "," Then
+        json = Left(json, Len(json) - 1)
+    End If
+    json = json & "]"
+
+    SheetToJSON = json
+    Exit Function
+
+ErrorHandler:
+    SheetToJSON = "[]"
+End Function
+
+' ================================================================
+' Check if Sheet Exists
+' ================================================================
+Private Function SheetExists(sheetName As String) As Boolean
+    On Error Resume Next
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets(sheetName)
+    SheetExists = Not ws Is Nothing
+    On Error GoTo 0
+End Function
+
+' ================================================================
+' Build Multipart Form Data
+' ================================================================
+Private Function BuildMultipartData(fileData() As Byte, boundary As String, fieldName As String, fileName As String) As Byte()
+    Dim header As String
+    Dim footer As String
+    Dim headerBytes() As Byte
+    Dim footerBytes() As Byte
+    Dim result() As Byte
+    Dim i As Long, j As Long
+
+    ' Build header
+    header = "--" & boundary & vbCrLf & _
+             "Content-Disposition: form-data; name=""" & fieldName & """; filename=""" & fileName & """" & vbCrLf & _
+             "Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" & vbCrLf & vbCrLf
+
+    ' Build footer
+    footer = vbCrLf & "--" & boundary & "--" & vbCrLf
+
+    ' Convert to bytes
+    headerBytes = StrConv(header, vbFromUnicode)
+    footerBytes = StrConv(footer, vbFromUnicode)
+
+    ' Combine all parts
+    ReDim result(UBound(headerBytes) + UBound(fileData) + UBound(footerBytes) + 2)
+
+    j = 0
+    For i = 0 To UBound(headerBytes)
+        result(j) = headerBytes(i)
+        j = j + 1
+    Next i
+
+    For i = 0 To UBound(fileData)
+        result(j) = fileData(i)
+        j = j + 1
+    Next i
+
+    For i = 0 To UBound(footerBytes)
+        result(j) = footerBytes(i)
+        j = j + 1
+    Next i
+
+    BuildMultipartData = result
 End Function
 
 ' ================================================================
@@ -257,29 +497,18 @@ Private Sub LogPublishAttempt(response As String)
     Dim ws As Worksheet
     Set ws = GetOrCreateSheet(LOG_SHEET_NAME)
 
-    ' Ensure headers exist
-    If ws.Cells(1, 1).Value = "" Then
-        ws.Cells(1, 1).Value = "Timestamp"
-        ws.Cells(1, 2).Value = "Response"
-        ws.Range("A1:B1").Font.Bold = True
-        ws.Range("A1:B1").Interior.Color = RGB(68, 114, 196)
-        ws.Range("A1:B1").Font.Color = RGB(255, 255, 255)
-    End If
-
     ' Find next empty row
     Dim nextRow As Long
     nextRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
-    If nextRow = 2 And ws.Cells(1, 1).Value = "Timestamp" Then
-        nextRow = 2
-    End If
+    If nextRow = 2 And ws.Cells(1, 1).Value = "" Then nextRow = 1
 
     ' Add log entry
     ws.Cells(nextRow, 1).Value = Format(Now, "yyyy-mm-dd hh:nn:ss AM/PM")
-    ws.Cells(nextRow, 2).Value = Left(response, 32767) ' Excel cell limit
+    ws.Cells(nextRow, 2).Value = response
 
     ' Keep only last 100 entries
-    If nextRow > 101 Then
-        ws.Rows(2).Delete
+    If nextRow > 100 Then
+        ws.Rows(1).Delete
     End If
 End Sub
 
@@ -305,11 +534,11 @@ Public Sub SetupPublisher()
     row = 2
 
     ws.Cells(row, 1).Value = "API_URL"
-    ws.Cells(row, 2).Value = "https://staging.main.d2dqj0pj9jl3ff.amplifyapp.com"
+    ws.Cells(row, 2).Value = "https://your-app-url.com"
     row = row + 1
 
     ws.Cells(row, 1).Value = "AUTH_TOKEN"
-    ws.Cells(row, 2).Value = "your-api-key-here"
+    ws.Cells(row, 2).Value = "your-auth-token-here"
     row = row + 1
 
     ws.Cells(row, 1).Value = "TOURNAMENT_ID"
@@ -334,19 +563,15 @@ Public Sub SetupPublisher()
     ' Setup log sheet
     Dim logWs As Worksheet
     Set logWs = GetOrCreateSheet(LOG_SHEET_NAME)
-    If logWs.Cells(1, 1).Value = "" Then
-        logWs.Cells(1, 1).Value = "Timestamp"
-        logWs.Cells(1, 2).Value = "Response"
-        logWs.Range("A1:B1").Font.Bold = True
-        logWs.Range("A1:B1").Interior.Color = RGB(68, 114, 196)
-        logWs.Range("A1:B1").Font.Color = RGB(255, 255, 255)
-        logWs.Columns("A:A").ColumnWidth = 25
-        logWs.Columns("B:B").ColumnWidth = 80
-    End If
+    logWs.Cells.Clear
+    logWs.Cells(1, 1).Value = "Timestamp"
+    logWs.Cells(1, 2).Value = "Response"
+    logWs.Range("A1:B1").Font.Bold = True
+    logWs.Columns("A:A").ColumnWidth = 25
+    logWs.Columns("B:B").ColumnWidth = 80
 
     ws.Activate
-    MsgBox "Publisher setup complete! (Mac Version)" & vbCrLf & vbCrLf & _
-           "This version uses curl for HTTP requests." & vbCrLf & vbCrLf & _
+    MsgBox "Publisher setup complete!" & vbCrLf & vbCrLf & _
            "Please update the settings in the '" & CONFIG_SHEET_NAME & "' sheet with your API details.", _
            vbInformation, "Setup Complete"
 End Sub
@@ -364,12 +589,12 @@ Private Function GetOrCreateSheet(sheetName As String) As Worksheet
 End Function
 
 ' ================================================================
-' UI Menu Functions
+' UI Ribbon/Button Functions
 ' ================================================================
 Public Sub ShowPublisherMenu()
     Dim choice As VbMsgBoxResult
 
-    choice = MsgBox("Tournament Score Publisher (Mac)" & vbCrLf & vbCrLf & _
+    choice = MsgBox("Tournament Score Publisher" & vbCrLf & vbCrLf & _
                     "Choose an option:" & vbCrLf & vbCrLf & _
                     "Yes - Publish Scores Now (Manual)" & vbCrLf & _
                     "No - Configure Auto-Publish Settings" & vbCrLf & _
@@ -405,21 +630,4 @@ Public Sub ConfigureAutoPublish()
             ws.Activate
             MsgBox "Update the settings in this sheet as needed.", vbInformation
     End Select
-End Sub
-
-' ================================================================
-' Test curl availability
-' ================================================================
-Public Sub TestCurl()
-    On Error GoTo ErrorHandler
-
-    Dim result As String
-    result = MacScript("do shell script ""curl --version""")
-
-    MsgBox "curl is available!" & vbCrLf & vbCrLf & Left(result, 200), vbInformation, "curl Test"
-    Exit Sub
-
-ErrorHandler:
-    MsgBox "Error testing curl: " & Err.Description & vbCrLf & vbCrLf & _
-           "curl may not be available on your system.", vbCritical, "curl Test Failed"
 End Sub
