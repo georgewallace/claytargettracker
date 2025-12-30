@@ -101,7 +101,18 @@ Private Function UploadExcelFile(apiUrl As String, authToken As String, tourname
     stream.Type = 1 ' adTypeBinary
     stream.Open
     stream.LoadFromFile filePath
-    fileData = stream.Read
+
+    ' Read all bytes and convert to proper byte array
+    Dim fileSize As Long
+    fileSize = stream.Size
+
+    If fileSize > 0 Then
+        ReDim fileData(fileSize - 1)
+        fileData = stream.Read(fileSize)
+    Else
+        ReDim fileData(0)
+    End If
+
     stream.Close
     Set stream = Nothing
 
