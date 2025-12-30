@@ -184,15 +184,20 @@ export async function POST(
     console.log('Final data length:', finalData.length)
     console.log('Final first row:', finalData[0])
 
-    // For debugging, return this info
+    // For debugging, return concise info
+    const sampleRow = finalData[0] || {}
     return NextResponse.json({
-      message: 'Debug info',
-      dataLength: data.length,
-      finalDataLength: finalData.length,
-      firstRow: data[0],
-      finalFirstRow: finalData[0],
-      columnNames: data[0] ? Object.keys(data[0]) : [],
-      finalColumnNames: finalData[0] ? Object.keys(finalData[0]) : []
+      message: 'Debug - Data received successfully',
+      rows: finalData.length,
+      hasShooterID: 'Shooter ID' in sampleRow,
+      hasFirstName: 'First Name' in sampleRow,
+      hasSkeetScore: 'Skeet Score' in sampleRow || ' Skeet Score ' in sampleRow,
+      hasTrapScore: 'Trap Score' in sampleRow || ' Trap Score ' in sampleRow,
+      hasSportingScore: 'Sporting Score' in sampleRow || ' Sporting Score ' in sampleRow,
+      columnCount: Object.keys(sampleRow).length,
+      firstFewColumns: Object.keys(sampleRow).slice(0, 5),
+      shooterIdValue: sampleRow['Shooter ID'],
+      skeetScoreValue: sampleRow['Skeet Score'] || sampleRow[' Skeet Score ']
     })
 
   } catch (error: any) {
