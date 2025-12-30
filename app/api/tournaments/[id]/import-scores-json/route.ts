@@ -128,31 +128,72 @@ export async function POST(
       )
     }
 
-    // Write the workbook to a buffer and create a file to pass to the import endpoint
+    // Process the workbook directly (same logic as import-scores route)
+    // Import the helper function from the import-scores route
+    const importModule = await import('../import-scores/route')
+
+    // Call the internal processing function directly with the data
+    // Note: We need to export processShooterHistoryImport from the import-scores route
+    // For now, let's just re-implement the call here by converting to JSON and processing
+
+    const results = {
+      success: 0,
+      errors: [] as string[],
+      updated: [] as string[],
+      skipped: 0
+    }
+
+    // Convert the data array to the format expected by the import
+    // The data is already in the correct format from XLSX.utils.sheet_to_json
+    console.log('Processing', data.length, 'rows')
+    console.log('First row sample:', data[0])
+    console.log('Column names:', Object.keys(data[0]))
+
+    // Write the workbook back to buffer and process through the normal import
     const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })
 
-    // Create a new NextRequest with the workbook buffer as form data
-    const formData = new FormData()
-    const blob = new Blob([buffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    })
-    const file = new File([blob], 'scores.xlsx', {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    })
-    formData.append('file', file)
+    // Instead of creating a Request, let's just process the buffer directly
+    // by re-reading it with XLSX
+    const processedWorkbook = XLSX.read(buffer)
 
-    // Create a new request with the form data
-    const importRequest = new NextRequest(new URL(`/api/tournaments/${tournamentId}/import-scores`, request.url), {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Authorization': request.headers.get('Authorization') || ''
+    // Get the sheet and convert to JSON again to ensure proper formatting
+    const finalSheet = processedWorkbook.Sheets['Shooter Scores'] || processedWorkbook.Sheets['Shooter History']
+    if (!finalSheet) {
+      return NextResponse.json(
+        { error: 'Failed to process workbook' },
+        { status: 500 }
+      )
+    }
+
+    let finalData = XLSX.utils.sheet_to_json(finalSheet)
+
+    // Check if we need to skip the first row (header row issue)
+    if (finalData.length > 0) {
+      const firstRow = finalData[0] as Record<string, any>
+      const hasValidHeaders = firstRow && (
+        'Shooter ID' in firstRow ||
+        'First Name' in firstRow ||
+        'Last Name' in firstRow
+      )
+
+      if (!hasValidHeaders) {
+        finalData = XLSX.utils.sheet_to_json(finalSheet, { range: 1 })
       }
-    })
+    }
 
-    // Call the import endpoint directly
-    const { POST: importScores } = await import('../import-scores/route')
-    return await importScores(importRequest, { params: Promise.resolve({ id: tournamentId }) })
+    console.log('Final data length:', finalData.length)
+    console.log('Final first row:', finalData[0])
+
+    // For debugging, return this info
+    return NextResponse.json({
+      message: 'Debug info',
+      dataLength: data.length,
+      finalDataLength: finalData.length,
+      firstRow: data[0],
+      finalFirstRow: finalData[0],
+      columnNames: data[0] ? Object.keys(data[0]) : [],
+      finalColumnNames: finalData[0] ? Object.keys(finalData[0]) : []
+    })
 
   } catch (error: any) {
     console.error('Error importing scores from JSON:', error)
