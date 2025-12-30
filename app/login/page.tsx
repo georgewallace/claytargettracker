@@ -92,12 +92,38 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <Link href="/signup" className="text-indigo-600 hover:text-indigo-700 font-medium">
-            Sign up
-          </Link>
-        </p>
+        <div className="mt-8 border-t pt-6">
+          <p className="text-center text-sm text-gray-600 mb-4">
+            Don't have an account?
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link
+              href="/signup/athlete"
+              className="flex flex-col items-center justify-center px-4 py-4 border-2 border-indigo-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition group"
+            >
+              <div className="text-3xl mb-2">🎯</div>
+              <div className="text-sm font-medium text-gray-900 group-hover:text-indigo-700">
+                Sign up as Athlete
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Compete in tournaments
+              </div>
+            </Link>
+
+            <Link
+              href="/signup/coach"
+              className="flex flex-col items-center justify-center px-4 py-4 border-2 border-emerald-200 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 transition group"
+            >
+              <div className="text-3xl mb-2">👥</div>
+              <div className="text-sm font-medium text-gray-900 group-hover:text-emerald-700">
+                Sign up as Coach
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Manage your team
+              </div>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   )
