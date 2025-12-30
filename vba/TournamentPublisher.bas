@@ -178,7 +178,14 @@ Private Function SheetToJSON(sheetName As String) As String
 
     ' Find last row and column with data
     lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).row
-    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+
+    ' Find last column by checking the used range
+    ' This is more reliable than End(xlToLeft) which can miss columns
+    If ws.UsedRange.Columns.Count > 0 Then
+        lastCol = ws.UsedRange.Columns.Count + ws.UsedRange.Column - 1
+    Else
+        lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+    End If
 
     ' Start array
     json = "["
