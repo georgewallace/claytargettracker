@@ -70,9 +70,16 @@ appfeedback.md
 staging-data-export.json
 staging_backup_*.sql
 
-# Development scripts (keep scripts/ directory for deployment tools)
+# Development scripts - ignore all except essential deployment tools
 /data
 /*.sh
+/scripts/*
+!/scripts/db-*.sh
+!/scripts/deploy-*.sh
+!/scripts/setup-git-hooks.sh
+!/scripts/validate-staging-deployment.sh
+!/scripts/create-import-templates.js
+!/scripts/seed-disciplines.js
 
 # Archives
 *.zip
