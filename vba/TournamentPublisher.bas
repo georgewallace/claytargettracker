@@ -43,10 +43,20 @@ Public Sub PublishScores()
 
     ' Save the workbook first
     ThisWorkbook.Save
-    filePath = ThisWorkbook.FullName
+
+    ' Create a temporary copy to avoid file locking issues
+    Dim tempPath As String
+    tempPath = Environ("TEMP") & "\TournamentTracker_Upload_" & Format(Now, "yyyymmddhhnnss") & ".xlsx"
+    ThisWorkbook.SaveCopyAs tempPath
+    filePath = tempPath
 
     ' Upload the file
     response = UploadExcelFile(apiUrl, authToken, tournamentId, filePath)
+
+    ' Clean up temp file
+    On Error Resume Next
+    Kill tempPath
+    On Error GoTo ErrorHandler
 
     ' Log the result
     LogPublishAttempt response
