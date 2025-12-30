@@ -212,7 +212,7 @@ export async function POST(
   }
 }
 
-async function processShooterHistoryImport(tournamentId: string, data: any[]) {
+export async function processShooterHistoryImport(tournamentId: string, data: any[]) {
   const results = {
     success: 0,
     errors: [] as string[],

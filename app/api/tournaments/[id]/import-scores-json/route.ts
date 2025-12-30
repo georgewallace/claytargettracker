@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuthWithApiKey } from '@/lib/auth'
 import * as XLSX from 'xlsx'
+import { processShooterHistoryImport } from '../import-scores/route'
 
 export async function POST(
   request: NextRequest,
@@ -128,38 +129,20 @@ export async function POST(
       )
     }
 
-    // Write the workbook to buffer
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })
+    // Process the scores directly using the shared import function
+    console.log(`Processing ${data.length} rows for tournament ${tournamentId}`)
+    const results = await processShooterHistoryImport(tournamentId, data)
 
-    // Make an internal fetch request to the import-scores endpoint
-    const importUrl = new URL(`/api/tournaments/${tournamentId}/import-scores`, request.url)
-
-    // Create form data with the file
-    const formData = new FormData()
-    const blob = new Blob([buffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    })
-    formData.append('file', new File([blob], 'scores.xlsx', {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    }))
-
-    // Make the request using fetch
-    const response = await fetch(importUrl, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Authorization': request.headers.get('Authorization') || ''
-      }
-    })
-
-    // Return the response from the import endpoint
-    const result = await response.json()
-    return NextResponse.json(result, { status: response.status })
+    return NextResponse.json(results)
 
   } catch (error: any) {
     console.error('Error importing scores from JSON:', error)
+    console.error('Error stack:', error.stack)
     return NextResponse.json(
-      { error: error.message || 'Failed to import scores' },
+      {
+        error: error.message || 'Failed to import scores',
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     )
   }
