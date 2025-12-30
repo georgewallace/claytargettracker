@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DndContext, useDroppable, useDraggable, closestCenter } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { getSquadAvailableCapacity, classifySquad, getSquadTypeBadge, formatSquadClassification } from '@/lib/squadUtils'
+import { squadNameOptions } from '@/lib/divisions'
 import AthleteCard from './AthleteCard'
 
 interface SquadCardProps {
@@ -65,7 +66,6 @@ function SortableMember({ member, disciplineId, timeSlotId, onRemove, removing }
 export default function SquadCard({ squad, squadCapacity, tournamentId, disciplineId, onUpdate, userRole, coachedTeamId }: SquadCardProps) {
   const [removing, setRemoving] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [updatingTeamOnly, setUpdatingTeamOnly] = useState(false)
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [athleteToRemove, setathleteToRemove] = useState<any>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -74,7 +74,9 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
   )
   const [reordering, setReordering] = useState(false)
   const [editingName, setEditingName] = useState(false)
-  const [editedName, setEditedName] = useState(squad.name)
+  const [editedTeamId, setEditedTeamId] = useState('')
+  const [editedSquadType, setEditedSquadType] = useState('')
+  const [teams, setTeams] = useState<Array<{id: string, name: string}>>([])
   const [updatingName, setUpdatingName] = useState(false)
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -84,6 +86,16 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
   const { attributes, listeners, setNodeRef: setDraggableRef, isDragging } = useDraggable({
     id: `squad-${squad.id}`,
   })
+
+  // Fetch teams for editing squad names (admins only)
+  useEffect(() => {
+    if (userRole === 'admin') {
+      fetch('/api/teams')
+        .then(res => res.json())
+        .then(data => setTeams(data || []))
+        .catch(() => {})
+    }
+  }, [userRole])
 
   // Handle drag end for reordering within squad
   const handleDragEnd = async (event: any) => {
@@ -160,6 +172,19 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
     return false
   }
 
+  // Determine if the user can remove a specific athlete
+  const canRemoveAthlete = (athlete: any) => {
+    // Admins can remove any athlete
+    if (userRole === 'admin') return true
+
+    // Coaches can only remove athletes from their own team
+    if (userRole === 'coach' && coachedTeamId) {
+      return athlete.teamId === coachedTeamId
+    }
+
+    return false
+  }
+
   const handleRemoveClick = (athlete: any) => {
     setathleteToRemove(athlete)
     setShowRemoveModal(true)
@@ -228,46 +253,62 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
     }
   }
 
-  const handleToggleTeamOnly = async () => {
-    setUpdatingTeamOnly(true)
+  const handleEditName = () => {
+    // Parse existing squad name to extract team and squad type
+    // Format is: "{TeamName} - {SquadType}" e.g., "Team ABC - Varsity 1"
+    const parts = squad.name.split(' - ')
+    if (parts.length === 2) {
+      const teamName = parts[0]
+      const squadType = parts[1]
 
-    try {
-      const response = await fetch(`/api/squads/${squad.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamOnly: !squad.teamOnly })
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to update squad')
+      // Find team ID from team name
+      if (userRole === 'admin') {
+        const team = teams.find(t => t.name === teamName)
+        setEditedTeamId(team?.id || 'unaffiliated')
+      } else if (userRole === 'coach' && coachedTeamId) {
+        setEditedTeamId(coachedTeamId)
       }
 
-      onUpdate()
-    } catch (err: any) {
-      alert(err.message || 'An error occurred')
-    } finally {
-      setUpdatingTeamOnly(false)
+      setEditedSquadType(squadType)
+    } else {
+      // Fallback if name doesn't match expected format
+      if (userRole === 'coach' && coachedTeamId) {
+        setEditedTeamId(coachedTeamId)
+      } else {
+        setEditedTeamId('')
+      }
+      setEditedSquadType('')
     }
-  }
 
-  const handleEditName = () => {
-    setEditedName(squad.name)
     setEditingName(true)
   }
 
   const handleCancelEditName = () => {
-    setEditedName(squad.name)
+    setEditedTeamId('')
+    setEditedSquadType('')
     setEditingName(false)
   }
 
   const handleSaveName = async () => {
-    if (!editedName.trim()) {
-      alert('Squad name cannot be empty')
+    // Validate selections
+    if (!editedTeamId || !editedSquadType) {
+      alert('Please select both team and squad type')
       return
     }
 
-    if (editedName.trim() === squad.name) {
+    // Build new squad name
+    let teamName = ''
+    if (editedTeamId === 'unaffiliated') {
+      teamName = 'Unaffiliated'
+    } else {
+      const team = teams.find(t => t.id === editedTeamId)
+      teamName = team?.name || 'Unknown Team'
+    }
+
+    const newName = `${teamName} - ${editedSquadType}`
+
+    // Check if name actually changed
+    if (newName === squad.name) {
       setEditingName(false)
       return
     }
@@ -278,7 +319,7 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
       const response = await fetch(`/api/squads/${squad.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: editedName.trim() })
+        body: JSON.stringify({ name: newName })
       })
 
       if (!response.ok) {
@@ -335,35 +376,70 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
 
             {/* Squad Name - Editable */}
             {editingName ? (
-              <div className="flex items-center gap-2 flex-1">
-                <input
-                  type="text"
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
-                  className="px-2 py-1 text-sm font-semibold border border-indigo-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveName()
-                    if (e.key === 'Escape') handleCancelEditName()
-                  }}
-                  disabled={updatingName}
-                />
-                <button
-                  onClick={handleSaveName}
-                  disabled={updatingName}
-                  className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-50"
-                  title="Save name"
-                >
-                  {updatingName ? '...' : 'Save'}
-                </button>
-                <button
-                  onClick={handleCancelEditName}
-                  disabled={updatingName}
-                  className="px-2 py-1 border border-gray-300 text-gray-700 rounded text-xs hover:bg-gray-50 disabled:opacity-50"
-                  title="Cancel"
-                >
-                  Cancel
-                </button>
+              <div className="flex flex-col gap-2 flex-1">
+                <div className="flex items-center gap-2">
+                  {/* Team Selection (Admin only) */}
+                  {userRole === 'admin' && (
+                    <select
+                      value={editedTeamId}
+                      onChange={(e) => setEditedTeamId(e.target.value)}
+                      className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      disabled={updatingName}
+                    >
+                      <option value="">Select team...</option>
+                      {teams.map(team => (
+                        <option key={team.id} value={team.id}>{team.name}</option>
+                      ))}
+                      <option value="unaffiliated">Unaffiliated</option>
+                    </select>
+                  )}
+
+                  {/* Squad Type Selection */}
+                  <select
+                    value={editedSquadType}
+                    onChange={(e) => setEditedSquadType(e.target.value)}
+                    className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1"
+                    disabled={updatingName}
+                    autoFocus
+                  >
+                    <option value="">Select type...</option>
+                    {squadNameOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    onClick={handleSaveName}
+                    disabled={updatingName}
+                    className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-50"
+                    title="Save name"
+                  >
+                    {updatingName ? '...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={handleCancelEditName}
+                    disabled={updatingName}
+                    className="px-2 py-1 border border-gray-300 text-gray-700 rounded text-xs hover:bg-gray-50 disabled:opacity-50"
+                    title="Cancel"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                {/* Squad Name Preview */}
+                {editedTeamId && editedSquadType && (
+                  <div className="bg-green-50 border border-green-200 rounded px-2 py-1">
+                    <div className="text-xs font-medium text-green-700">Preview:</div>
+                    <div className="text-sm font-bold text-green-900">
+                      {editedTeamId === 'unaffiliated'
+                        ? `Unaffiliated - ${editedSquadType}`
+                        : `${teams.find(t => t.id === editedTeamId)?.name || 'Unknown'} - ${editedSquadType}`
+                      }
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -408,33 +484,18 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
           )}
         </div>
 
-        {/* Squad Classification and Team-Only Toggle */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* Classification Badge */}
-            <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getSquadTypeBadge(classification.type)}`}>
-              {classification.type === 'division' ? '🏆 Division' : '🌐 Open'}
+        {/* Squad Classification */}
+        <div className="flex items-center gap-2">
+          {/* Classification Badge */}
+          <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getSquadTypeBadge(classification.type)}`}>
+            {classification.type === 'division' ? '🏆 Division' : '🌐 Open'}
+          </span>
+
+          {squad.teamOnly && (
+            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium border border-blue-300">
+              🔒 Team Only
             </span>
-
-            {squad.teamOnly && (
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium border border-blue-300">
-                🔒 Team Only
-              </span>
-            )}
-          </div>
-
-          {/* Team-Only Toggle */}
-          <label className="flex items-center gap-2 cursor-pointer">
-            <span className="text-xs text-gray-600">Team Only:</span>
-            <input
-              type="checkbox"
-              checked={squad.teamOnly}
-              onChange={handleToggleTeamOnly}
-              disabled={updatingTeamOnly}
-              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 disabled:opacity-50"
-              title="When enabled, only athletes from the same team can be added"
-            />
-          </label>
+          )}
         </div>
       </div>
 
@@ -452,7 +513,7 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
                   member={member}
                   disciplineId={disciplineId}
                   timeSlotId={squad.timeSlotId}
-                  onRemove={() => handleRemoveClick(member.athlete)}
+                  onRemove={canRemoveAthlete(member.athlete) ? () => handleRemoveClick(member.athlete) : undefined}
                   removing={removing}
                 />
               ))

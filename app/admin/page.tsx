@@ -294,6 +294,13 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
               Manage Coaches
             </Link>
             <Link
+              href="/admin/athletes"
+              className="flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium"
+            >
+              <span className="mr-2">🏃</span>
+              Manage Athletes
+            </Link>
+            <Link
               href="/teams"
               className="flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium"
             >
