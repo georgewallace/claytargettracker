@@ -264,27 +264,27 @@ export default function AthleteSignupPage() {
                   Is this your first year competing? *
                 </label>
                 <div className="flex gap-4">
-                  <label className="flex items-center">
+                  <label className="flex items-center cursor-pointer">
                     <input
                       type="radio"
                       name="firstYear"
                       required
                       checked={firstYearCompetition === true}
                       onChange={() => setFirstYearCompetition(true)}
-                      className="mr-2"
+                      className="mr-2 h-4 w-4"
                     />
-                    Yes
+                    <span className="text-gray-900 font-medium">Yes</span>
                   </label>
-                  <label className="flex items-center">
+                  <label className="flex items-center cursor-pointer">
                     <input
                       type="radio"
                       name="firstYear"
                       required
                       checked={firstYearCompetition === false}
                       onChange={() => setFirstYearCompetition(false)}
-                      className="mr-2"
+                      className="mr-2 h-4 w-4"
                     />
-                    No
+                    <span className="text-gray-900 font-medium">No</span>
                   </label>
                 </div>
               </div>
