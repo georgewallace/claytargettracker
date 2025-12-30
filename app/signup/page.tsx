@@ -1,21 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function SignupPage() {
-  const router = useRouter()
-
-  useEffect(() => {
-    // Redirect to athlete signup after a brief moment to show the page
-    const timer = setTimeout(() => {
-      router.push('/signup/athlete')
-    }, 100)
-
-    return () => clearTimeout(timer)
-  }, [router])
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
