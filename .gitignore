@@ -57,4 +57,22 @@ next-env.d.ts
 PRODUCTIZATION_ROADMAP.md
 appfeedback.md
 
+# Exclude all markdown files except README
 *.md
+!README.md
+
+# Development/test data files
+*.xlsx
+!Athletes_Import_Template.xlsx
+!Coaches_Import_Template.xlsx
+*.sql
+*.json.backup
+staging-data-export.json
+staging_backup_*.sql
+
+# Development scripts (keep scripts/ directory for deployment tools)
+/data
+/*.sh
+
+# Archives
+*.zip
