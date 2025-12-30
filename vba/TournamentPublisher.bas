@@ -81,17 +81,19 @@ Private Function UploadExcelFile(apiUrl As String, authToken As String, tourname
     Dim http As Object
     Dim fileData() As Byte
     Dim postData() As Byte
-    Dim fileNum As Integer
+    Dim stream As Object
 
     ' Create unique boundary for multipart form data
     boundary = "----ExcelBoundary" & Format(Now, "yyyymmddhhnnss")
 
-    ' Read file as binary
-    fileNum = FreeFile
-    Open filePath For Binary Access Read As #fileNum
-    ReDim fileData(LOF(fileNum) - 1)
-    Get #fileNum, , fileData
-    Close #fileNum
+    ' Read file as binary using ADODB.Stream (more reliable for open files)
+    Set stream = CreateObject("ADODB.Stream")
+    stream.Type = 1 ' adTypeBinary
+    stream.Open
+    stream.LoadFromFile filePath
+    fileData = stream.Read
+    stream.Close
+    Set stream = Nothing
 
     ' Build multipart form data
     postData = BuildMultipartData(fileData, boundary, "file", "TournamentTracker.xlsx")
