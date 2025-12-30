@@ -44,19 +44,8 @@ Public Sub PublishScores()
     ' Save the workbook first
     ThisWorkbook.Save
 
-    ' Create a temporary copy to avoid file locking issues
-    Dim tempPath As String
-    tempPath = Environ("TEMP") & "\TournamentTracker_Upload_" & Format(Now, "yyyymmddhhnnss") & ".xlsx"
-    ThisWorkbook.SaveCopyAs tempPath
-    filePath = tempPath
-
-    ' Upload the file
-    response = UploadExcelFile(apiUrl, authToken, tournamentId, filePath)
-
-    ' Clean up temp file
-    On Error Resume Next
-    Kill tempPath
-    On Error GoTo ErrorHandler
+    ' Upload as JSON (no file path needed - reads directly from sheets)
+    response = UploadExcelFile(apiUrl, authToken, tournamentId, "")
 
     ' Log the result
     LogPublishAttempt response
@@ -82,55 +71,29 @@ ErrorHandler:
 End Sub
 
 ' ================================================================
-' Upload Excel File via HTTP
+' Upload Excel Data as JSON (much simpler than file upload)
 ' ================================================================
 Private Function UploadExcelFile(apiUrl As String, authToken As String, tournamentId As String, filePath As String) As String
     On Error GoTo ErrorHandler
 
-    Dim boundary As String
     Dim http As Object
-    Dim fileData() As Byte
-    Dim postData() As Byte
-    Dim stream As Object
+    Dim jsonData As String
+    Dim fullUrl As String
 
-    ' Create unique boundary for multipart form data
-    boundary = "----ExcelBoundary" & Format(Now, "yyyymmddhhnnss")
-
-    ' Read file as binary using ADODB.Stream (more reliable for open files)
-    Set stream = CreateObject("ADODB.Stream")
-    stream.Type = 1 ' adTypeBinary
-    stream.Open
-    stream.LoadFromFile filePath
-
-    ' Read all bytes and convert to proper byte array
-    Dim fileSize As Long
-    fileSize = stream.Size
-
-    If fileSize > 0 Then
-        ReDim fileData(fileSize - 1)
-        fileData = stream.Read(fileSize)
-    Else
-        ReDim fileData(0)
-    End If
-
-    stream.Close
-    Set stream = Nothing
-
-    ' Build multipart form data
-    postData = BuildMultipartData(fileData, boundary, "file", "TournamentTracker.xlsx")
+    ' Build JSON from Excel sheets
+    jsonData = BuildJSONFromSheets()
 
     ' Create HTTP request
     Set http = CreateObject("MSXML2.XMLHTTP")
 
-    ' Build full URL
-    Dim fullUrl As String
-    fullUrl = apiUrl & "/api/tournaments/" & tournamentId & "/import-scores"
+    ' Build full URL for JSON endpoint
+    fullUrl = apiUrl & "/api/tournaments/" & tournamentId & "/import-scores-json"
 
     ' Send request
     http.Open "POST", fullUrl, False
     http.setRequestHeader "Authorization", "Bearer " & authToken
-    http.setRequestHeader "Content-Type", "multipart/form-data; boundary=" & boundary
-    http.send postData
+    http.setRequestHeader "Content-Type", "application/json"
+    http.send jsonData
 
     ' Get response
     UploadExcelFile = "Status: " & http.Status & " - " & http.responseText
@@ -139,7 +102,132 @@ Private Function UploadExcelFile(apiUrl As String, authToken As String, tourname
     Exit Function
 
 ErrorHandler:
-    UploadExcelFile = "ERROR: " & Err.Description
+    UploadExcelFile = "ERROR: " & Err.Description & " (Error " & Err.Number & ")"
+End Function
+
+' ================================================================
+' Build JSON from Excel Sheets
+' ================================================================
+Private Function BuildJSONFromSheets() As String
+    On Error GoTo ErrorHandler
+
+    Dim json As String
+    Dim sheets As String
+
+    ' Start JSON object
+    json = "{"
+    json = json & """sheets"":{"
+
+    ' Add Tournament Setup sheet if it exists
+    If SheetExists("Tournament Setup") Then
+        sheets = sheets & """Tournament Setup"":" & SheetToJSON("Tournament Setup") & ","
+    End If
+
+    ' Add Shooter History sheet if it exists
+    If SheetExists("Shooter History") Then
+        sheets = sheets & """Shooter History"":" & SheetToJSON("Shooter History") & ","
+    End If
+
+    ' Add Shooter Scores sheet if it exists
+    If SheetExists("Shooter Scores") Then
+        sheets = sheets & """Shooter Scores"":" & SheetToJSON("Shooter Scores") & ","
+    End If
+
+    ' Remove trailing comma if exists
+    If Right(sheets, 1) = "," Then
+        sheets = Left(sheets, Len(sheets) - 1)
+    End If
+
+    json = json & sheets
+    json = json & "}}"
+
+    BuildJSONFromSheets = json
+    Exit Function
+
+ErrorHandler:
+    BuildJSONFromSheets = "{""error"":""" & Err.Description & """}"
+End Function
+
+' ================================================================
+' Convert Sheet to JSON Array
+' ================================================================
+Private Function SheetToJSON(sheetName As String) As String
+    On Error GoTo ErrorHandler
+
+    Dim ws As Worksheet
+    Dim lastRow As Long
+    Dim lastCol As Long
+    Dim row As Long, col As Long
+    Dim json As String
+    Dim cellValue As Variant
+    Dim rowJson As String
+
+    Set ws = ThisWorkbook.Worksheets(sheetName)
+
+    ' Find last row and column with data
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).row
+    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+
+    ' Start array
+    json = "["
+
+    ' Loop through rows
+    For row = 1 To lastRow
+        rowJson = "["
+
+        ' Loop through columns
+        For col = 1 To lastCol
+            cellValue = ws.Cells(row, col).Value
+
+            ' Convert cell value to JSON
+            If IsEmpty(cellValue) Then
+                rowJson = rowJson & "null,"
+            ElseIf IsNumeric(cellValue) Then
+                rowJson = rowJson & cellValue & ","
+            Else
+                ' Escape quotes and special characters in strings
+                Dim strValue As String
+                strValue = CStr(cellValue)
+                strValue = Replace(strValue, "\", "\\")
+                strValue = Replace(strValue, """", "\""")
+                strValue = Replace(strValue, vbCr, "")
+                strValue = Replace(strValue, vbLf, "")
+                strValue = Replace(strValue, vbTab, " ")
+                rowJson = rowJson & """" & strValue & ""","
+            End If
+        Next col
+
+        ' Remove trailing comma and close row array
+        If Right(rowJson, 1) = "," Then
+            rowJson = Left(rowJson, Len(rowJson) - 1)
+        End If
+        rowJson = rowJson & "],"
+
+        json = json & rowJson
+    Next row
+
+    ' Remove trailing comma and close array
+    If Right(json, 1) = "," Then
+        json = Left(json, Len(json) - 1)
+    End If
+    json = json & "]"
+
+    SheetToJSON = json
+    Exit Function
+
+ErrorHandler:
+    SheetToJSON = "[]"
+End Function
+
+' ================================================================
+' Check if Sheet Exists
+' ================================================================
+Private Function SheetExists(sheetName As String) As Boolean
+    On Error Resume Next
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets(sheetName)
+    SheetExists = Not ws Is Nothing
+    On Error GoTo 0
 End Function
 
 ' ================================================================
