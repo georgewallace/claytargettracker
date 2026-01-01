@@ -438,19 +438,19 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       .filter(s => {
         // Count how many core disciplines they competed in
         const disciplinesCompeted = coreDisciplines.filter(
-          disciplineId => s.disciplineScores[disciplineId] !== undefined
+          (disciplineId: string) => s.disciplineScores[disciplineId] !== undefined
         ).length
         return disciplinesCompeted >= 2
       })
       .map(s => {
         // Calculate total score across core disciplines only
-        const coreTotal = coreDisciplines.reduce((sum, disciplineId) => {
+        const coreTotal = coreDisciplines.reduce((sum: number, disciplineId: string) => {
           return sum + (s.disciplineScores[disciplineId] || 0)
         }, 0)
 
         // Count disciplines competed in
         const disciplinesCompeted = coreDisciplines.filter(
-          disciplineId => s.disciplineScores[disciplineId] !== undefined
+          (disciplineId: string) => s.disciplineScores[disciplineId] !== undefined
         ).length
 
         return {
