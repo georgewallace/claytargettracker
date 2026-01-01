@@ -704,92 +704,82 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
 
   // BATCH OPTIMIZATION: Process all shoots and scores in bulk
   if (shootsToUpsert.length > 0) {
-    // Fetch all existing shoots for this tournament in one query
-    const existingShoots = await prisma.shoot.findMany({
+    // Delete all existing scores for these athletes/disciplines first
+    await prisma.score.deleteMany({
       where: {
-        tournamentId,
-        athleteId: { in: shootsToUpsert.map(s => s.athleteId) }
+        shoot: {
+          tournamentId,
+          athleteId: { in: shootsToUpsert.map(s => s.athleteId) }
+        }
       }
     })
 
-    // Create a map of existing shoots by unique key
-    const existingShootMap = new Map(
-      existingShoots.map(s => [`${s.athleteId}-${s.disciplineId}`, s])
+    // Upsert all shoots (create if doesn't exist, update if exists)
+    // This avoids the transaction timeout issue
+    const shootUpserts = shootsToUpsert.map(shootData =>
+      prisma.shoot.upsert({
+        where: {
+          tournamentId_athleteId_disciplineId: {
+            tournamentId: shootData.tournamentId,
+            athleteId: shootData.athleteId,
+            disciplineId: shootData.disciplineId
+          }
+        },
+        update: {
+          concurrentPlace: shootData.concurrentPlace,
+          classPlace: shootData.classPlace,
+          teamPlace: shootData.teamPlace,
+          hoaPlace: shootData.hoaPlace,
+          individualRank: shootData.individualRank,
+          teamRank: shootData.teamRank,
+          teamScore: shootData.teamScore,
+          haaIndividualPlace: shootData.haaIndividualPlace,
+          haaConcurrent: shootData.haaConcurrent
+        },
+        create: {
+          athleteId: shootData.athleteId,
+          tournamentId: shootData.tournamentId,
+          disciplineId: shootData.disciplineId,
+          concurrentPlace: shootData.concurrentPlace,
+          classPlace: shootData.classPlace,
+          teamPlace: shootData.teamPlace,
+          hoaPlace: shootData.hoaPlace,
+          individualRank: shootData.individualRank,
+          teamRank: shootData.teamRank,
+          teamScore: shootData.teamScore,
+          haaIndividualPlace: shootData.haaIndividualPlace,
+          haaConcurrent: shootData.haaConcurrent
+        }
+      })
     )
 
-    // Delete all existing scores for these shoots in one query
-    const shootIdsToDelete = existingShoots.map(s => s.id)
-    if (shootIdsToDelete.length > 0) {
-      await prisma.score.deleteMany({
-        where: { shootId: { in: shootIdsToDelete } }
-      })
-    }
+    // Execute all upserts in parallel
+    const upsertedShoots = await Promise.all(shootUpserts)
 
-    // Batch upsert all shoots and create scores in a transaction
-    await prisma.$transaction(async (tx) => {
-      // Upsert shoots and collect their IDs for score creation
-      const shootIdMap = new Map<string, string>()
+    // Create a map of shoot IDs by key for score creation
+    const shootIdMap = new Map<string, string>()
+    upsertedShoots.forEach((shoot, index) => {
+      const shootData = shootsToUpsert[index]
+      const key = `${shootData.athleteId}-${shootData.disciplineId}`
+      shootIdMap.set(key, shoot.id)
+    })
 
-      for (const shootData of shootsToUpsert) {
-        const key = `${shootData.athleteId}-${shootData.disciplineId}`
-        const existingShoot = existingShootMap.get(key)
-
-        if (existingShoot) {
-          // Update existing shoot
-          await tx.shoot.update({
-            where: { id: existingShoot.id },
-            data: {
-              concurrentPlace: shootData.concurrentPlace,
-              classPlace: shootData.classPlace,
-              teamPlace: shootData.teamPlace,
-              hoaPlace: shootData.hoaPlace,
-              individualRank: shootData.individualRank,
-              teamRank: shootData.teamRank,
-              teamScore: shootData.teamScore,
-              haaIndividualPlace: shootData.haaIndividualPlace,
-              haaConcurrent: shootData.haaConcurrent
-            }
-          })
-          shootIdMap.set(key, existingShoot.id)
-        } else {
-          // Create new shoot
-          const newShoot = await tx.shoot.create({
-            data: {
-              athleteId: shootData.athleteId,
-              tournamentId: shootData.tournamentId,
-              disciplineId: shootData.disciplineId,
-              concurrentPlace: shootData.concurrentPlace,
-              classPlace: shootData.classPlace,
-              teamPlace: shootData.teamPlace,
-              hoaPlace: shootData.hoaPlace,
-              individualRank: shootData.individualRank,
-              teamRank: shootData.teamRank,
-              teamScore: shootData.teamScore,
-              haaIndividualPlace: shootData.haaIndividualPlace,
-              haaConcurrent: shootData.haaConcurrent
-            }
-          })
-          shootIdMap.set(key, newShoot.id)
-        }
-      }
-
-      // Batch create all scores
-      const scoresToCreate = shootsToUpsert.map(shootData => {
-        const key = `${shootData.athleteId}-${shootData.disciplineId}`
-        const shootId = shootIdMap.get(key)!
-        return {
-          shootId,
-          roundNumber: 1,
-          stationNumber: null,
-          targets: shootData.totalScore,
-          maxTargets: shootData.maxScore
-        }
-      })
-
-      if (scoresToCreate.length > 0) {
-        await tx.score.createMany({ data: scoresToCreate })
+    // Batch create all scores in one operation
+    const scoresToCreate = shootsToUpsert.map(shootData => {
+      const key = `${shootData.athleteId}-${shootData.disciplineId}`
+      const shootId = shootIdMap.get(key)!
+      return {
+        shootId,
+        roundNumber: 1,
+        stationNumber: null,
+        targets: shootData.totalScore,
+        maxTargets: shootData.maxScore
       }
     })
+
+    if (scoresToCreate.length > 0) {
+      await prisma.score.createMany({ data: scoresToCreate })
+    }
   }
 
   // Update squad divisions and teams based on Excel data
