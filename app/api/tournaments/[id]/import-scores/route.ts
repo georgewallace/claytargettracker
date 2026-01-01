@@ -4,17 +4,19 @@ import { requireAuthWithApiKey } from '@/lib/auth'
 import * as XLSX from 'xlsx'
 
 // Helper function to parse placement text like "Varsity Men's Skeet Runner Up" or "HOA Lady's Skeet Champion"
+// SWAPPED: What was "HOA" in Excel text is now HAA per-discipline placement
 function parsePlacementText(text: string, athleteGender: string | null, athleteDivision: string | null): {
   concurrentPlace?: number
-  hoaPlace?: number
+  haaPlace?: number
 } {
   if (!text) return {}
 
   const lowerText = text.toLowerCase().trim()
-  const result: { concurrentPlace?: number; hoaPlace?: number } = {}
+  const result: { concurrentPlace?: number; haaPlace?: number } = {}
 
-  // Determine if this is HOA or division-specific
-  const isHOA = lowerText.startsWith('hoa ')
+  // Determine if this is HAA (per-discipline) or division-specific
+  // SWAPPED: Excel text starting with "hoa " is now treated as HAA
+  const isHAA = lowerText.startsWith('hoa ')
 
   // Check gender matching
   const isMale = lowerText.includes("men's") || lowerText.includes("mens") || lowerText.includes("male")
@@ -25,8 +27,8 @@ function parsePlacementText(text: string, athleteGender: string | null, athleteD
 
   if (!genderMatches) return {}
 
-  // Check division matching (if it's not HOA)
-  if (!isHOA && athleteDivision) {
+  // Check division matching (if it's not HAA)
+  if (!isHAA && athleteDivision) {
     const divisionLower = athleteDivision.toLowerCase()
     // Common division name variations
     const divisionVariations = [
@@ -55,8 +57,8 @@ function parsePlacementText(text: string, athleteGender: string | null, athleteD
   }
 
   if (place) {
-    if (isHOA) {
-      result.hoaPlace = place
+    if (isHAA) {
+      result.haaPlace = place
     } else {
       result.concurrentPlace = place
     }
@@ -302,12 +304,12 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
     concurrentPlace?: number
     classPlace?: number
     teamPlace?: number
-    hoaPlace?: number
+    haaPlace?: number // SWAPPED: Was hoaPlace
     individualRank?: number
     teamRank?: number
     teamScore?: number
-    haaIndividualPlace?: number
-    haaConcurrent?: string
+    hoaIndividualPlace?: number // SWAPPED: Was haaIndividualPlace
+    hoaConcurrent?: string // SWAPPED: Was haaConcurrent
   }> = []
 
   // Process each row (athlete)
@@ -362,17 +364,18 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
         classUpdatesMap.set(athlete.id, classUpdates)
       }
 
-      // Extract HAA placement data (applies to all disciplines)
+      // Extract HOA placement data (applies to all disciplines)
+      // SWAPPED: What was "HAA" in Excel is now HOA overall placement
       // Parse text-based placement values like "HAA Champion", "HAA Men's Champion", etc.
-      let haaIndividualPlace: number | undefined
-      let haaConcurrent: string | undefined
+      let hoaIndividualPlace: number | undefined
+      let hoaConcurrent: string | undefined
 
       const athleteGender = athlete.gender
-      const haaPlaceText = row['HAA Individual Place']?.toString().trim() || ''
+      const hoaPlaceText = row['HAA Individual Place']?.toString().trim() || '' // Excel still says "HAA" but it's now HOA data
 
-      // Parse HAA placement text to numeric value
-      if (haaPlaceText) {
-        const lowerText = haaPlaceText.toLowerCase()
+      // Parse HOA placement text to numeric value
+      if (hoaPlaceText) {
+        const lowerText = hoaPlaceText.toLowerCase()
 
         // Check if this is a gender-specific placement
         const isMale = lowerText.includes("men's") || lowerText.includes("mens") || lowerText.includes("male")
@@ -386,37 +389,37 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
         if (genderMatches) {
           // Map text to placement number
           if (lowerText.includes('champion') && !lowerText.includes('runner')) {
-            haaIndividualPlace = 1
+            hoaIndividualPlace = 1
           } else if (lowerText.includes('runner up') || lowerText.includes('runner-up')) {
-            haaIndividualPlace = 2
+            hoaIndividualPlace = 2
           } else if (lowerText.includes('third') || lowerText.includes('3rd')) {
-            haaIndividualPlace = 3
+            hoaIndividualPlace = 3
           } else if (lowerText.includes('fourth') || lowerText.includes('4th')) {
-            haaIndividualPlace = 4
+            hoaIndividualPlace = 4
           } else if (lowerText.includes('fifth') || lowerText.includes('5th')) {
-            haaIndividualPlace = 5
+            hoaIndividualPlace = 5
           }
 
-          // Store the original HAA Individual Place text (contains gender info like "HAA Men's Champion")
-          haaConcurrent = haaPlaceText
+          // Store the original place text (contains gender info)
+          hoaConcurrent = hoaPlaceText
         }
       }
 
       // Try numeric columns as fallback
-      if (!haaIndividualPlace) {
+      if (!hoaIndividualPlace) {
         if (athleteGender === 'M') {
-          haaIndividualPlace = row['HAA Male Place'] ? parseInt(row['HAA Male Place']) :
+          hoaIndividualPlace = row['HAA Male Place'] ? parseInt(row['HAA Male Place']) :
                               row['HAA Men Place'] ? parseInt(row['HAA Men Place']) : undefined
         } else if (athleteGender === 'F') {
-          haaIndividualPlace = row['HAA Female Place'] ? parseInt(row['HAA Female Place']) :
+          hoaIndividualPlace = row['HAA Female Place'] ? parseInt(row['HAA Female Place']) :
                               row['HAA Ladies Place'] ? parseInt(row['HAA Ladies Place']) :
                               row['HAA Women Place'] ? parseInt(row['HAA Women Place']) : undefined
         }
       }
 
-      // Get HAA Concurrent (division) - only if not already set from HAA Individual Place
-      if (!haaConcurrent) {
-        haaConcurrent = row['HAA Concurrent']?.toString().trim() ||
+      // Get HOA Concurrent (division) - only if not already set
+      if (!hoaConcurrent) {
+        hoaConcurrent = row['HAA Concurrent']?.toString().trim() ||
                        row['HAA Male Concurrent']?.toString().trim() ||
                        row['HAA Men Concurrent']?.toString().trim() ||
                        row['HAA Female Concurrent']?.toString().trim() ||
@@ -459,7 +462,7 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
 
             // Use parsed values or fall back to numeric parsing
             let concurrentPlace = parsedPlacement.concurrentPlace
-            let hoaPlace = parsedPlacement.hoaPlace
+            let haaPlace = parsedPlacement.haaPlace // SWAPPED: Was hoaPlace
 
             if (!concurrentPlace && concurrentPlaceRaw) {
               const numericValue = parseInt(concurrentPlaceRaw.toString())
@@ -495,12 +498,12 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
               concurrentPlace,
               classPlace,
               teamPlace,
-              hoaPlace,
+              haaPlace, // SWAPPED: Was hoaPlace
               individualRank,
               teamRank,
               teamScore,
-              haaIndividualPlace,
-              haaConcurrent
+              hoaIndividualPlace, // SWAPPED: Was haaIndividualPlace
+              hoaConcurrent // SWAPPED: Was haaConcurrent
             })
             results.updated.push(`${shooterId} - Skeet (${score})`)
             imported = true
@@ -543,7 +546,7 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
 
             // Use parsed values or fall back to numeric parsing
             let concurrentPlace = parsedPlacement.concurrentPlace
-            let hoaPlace = parsedPlacement.hoaPlace
+            let haaPlace = parsedPlacement.haaPlace // SWAPPED: Was hoaPlace
 
             if (!concurrentPlace && concurrentPlaceRaw) {
               const numericValue = parseInt(concurrentPlaceRaw.toString())
@@ -579,12 +582,12 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
               concurrentPlace,
               classPlace,
               teamPlace,
-              hoaPlace,
+              haaPlace, // SWAPPED: Was hoaPlace
               individualRank,
               teamRank,
               teamScore,
-              haaIndividualPlace,
-              haaConcurrent
+              hoaIndividualPlace, // SWAPPED: Was haaIndividualPlace
+              hoaConcurrent // SWAPPED: Was haaConcurrent
             })
             results.updated.push(`${shooterId} - Trap (${score})`)
             imported = true
@@ -627,7 +630,7 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
 
             // Use parsed values or fall back to numeric parsing
             let concurrentPlace = parsedPlacement.concurrentPlace
-            let hoaPlace = parsedPlacement.hoaPlace
+            let haaPlace = parsedPlacement.haaPlace // SWAPPED: Was hoaPlace
 
             if (!concurrentPlace && concurrentPlaceRaw) {
               const numericValue = parseInt(concurrentPlaceRaw.toString())
@@ -663,12 +666,12 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
               concurrentPlace,
               classPlace,
               teamPlace,
-              hoaPlace,
+              haaPlace, // SWAPPED: Was hoaPlace
               individualRank,
               teamRank,
               teamScore,
-              haaIndividualPlace,
-              haaConcurrent
+              hoaIndividualPlace, // SWAPPED: Was haaIndividualPlace
+              hoaConcurrent // SWAPPED: Was haaConcurrent
             })
             results.updated.push(`${shooterId} - Sporting (${score})`)
             imported = true
@@ -729,12 +732,12 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
           concurrentPlace: shootData.concurrentPlace,
           classPlace: shootData.classPlace,
           teamPlace: shootData.teamPlace,
-          hoaPlace: shootData.hoaPlace,
+          hoaPlace: shootData.hoaIndividualPlace, // SWAPPED: Store hoaIndividualPlace in hoaPlace DB field
           individualRank: shootData.individualRank,
           teamRank: shootData.teamRank,
           teamScore: shootData.teamScore,
-          haaIndividualPlace: shootData.haaIndividualPlace,
-          haaConcurrent: shootData.haaConcurrent
+          haaIndividualPlace: shootData.haaPlace, // SWAPPED: Store haaPlace in haaIndividualPlace DB field
+          haaConcurrent: shootData.hoaConcurrent // SWAPPED: Store hoaConcurrent in haaConcurrent DB field
         },
         create: {
           athleteId: shootData.athleteId,
@@ -743,12 +746,12 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
           concurrentPlace: shootData.concurrentPlace,
           classPlace: shootData.classPlace,
           teamPlace: shootData.teamPlace,
-          hoaPlace: shootData.hoaPlace,
+          hoaPlace: shootData.hoaIndividualPlace, // SWAPPED: Store hoaIndividualPlace in hoaPlace DB field
           individualRank: shootData.individualRank,
           teamRank: shootData.teamRank,
           teamScore: shootData.teamScore,
-          haaIndividualPlace: shootData.haaIndividualPlace,
-          haaConcurrent: shootData.haaConcurrent
+          haaIndividualPlace: shootData.haaPlace, // SWAPPED: Store haaPlace in haaIndividualPlace DB field
+          haaConcurrent: shootData.hoaConcurrent // SWAPPED: Store hoaConcurrent in haaConcurrent DB field
         }
       })
     )
