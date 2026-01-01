@@ -195,10 +195,17 @@ export async function GET(
         ? squadName.split(' - ').pop() || squadName
         : squadName
 
+      // Determine team name: check squad team first, then athlete team, then Unaffiliated
+      // Important: if squad.teamId is explicitly null, that means Unaffiliated
+      const teamName = assignment.squad.team?.name
+        || (assignment.squad.teamId === null ? 'Unaffiliated' : null)
+        || assignment.athlete.team?.name
+        || 'Unaffiliated'
+
       return {
         // Primary columns in requested order
         'Shooter ID': assignment.athlete.shooterId || '',
-        'Team': assignment.squad.team?.name || assignment.athlete.team?.name || 'Unaffiliated',
+        'Team': teamName,
         'First Name': firstName,
         'Last Name': lastName,
         'Full Name': fullName,

@@ -292,6 +292,24 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
   // BATCH OPTIMIZATION: Collect all class updates to apply in bulk
   const classUpdatesMap = new Map<string, any>()
 
+  // BATCH OPTIMIZATION: Collect all shoot data to upsert in bulk
+  const shootsToUpsert: Array<{
+    athleteId: string
+    tournamentId: string
+    disciplineId: string
+    totalScore: number
+    maxScore: number
+    concurrentPlace?: number
+    classPlace?: number
+    teamPlace?: number
+    hoaPlace?: number
+    individualRank?: number
+    teamRank?: number
+    teamScore?: number
+    haaIndividualPlace?: number
+    haaConcurrent?: string
+  }> = []
+
   // Process each row (athlete)
   for (const row of data) {
     try {
@@ -467,7 +485,8 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
             const teamRank = row['Skeet Team Rank'] ? parseInt(row['Skeet Team Rank']) : undefined
             const teamScore = row['Skeet Team Score'] ? parseInt(row['Skeet Team Score']) : undefined
 
-            await importSingleScore({
+            // BATCH OPTIMIZATION: Collect score data instead of importing immediately
+            shootsToUpsert.push({
               athleteId: athlete.id,
               tournamentId,
               disciplineId: skeetDiscipline.disciplineId,
@@ -550,7 +569,8 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
             const teamRank = row['Trap Team Rank'] ? parseInt(row['Trap Team Rank']) : undefined
             const teamScore = row['Trap Team Score'] ? parseInt(row['Trap Team Score']) : undefined
 
-            await importSingleScore({
+            // BATCH OPTIMIZATION: Collect score data instead of importing immediately
+            shootsToUpsert.push({
               athleteId: athlete.id,
               tournamentId,
               disciplineId: trapDiscipline.disciplineId,
@@ -633,7 +653,8 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
             const teamRank = row['Sporting Team Rank'] ? parseInt(row['Sporting Team Rank']) : undefined
             const teamScore = row['Sporting Team Score'] ? parseInt(row['Sporting Team Score']) : undefined
 
-            await importSingleScore({
+            // BATCH OPTIMIZATION: Collect score data instead of importing immediately
+            shootsToUpsert.push({
               athleteId: athlete.id,
               tournamentId,
               disciplineId: sportingDiscipline.disciplineId,
@@ -679,6 +700,96 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
         })
       )
     )
+  }
+
+  // BATCH OPTIMIZATION: Process all shoots and scores in bulk
+  if (shootsToUpsert.length > 0) {
+    // Fetch all existing shoots for this tournament in one query
+    const existingShoots = await prisma.shoot.findMany({
+      where: {
+        tournamentId,
+        athleteId: { in: shootsToUpsert.map(s => s.athleteId) }
+      }
+    })
+
+    // Create a map of existing shoots by unique key
+    const existingShootMap = new Map(
+      existingShoots.map(s => [`${s.athleteId}-${s.disciplineId}`, s])
+    )
+
+    // Delete all existing scores for these shoots in one query
+    const shootIdsToDelete = existingShoots.map(s => s.id)
+    if (shootIdsToDelete.length > 0) {
+      await prisma.score.deleteMany({
+        where: { shootId: { in: shootIdsToDelete } }
+      })
+    }
+
+    // Batch upsert all shoots and create scores in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Upsert shoots and collect their IDs for score creation
+      const shootIdMap = new Map<string, string>()
+
+      for (const shootData of shootsToUpsert) {
+        const key = `${shootData.athleteId}-${shootData.disciplineId}`
+        const existingShoot = existingShootMap.get(key)
+
+        if (existingShoot) {
+          // Update existing shoot
+          await tx.shoot.update({
+            where: { id: existingShoot.id },
+            data: {
+              concurrentPlace: shootData.concurrentPlace,
+              classPlace: shootData.classPlace,
+              teamPlace: shootData.teamPlace,
+              hoaPlace: shootData.hoaPlace,
+              individualRank: shootData.individualRank,
+              teamRank: shootData.teamRank,
+              teamScore: shootData.teamScore,
+              haaIndividualPlace: shootData.haaIndividualPlace,
+              haaConcurrent: shootData.haaConcurrent
+            }
+          })
+          shootIdMap.set(key, existingShoot.id)
+        } else {
+          // Create new shoot
+          const newShoot = await tx.shoot.create({
+            data: {
+              athleteId: shootData.athleteId,
+              tournamentId: shootData.tournamentId,
+              disciplineId: shootData.disciplineId,
+              concurrentPlace: shootData.concurrentPlace,
+              classPlace: shootData.classPlace,
+              teamPlace: shootData.teamPlace,
+              hoaPlace: shootData.hoaPlace,
+              individualRank: shootData.individualRank,
+              teamRank: shootData.teamRank,
+              teamScore: shootData.teamScore,
+              haaIndividualPlace: shootData.haaIndividualPlace,
+              haaConcurrent: shootData.haaConcurrent
+            }
+          })
+          shootIdMap.set(key, newShoot.id)
+        }
+      }
+
+      // Batch create all scores
+      const scoresToCreate = shootsToUpsert.map(shootData => {
+        const key = `${shootData.athleteId}-${shootData.disciplineId}`
+        const shootId = shootIdMap.get(key)!
+        return {
+          shootId,
+          roundNumber: 1,
+          stationNumber: null,
+          targets: shootData.totalScore,
+          maxTargets: shootData.maxScore
+        }
+      })
+
+      if (scoresToCreate.length > 0) {
+        await tx.score.createMany({ data: scoresToCreate })
+      }
+    })
   }
 
   // Update squad divisions and teams based on Excel data
