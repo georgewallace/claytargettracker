@@ -246,10 +246,23 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           }
         })
 
-        // Use squad's assigned division, fall back to most common member division if not set
-        let squadDivision: string | null = squad.division || null
+        // Parse division from squad name first (format: "Team Name - Division N")
+        // e.g., "Unaffiliated - Open 1" → "Open", "Rocky Mountain - Varsity 1" → "Varsity"
+        let squadDivision: string | null = null
+        const squadNameParts = squad.name.split(' - ')
+        if (squadNameParts.length > 1) {
+          // Extract division from second part, removing the number
+          // "Open 1" → "Open", "Varsity 2" → "Varsity", "Junior Varsity 1" → "Junior Varsity"
+          const divisionPart = squadNameParts[1].trim()
+          squadDivision = divisionPart.replace(/\s+\d+$/, '').trim()
+        }
 
-        // Fallback: If squad doesn't have division set, calculate from members
+        // Fallback 1: Use squad's assigned division field
+        if (!squadDivision) {
+          squadDivision = squad.division || null
+        }
+
+        // Fallback 2: Calculate from most common member division
         if (!squadDivision) {
           let maxCount = 0
           Object.entries(divisions).forEach(([div, count]) => {
