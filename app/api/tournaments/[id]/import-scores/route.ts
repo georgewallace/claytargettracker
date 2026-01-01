@@ -690,19 +690,8 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
     }
   }
 
-  // BATCH OPTIMIZATION: Apply all class updates in a transaction
-  if (classUpdatesMap.size > 0) {
-    await prisma.$transaction(
-      Array.from(classUpdatesMap.entries()).map(([athleteId, updates]) =>
-        prisma.athlete.update({
-          where: { id: athleteId },
-          data: updates
-        })
-      )
-    )
-  }
-
-  // BATCH OPTIMIZATION: Process all shoots and scores in bulk
+  // CRITICAL PATH: Process all shoots and scores in bulk (priority for score enterer)
+  // This is the core data needed for leaderboard display
   if (shootsToUpsert.length > 0) {
     // Fetch all existing shoots for this tournament in one query
     const existingShoots = await prisma.shoot.findMany({
@@ -792,7 +781,45 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
     })
   }
 
-  // Update squad divisions and teams based on Excel data
+  // BACKGROUND PROCESSING: Update athlete classes and squad data
+  // These don't block the response - they can complete after scores are visible
+  const backgroundUpdates = async () => {
+    try {
+      // Apply all class updates in a transaction
+      if (classUpdatesMap.size > 0) {
+        await prisma.$transaction(
+          Array.from(classUpdatesMap.entries()).map(([athleteId, updates]) =>
+            prisma.athlete.update({
+              where: { id: athleteId },
+              data: updates
+            })
+          )
+        )
+      }
+
+      // Update squad divisions and teams based on Excel data
+      if (athleteSquadData.size > 0) {
+        await updateSquadDivisionsAndTeams(tournamentId, athleteSquadData, results)
+      }
+    } catch (error) {
+      console.error('Background update error:', error)
+      // Don't throw - these are non-critical updates
+    }
+  }
+
+  // Fire off background updates without blocking response
+  backgroundUpdates()
+
+  // Return immediately with score import results
+  return results
+}
+
+// Separated squad update logic for background processing
+async function updateSquadDivisionsAndTeams(
+  tournamentId: string,
+  athleteSquadData: Map<string, any>,
+  results: any
+) {
   if (athleteSquadData.size > 0) {
     // Get all squads for this tournament with their members
     const squads = await prisma.squad.findMany({
@@ -907,8 +934,6 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
       results.updated.push(`Updated ${squadUpdates.length} squad division(s)`)
     }
   }
-
-  return results
 }
 
 async function importSingleScore({
