@@ -103,14 +103,14 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
   })
 
   // Determine initial view
-  const [activeView, setActiveView] = useState<'divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa'>('divisions')
+  const [activeView, setActiveView] = useState<'divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa' | 'haa-all'>('divisions')
 
   // Auto-cycle through views
   useEffect(() => {
     if (!autoRefresh) return
 
-    const views: ('divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa')[] =
-      ['divisions', 'classes', 'teams', 'hoa-haa', 'squads']
+    const views: ('divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa' | 'haa-all')[] =
+      ['divisions', 'classes', 'teams', 'hoa-haa', 'haa-all', 'squads']
 
     // Use configured interval or default to 15 seconds
     const tabInterval = tournament.leaderboardTabInterval || 15000
@@ -429,6 +429,38 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     return { haaathletes, haaMaleathletes, haaFemaleathletes, haaWinnerIds }
   }, [allathletes, tournament.enableHAA, tournament.haaOverallPlaces, tournament.haaMenPlaces, tournament.haaLadyPlaces])
 
+  // MEMOIZED: HAA All Shooters - Show everyone who competed in multiple core disciplines
+  const allHAAathletes = useMemo(() => {
+    if (!tournament.enableHAA) return []
+
+    // Get all athletes who competed in at least 2 core disciplines
+    return [...allathletes]
+      .filter(s => {
+        // Count how many core disciplines they competed in
+        const disciplinesCompeted = coreDisciplines.filter(
+          disciplineId => s.disciplineScores[disciplineId] !== undefined
+        ).length
+        return disciplinesCompeted >= 2
+      })
+      .map(s => {
+        // Calculate total score across core disciplines only
+        const coreTotal = coreDisciplines.reduce((sum, disciplineId) => {
+          return sum + (s.disciplineScores[disciplineId] || 0)
+        }, 0)
+
+        // Count disciplines competed in
+        const disciplinesCompeted = coreDisciplines.filter(
+          disciplineId => s.disciplineScores[disciplineId] !== undefined
+        ).length
+
+        return {
+          ...s,
+          haaTotal: coreTotal,
+          haaDisciplinesCompeted: disciplinesCompeted
+        }
+      })
+      .sort((a, b) => b.haaTotal - a.haaTotal) // Sort by total score descending
+  }, [allathletes, tournament.enableHAA, coreDisciplines])
 
   // Get medal emoji
   const getMedal = (index: number) => {
@@ -568,6 +600,16 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             }`}
           >
             👑 HOA/HAA
+          </button>
+          <button
+            onClick={() => setActiveView('haa-all')}
+            className={`px-3 py-1.5 rounded text-sm transition font-medium ${
+              activeView === 'haa-all'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+            }`}
+          >
+            📊 HAA All
           </button>
           <button
             onClick={() => setActiveView('squads')}
@@ -969,6 +1011,111 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
               <p className="text-gray-500 text-sm">No scores recorded yet</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* HAA All Shooters View */}
+      {activeView === 'haa-all' && tournament.enableHAA && (
+        <div className="space-y-3">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-gray-900">📊 HAA - All Shooters</h2>
+              <p className="text-gray-600 text-sm">
+                All athletes who competed in at least 2 core disciplines
+                {coreDisciplines.length > 0 && tournament.disciplines && (
+                  <span className="ml-1">
+                    ({tournament.disciplines
+                      .filter((td: any) => coreDisciplines.includes(td.disciplineId))
+                      .map((td: any) => td.discipline.displayName)
+                      .join(', ')})
+                  </span>
+                )}
+              </p>
+            </div>
+
+            {allHAAathletes.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Rank
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Athlete
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Division
+                      </th>
+                      {tournament.disciplines
+                        .filter((td: any) => coreDisciplines.includes(td.disciplineId))
+                        .map((td: any) => (
+                          <th key={td.disciplineId} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {td.discipline.displayName}
+                          </th>
+                        ))}
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Events
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {allHAAathletes.map((athlete: any, idx: number) => {
+                      const isRecent = athlete.lastUpdated &&
+                        (new Date().getTime() - new Date(athlete.lastUpdated).getTime()) < 2 * 60 * 1000
+
+                      return (
+                        <tr
+                          key={athlete.athleteId}
+                          className={`transition ${
+                            idx < 3 ? 'bg-yellow-50' :
+                            isRecent ? 'bg-green-50' :
+                            'hover:bg-gray-50'
+                          }`}
+                        >
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">
+                            {idx < 3 ? getMedal(idx) : `${idx + 1}.`}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {isRecent && <span className="mr-1">✨</span>}
+                            {athlete.athleteName}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-600">
+                            {athlete.division || 'N/A'}
+                          </td>
+                          {tournament.disciplines
+                            .filter((td: any) => coreDisciplines.includes(td.disciplineId))
+                            .map((td: any) => {
+                              const score = athlete.disciplineScores[td.disciplineId]
+                              return (
+                                <td key={td.disciplineId} className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-700">
+                                  {score !== undefined ? score : '-'}
+                                </td>
+                              )
+                            })}
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-center font-bold text-indigo-600">
+                            {athlete.haaTotal}
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-600">
+                            {athlete.haaDisciplinesCompeted}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                <p className="text-gray-500 text-sm">
+                  No athletes have competed in at least 2 core disciplines yet
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
