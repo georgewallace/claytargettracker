@@ -46,6 +46,7 @@ interface athletescore {
     concurrentPlace?: number
     classPlace?: number
     teamPlace?: number
+    hoaPlace?: number
     individualRank?: number
     teamRank?: number
     teamScore?: number
@@ -180,6 +181,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         concurrentPlace: shoot.concurrentPlace || undefined,
         classPlace: shoot.classPlace || undefined,
         teamPlace: shoot.teamPlace || undefined,
+        hoaPlace: shoot.hoaPlace || undefined,
         individualRank: shoot.individualRank || undefined,
         teamRank: shoot.teamRank || undefined,
         teamScore: shoot.teamScore || undefined
@@ -322,20 +324,30 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     if (tournament.enableHOA) {
       tournament.disciplines.forEach((td: any) => {
         const disciplineId = td.disciplineId
-        const athletesWithThisDiscipline = allathletes.filter(
-          athlete => athlete.disciplineScores[disciplineId] !== undefined
+
+        // Filter athletes who have HOA placement for this discipline
+        const athletesWithHOAPlace = allathletes.filter(
+          athlete => athlete.disciplinePlacements[disciplineId]?.hoaPlace !== undefined
         )
 
         // Always separate by gender - use configured place limits from Tournament Setup
         hoaResults[disciplineId] = {
           combined: [],
-          male: [...athletesWithThisDiscipline]
+          male: [...athletesWithHOAPlace]
             .filter(s => s.gender === 'M')
-            .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
+            .sort((a, b) => {
+              const aPlace = a.disciplinePlacements[disciplineId]?.hoaPlace || 999
+              const bPlace = b.disciplinePlacements[disciplineId]?.hoaPlace || 999
+              return aPlace - bPlace
+            })
             .slice(0, tournament.hoaMenPlaces || 2),
-          female: [...athletesWithThisDiscipline]
+          female: [...athletesWithHOAPlace]
             .filter(s => s.gender === 'F')
-            .sort((a, b) => (b.disciplineScores[disciplineId] || 0) - (a.disciplineScores[disciplineId] || 0))
+            .sort((a, b) => {
+              const aPlace = a.disciplinePlacements[disciplineId]?.hoaPlace || 999
+              const bPlace = b.disciplinePlacements[disciplineId]?.hoaPlace || 999
+              return aPlace - bPlace
+            })
             .slice(0, tournament.hoaLadyPlaces || 2)
         }
       })
