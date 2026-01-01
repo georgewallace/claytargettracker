@@ -1092,12 +1092,12 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                               const score = athlete.disciplineScores[td.disciplineId]
                               return (
                                 <td key={td.disciplineId} className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-700">
-                                  {score !== undefined ? score : '-'}
+                                  {score !== undefined ? Math.round(score) : '-'}
                                 </td>
                               )
                             })}
                           <td className="px-3 py-2 whitespace-nowrap text-sm text-center font-bold text-indigo-600">
-                            {athlete.haaTotal}
+                            {Math.round(athlete.haaTotal)}
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-600">
                             {athlete.haaDisciplinesCompeted}
