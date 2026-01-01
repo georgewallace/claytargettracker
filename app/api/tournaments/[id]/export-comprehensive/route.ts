@@ -189,14 +189,12 @@ export async function GET(
       const lastName = assignment.athlete.user.lastName || ''
       const fullName = firstName && lastName ? `${firstName} ${lastName}` : assignment.athlete.user.name
 
-      // Extract concurrent squad name (last part after dash, or full name if no dash)
+      // Parse team name and concurrent squad from squad name
+      // Format: "Team Name - Division N" or "Unaffiliated - Division N"
       const squadName = assignment.squad.name
-      const concurrentSquad = squadName.includes(' - ')
-        ? squadName.split(' - ').pop() || squadName
-        : squadName
-
-      // Determine team name: prefer squad team, fallback to athlete team
-      const teamName = assignment.squad.team?.name || assignment.athlete.team?.name || 'Unaffiliated'
+      const parts = squadName.split(' - ')
+      const teamName = parts.length > 1 ? parts[0] : 'Unaffiliated'
+      const concurrentSquad = parts.length > 1 ? parts.slice(1).join(' - ') : squadName
 
       return {
         // Primary columns in requested order
