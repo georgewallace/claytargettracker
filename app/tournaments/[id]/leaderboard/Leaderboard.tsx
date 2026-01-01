@@ -1077,7 +1077,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                           }`}
                         >
                           <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">
-                            {idx < 3 ? getMedal(idx) : `${idx + 1}.`}
+                            {idx + 1}.
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                             {isRecent && <span className="mr-1">✨</span>}
