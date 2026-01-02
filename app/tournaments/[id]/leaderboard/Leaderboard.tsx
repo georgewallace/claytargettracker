@@ -329,56 +329,17 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     }
   }, [tournament.haaCoreDisciplines, tournament.disciplines])
 
-  // MEMOIZED: HOA (High Over All) - Per discipline (highest in EACH discipline)
+  // MEMOIZED: HOA (High Over All) - All disciplines combined (overall winners)
   // PERFORMANCE: Only recalculates when athlete scores or config changes
-  const hoaByDiscipline = useMemo(() => {
-    const hoaResults: Record<string, { combined: athletescore[], male: athletescore[], female: athletescore[] }> = {}
+  const { hoaathletes, hoaMaleathletes, hoaFemaleathletes, hoaWinnerIds } = useMemo(() => {
+    let hoaathletes: athletescore[] = []
+    let hoaMaleathletes: athletescore[] = []
+    let hoaFemaleathletes: athletescore[] = []
 
     if (tournament.enableHOA) {
-      tournament.disciplines.forEach((td: any) => {
-        const disciplineId = td.disciplineId
-
-        // Filter athletes who have HOA placement for this discipline
-        const athletesWithHOAPlace = allathletes.filter(
-          athlete => athlete.disciplinePlacements[disciplineId]?.hoaPlace !== undefined
-        )
-
-        // Always separate by gender - use configured place limits from Tournament Setup
-        hoaResults[disciplineId] = {
-          combined: [],
-          male: [...athletesWithHOAPlace]
-            .filter(s => s.gender === 'M')
-            .sort((a, b) => {
-              const aPlace = a.disciplinePlacements[disciplineId]?.hoaPlace || 999
-              const bPlace = b.disciplinePlacements[disciplineId]?.hoaPlace || 999
-              return aPlace - bPlace
-            })
-            .slice(0, tournament.hoaMenPlaces || 2),
-          female: [...athletesWithHOAPlace]
-            .filter(s => s.gender === 'F')
-            .sort((a, b) => {
-              const aPlace = a.disciplinePlacements[disciplineId]?.hoaPlace || 999
-              const bPlace = b.disciplinePlacements[disciplineId]?.hoaPlace || 999
-              return aPlace - bPlace
-            })
-            .slice(0, tournament.hoaLadyPlaces || 2)
-        }
-      })
-    }
-
-    return hoaResults
-  }, [allathletes, tournament.enableHOA, tournament.disciplines, tournament.hoaMenPlaces, tournament.hoaLadyPlaces])
-
-  // MEMOIZED: HAA (High All-Around) - All disciplines combined
-  // PERFORMANCE: Only recalculates when athlete scores or config changes
-  const { haaathletes, haaMaleathletes, haaFemaleathletes, haaWinnerIds } = useMemo(() => {
-    let haaathletes: athletescore[] = []
-    let haaMaleathletes: athletescore[] = []
-    let haaFemaleathletes: athletescore[] = []
-
-    if (tournament.enableHAA) {
-      // Overall HAA - only show athletes with haaIndividualPlace set and no gender designation
-      haaathletes = [...allathletes]
+      // Overall HOA - only show athletes with haaIndividualPlace set and no gender designation
+      // NOTE: After Excel swap, overall placements are in hoaPlace field, but gender info is in haaConcurrent
+      hoaathletes = [...allathletes]
         .filter(s => {
           if (!s.haaIndividualPlace) return false
           // Check if haaConcurrent is gender-neutral (no "Men's", "Male", "Lady's", "Ladies", "Female", "Women")
@@ -394,23 +355,23 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         .sort((a, b) => (a.haaIndividualPlace || 999) - (b.haaIndividualPlace || 999))
         .slice(0, tournament.haaOverallPlaces || 2)
 
-      // Get Overall HAA winner IDs to exclude from gender-specific categories
-      const overallHAAWinnerIds = new Set(haaathletes.map(s => s.athleteId))
+      // Get Overall HOA winner IDs to exclude from gender-specific categories
+      const overallHOAWinnerIds = new Set(hoaathletes.map(s => s.athleteId))
 
-      // HAA for males - only show athletes with haaIndividualPlace and gender-specific designation
-      haaMaleathletes = [...allathletes]
+      // HOA for males - only show athletes with haaIndividualPlace and gender-specific designation
+      hoaMaleathletes = [...allathletes]
         .filter(s => {
-          if (!s.haaIndividualPlace || overallHAAWinnerIds.has(s.athleteId)) return false
+          if (!s.haaIndividualPlace || overallHOAWinnerIds.has(s.athleteId)) return false
           const concurrent = (s.haaConcurrent || '').toLowerCase()
           return concurrent.includes("men") || concurrent.includes("male")
         })
         .sort((a, b) => (a.haaIndividualPlace || 999) - (b.haaIndividualPlace || 999))
         .slice(0, tournament.haaMenPlaces || 2)
 
-      // HAA for females - only show athletes with haaIndividualPlace and gender-specific designation
-      haaFemaleathletes = [...allathletes]
+      // HOA for females - only show athletes with haaIndividualPlace and gender-specific designation
+      hoaFemaleathletes = [...allathletes]
         .filter(s => {
-          if (!s.haaIndividualPlace || overallHAAWinnerIds.has(s.athleteId)) return false
+          if (!s.haaIndividualPlace || overallHOAWinnerIds.has(s.athleteId)) return false
           const concurrent = (s.haaConcurrent || '').toLowerCase()
           return concurrent.includes("lady") || concurrent.includes("ladies") ||
                  concurrent.includes("female") || concurrent.includes("women")
@@ -419,15 +380,56 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         .slice(0, tournament.haaLadyPlaces || 2)
     }
 
-    // Collect all HAA winners for exclusion from division leaderboards
-    const haaWinnerIds = new Set([
-      ...haaathletes.map(s => s.athleteId),
-      ...haaMaleathletes.map(s => s.athleteId),
-      ...haaFemaleathletes.map(s => s.athleteId)
+    // Collect all HOA winners for exclusion from division leaderboards
+    const hoaWinnerIds = new Set([
+      ...hoaathletes.map(s => s.athleteId),
+      ...hoaMaleathletes.map(s => s.athleteId),
+      ...hoaFemaleathletes.map(s => s.athleteId)
     ])
 
-    return { haaathletes, haaMaleathletes, haaFemaleathletes, haaWinnerIds }
-  }, [allathletes, tournament.enableHAA, tournament.haaOverallPlaces, tournament.haaMenPlaces, tournament.haaLadyPlaces])
+    return { hoaathletes, hoaMaleathletes, hoaFemaleathletes, hoaWinnerIds }
+  }, [allathletes, tournament.enableHOA, tournament.haaOverallPlaces, tournament.haaMenPlaces, tournament.haaLadyPlaces])
+
+  // MEMOIZED: HAA (High All-Around) - Per discipline (highest in EACH discipline)
+  // PERFORMANCE: Only recalculates when athlete scores or config changes
+  const haaByDiscipline = useMemo(() => {
+    const haaResults: Record<string, { combined: athletescore[], male: athletescore[], female: athletescore[] }> = {}
+
+    if (tournament.enableHAA) {
+      tournament.disciplines.forEach((td: any) => {
+        const disciplineId = td.disciplineId
+
+        // Filter athletes who have HAA placement for this discipline
+        // NOTE: After Excel swap, per-discipline placements are in haaIndividualPlace field (stored in disciplinePlacements[].hoaPlace)
+        const athletesWithHAAPlace = allathletes.filter(
+          athlete => athlete.disciplinePlacements[disciplineId]?.hoaPlace !== undefined
+        )
+
+        // Always separate by gender - use configured place limits from Tournament Setup
+        haaResults[disciplineId] = {
+          combined: [],
+          male: [...athletesWithHAAPlace]
+            .filter(s => s.gender === 'M')
+            .sort((a, b) => {
+              const aPlace = a.disciplinePlacements[disciplineId]?.hoaPlace || 999
+              const bPlace = b.disciplinePlacements[disciplineId]?.hoaPlace || 999
+              return aPlace - bPlace
+            })
+            .slice(0, tournament.hoaMenPlaces || 2),
+          female: [...athletesWithHAAPlace]
+            .filter(s => s.gender === 'F')
+            .sort((a, b) => {
+              const aPlace = a.disciplinePlacements[disciplineId]?.hoaPlace || 999
+              const bPlace = b.disciplinePlacements[disciplineId]?.hoaPlace || 999
+              return aPlace - bPlace
+            })
+            .slice(0, tournament.hoaLadyPlaces || 2)
+        }
+      })
+    }
+
+    return haaResults
+  }, [allathletes, tournament.enableHAA, tournament.disciplines, tournament.hoaMenPlaces, tournament.hoaLadyPlaces])
 
   // MEMOIZED: HAA All Shooters - Show everyone who competed in multiple core disciplines
   const allHAAathletes = useMemo(() => {
@@ -519,10 +521,10 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         s => s.division === division && s.disciplineScores[disciplineId] !== undefined
       )
       
-      // Exclude HAA winners from division leaderboards if configured
-      if (tournament.haaExcludesDivision && tournament.enableHAA) {
+      // Exclude HOA winners (overall) from division leaderboards if configured
+      if (tournament.haaExcludesDivision && tournament.enableHOA) {
         athletesInDisciplineAndDivision = athletesInDisciplineAndDivision.filter(
-          s => !haaWinnerIds.has(s.athleteId)
+          s => !hoaWinnerIds.has(s.athleteId)
         )
       }
       
@@ -676,22 +678,22 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       {/* HOA/HAA View */}
       {activeView === 'hoa-haa' && (
         <div className="space-y-3">
-          {/* HAA Section - All disciplines combined */}
-          {tournament.enableHAA && (
+          {/* HOA Section - All disciplines combined (overall winners) */}
+          {tournament.enableHOA && (
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
               <div className="mb-3">
-                <h2 className="text-lg font-bold text-gray-900">🎯 HAA - High All-Around</h2>
-                <p className="text-gray-600 text-xs">All Disciplines Combined</p>
+                <h2 className="text-lg font-bold text-gray-900">🎯 HOA - High Over All</h2>
+                <p className="text-gray-600 text-xs">Overall Winners - All Disciplines Combined</p>
               </div>
 
               <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-1 lg:grid-cols-3 gap-2'}>
-                {/* HAA Overall */}
-                {haaathletes.length > 0 && (
+                {/* HOA Overall */}
+                {hoaathletes.length > 0 && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                     <div className="bg-white p-2 border-b border-gray-200">
                       <h3 className="text-sm font-bold text-gray-900">Overall</h3>
                       <p className="text-gray-600 text-xs">
-                        {haaathletes.length} athlete{haaathletes.length !== 1 ? 's' : ''}
+                        {hoaathletes.length} athlete{hoaathletes.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="overflow-x-auto">
@@ -704,7 +706,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {haaathletes.map((athlete, idx) => {
+                          {hoaathletes.map((athlete, idx) => {
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
@@ -728,13 +730,13 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                   </div>
                 )}
 
-                {/* HAA Male */}
-                {haaMaleathletes.length > 0 && (
+                {/* HOA Male */}
+                {hoaMaleathletes.length > 0 && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                     <div className="bg-white p-2 border-b border-gray-200">
                       <h3 className="text-sm font-bold text-gray-900">Male</h3>
                       <p className="text-gray-600 text-xs">
-                        {haaMaleathletes.length} athlete{haaMaleathletes.length !== 1 ? 's' : ''}
+                        {hoaMaleathletes.length} athlete{hoaMaleathletes.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="overflow-x-auto">
@@ -747,7 +749,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {haaMaleathletes.map((athlete, idx) => {
+                          {hoaMaleathletes.map((athlete, idx) => {
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
@@ -771,13 +773,13 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                   </div>
                 )}
 
-                {/* HAA Female */}
-                {haaFemaleathletes.length > 0 && (
+                {/* HOA Female */}
+                {hoaFemaleathletes.length > 0 && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                     <div className="bg-white p-2 border-b border-gray-200">
                       <h3 className="text-sm font-bold text-gray-900">Female</h3>
                       <p className="text-gray-600 text-xs">
-                        {haaFemaleathletes.length} athlete{haaFemaleathletes.length !== 1 ? 's' : ''}
+                        {hoaFemaleathletes.length} athlete{hoaFemaleathletes.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="overflow-x-auto">
@@ -790,7 +792,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {haaFemaleathletes.map((athlete, idx) => {
+                          {hoaFemaleathletes.map((athlete, idx) => {
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
@@ -817,35 +819,35 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             </div>
           )}
 
-          {/* HOA Section - Per discipline */}
-          {tournament.enableHOA && (
+          {/* HAA Section - Per discipline */}
+          {tournament.enableHAA && (
             <>
               {tournament.disciplines.map((td: any) => {
                 const disciplineId = td.disciplineId
                 const disciplineName = td.discipline.displayName
-                const hoaResults = hoaByDiscipline[disciplineId]
+                const haaResults = haaByDiscipline[disciplineId]
 
-                if (!hoaResults) return null
+                if (!haaResults) return null
 
-                const hasResults = hoaResults.male.length > 0 || hoaResults.female.length > 0
+                const hasResults = haaResults.male.length > 0 || haaResults.female.length > 0
 
                 if (!hasResults) return null
 
                 return (
                   <div key={disciplineId} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                     <div className="mb-3">
-                      <h2 className="text-lg font-bold text-gray-900">👑 HOA - {disciplineName}</h2>
-                      <p className="text-gray-600 text-xs">High Over All for this discipline</p>
+                      <h2 className="text-lg font-bold text-gray-900">👑 HAA - {disciplineName}</h2>
+                      <p className="text-gray-600 text-xs">High All-Around for this discipline</p>
                     </div>
 
                     <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-1 lg:grid-cols-2 gap-2'}>
-                      {/* HOA Male */}
-                      {hoaResults.male.length > 0 && (
+                      {/* HAA Male */}
+                      {haaResults.male.length > 0 && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                           <div className="bg-white p-2 border-b border-gray-200">
                             <h3 className="text-sm font-bold text-gray-900">Male</h3>
                             <p className="text-gray-600 text-xs">
-                              {hoaResults.male.length} athlete{hoaResults.male.length !== 1 ? 's' : ''}
+                              {haaResults.male.length} athlete{haaResults.male.length !== 1 ? 's' : ''}
                             </p>
                           </div>
                           <div className="overflow-x-auto">
@@ -858,7 +860,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-200">
-                                {hoaResults.male.map((athlete, idx) => (
+                                {haaResults.male.map((athlete, idx) => (
                                   <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                     <td className="px-2 py-1 text-gray-600">
                                       {idx < 3 ? getMedal(idx) : `${idx + 1}`}
@@ -880,13 +882,13 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                         </div>
                       )}
 
-                      {/* HOA Female */}
-                      {hoaResults.female.length > 0 && (
+                      {/* HAA Female */}
+                      {haaResults.female.length > 0 && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                           <div className="bg-white p-2 border-b border-gray-200">
                             <h3 className="text-sm font-bold text-gray-900">Female</h3>
                             <p className="text-gray-600 text-xs">
-                              {hoaResults.female.length} athlete{hoaResults.female.length !== 1 ? 's' : ''}
+                              {haaResults.female.length} athlete{haaResults.female.length !== 1 ? 's' : ''}
                             </p>
                           </div>
                           <div className="overflow-x-auto">
@@ -899,7 +901,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-200">
-                                {hoaResults.female.map((athlete, idx) => (
+                                {haaResults.female.map((athlete, idx) => (
                                   <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                     <td className="px-2 py-1 text-gray-600">
                                       {idx < 3 ? getMedal(idx) : `${idx + 1}`}
@@ -1477,10 +1479,10 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         <h3 className="text-lg font-bold text-gray-900 mb-3">📖 Legend & Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-gray-900 text-sm">
           <div>
-            <span className="font-semibold text-yellow-600">HOA (High Over All):</span> Combines scores from ALL disciplines and events in the tournament. The athlete with the highest total across every event wins HOA.
+            <span className="font-semibold text-yellow-600">HOA (High Over All):</span> Overall winners across all core disciplines combined. Athletes must compete in at least 2 core disciplines. HOA winners are typically excluded from division leaderboards.
           </div>
           <div>
-            <span className="font-semibold text-purple-600">HAA (High All-Around):</span> Combines scores from core disciplines only (Trap, Skeet, Sporting Clays). Requires participation in at least 2 core disciplines. HOA winners are excluded from HAA in their division.
+            <span className="font-semibold text-purple-600">HAA (High All-Around):</span> Per-discipline winners (highest in EACH discipline - Trap, Skeet, Sporting Clays). Shows the top performers separately for each discipline.
           </div>
           <div>
             <span className="font-semibold text-green-600">✨ Recently Updated:</span> Rows with a green background and "✨" badge indicate scores that were entered or updated within the last 2 minutes.
