@@ -104,19 +104,19 @@ export async function POST(
       const setupData = XLSX.utils.sheet_to_json(tournamentSetupSheet, { header: 1, defval: '' }) as any[]
 
       // Extract HAA/HOA configuration from specific rows
-      // Row 20: Places for HAA (Overall) - Column B (index 1)
-      // Row 21: Places for HAA Men - Column B (index 1)
-      // Row 22: Places for HAA Lady - Column B (index 1)
-      // Row 26: Places for HOA (Overall) - Column B (index 1)
-      // Row 27: Places for HOA Men - Column B (index 1)
-      // Row 28: Places for HOA Lady - Column B (index 1)
+      // Row 20: Places for HAA (Overall) - Column B (index 1) - Array index 19
+      // Row 21: Places for HAA Men - Column B (index 1) - Array index 20
+      // Row 22: Places for HAA Lady - Column B (index 1) - Array index 21
+      // Row 26: Places for HOA (Overall) - Column B (index 1) - Array index 25
+      // Row 27: Places for HOA Men - Column B (index 1) - Array index 26
+      // Row 28: Places for HOA Lady - Column B (index 1) - Array index 27
 
-      const haaOverallPlaces = setupData[20]?.[1] || 2
-      const haaMenPlaces = setupData[21]?.[1] || 2
-      const haaLadyPlaces = setupData[22]?.[1] || 2
-      const hoaOverallPlaces = setupData[26]?.[1] || 0
-      const hoaMenPlaces = setupData[27]?.[1] || 2
-      const hoaLadyPlaces = setupData[28]?.[1] || 2
+      const haaOverallPlaces = setupData[19]?.[1] || 2
+      const haaMenPlaces = setupData[20]?.[1] || 2
+      const haaLadyPlaces = setupData[21]?.[1] || 2
+      const hoaOverallPlaces = setupData[25]?.[1] || 0
+      const hoaMenPlaces = setupData[26]?.[1] || 2
+      const hoaLadyPlaces = setupData[27]?.[1] || 2
 
       // Update tournament configuration
       await prisma.tournament.update({
