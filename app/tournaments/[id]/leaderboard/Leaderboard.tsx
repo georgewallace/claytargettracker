@@ -47,6 +47,7 @@ interface athletescore {
     classPlace?: number
     teamPlace?: number
     hoaPlace?: number
+    haaIndividualPlace?: number
     individualRank?: number
     teamRank?: number
     teamScore?: number
@@ -329,36 +330,120 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     }
   }, [tournament.haaCoreDisciplines, tournament.disciplines])
 
-  // MEMOIZED: HOA (High Over All) - Per discipline (highest in EACH discipline)
+  // MEMOIZED: HOA (High Over All) - Overall champions across ALL disciplines
   // PERFORMANCE: Only recalculates when athlete scores or config changes
-  const hoaByDiscipline = useMemo(() => {
-    const hoaResults: Record<string, { combined: athletescore[], male: athletescore[], female: athletescore[] }> = {}
+  const { hoaathletes, hoaMaleathletes, hoaFemaleathletes, hoaWinnerIds } = useMemo(() => {
+    let hoaathletes: athletescore[] = []
+    let hoaMaleathletes: athletescore[] = []
+    let hoaFemaleathletes: athletescore[] = []
 
     if (tournament.enableHOA) {
+      // Overall HOA - athletes with hoaPlace set (from "HOA Individual Place" Excel column)
+      // Filter for gender-neutral placements (no "Men's" or "Lady's" in haaConcurrent)
+      hoaathletes = [...allathletes]
+        .filter(s => {
+          // Must have at least one shoot with hoaPlace set
+          const hasHoaPlace = Object.values(s.disciplinePlacements).some((p: any) => p?.hoaPlace !== undefined)
+          if (!hasHoaPlace) return false
+
+          // Check if haaConcurrent is gender-neutral (e.g., "HOA Champion" not "HOA Men's Champion")
+          const concurrent = (s.haaConcurrent || '').toLowerCase()
+          const isGenderSpecific = concurrent.includes("men's") ||
+                                   concurrent.includes("mens") ||
+                                   concurrent.includes("male") ||
+                                   concurrent.includes("lady's") ||
+                                   concurrent.includes("ladies") ||
+                                   concurrent.includes("female") ||
+                                   concurrent.includes("women")
+          return !isGenderSpecific
+        })
+        .map(s => {
+          // Get the hoaPlace from any discipline (should be same across all)
+          const hoaPlace = Object.values(s.disciplinePlacements).find((p: any) => p?.hoaPlace !== undefined)?.hoaPlace
+          return { ...s, hoaPlace }
+        })
+        .sort((a: any, b: any) => (a.hoaPlace || 999) - (b.hoaPlace || 999))
+        .slice(0, tournament.haaOverallPlaces || 2) // Use haaOverallPlaces config for HOA
+
+      const overallHOAWinnerIds = new Set(hoaathletes.map(s => s.athleteId))
+
+      // HOA for males - athletes with hoaPlace and gender-specific designation
+      hoaMaleathletes = [...allathletes]
+        .filter(s => {
+          const hasHoaPlace = Object.values(s.disciplinePlacements).some((p: any) => p?.hoaPlace !== undefined)
+          if (!hasHoaPlace || overallHOAWinnerIds.has(s.athleteId)) return false
+
+          const concurrent = (s.haaConcurrent || '').toLowerCase()
+          return concurrent.includes("men's") || concurrent.includes("mens") || concurrent.includes("male")
+        })
+        .map(s => {
+          const hoaPlace = Object.values(s.disciplinePlacements).find((p: any) => p?.hoaPlace !== undefined)?.hoaPlace
+          return { ...s, hoaPlace }
+        })
+        .sort((a: any, b: any) => (a.hoaPlace || 999) - (b.hoaPlace || 999))
+        .slice(0, tournament.haaMenPlaces || 2)
+
+      // HOA for females - athletes with hoaPlace and gender-specific designation
+      hoaFemaleathletes = [...allathletes]
+        .filter(s => {
+          const hasHoaPlace = Object.values(s.disciplinePlacements).some((p: any) => p?.hoaPlace !== undefined)
+          if (!hasHoaPlace || overallHOAWinnerIds.has(s.athleteId)) return false
+
+          const concurrent = (s.haaConcurrent || '').toLowerCase()
+          return concurrent.includes("lady's") || concurrent.includes("ladies") ||
+                 concurrent.includes("female") || concurrent.includes("women")
+        })
+        .map(s => {
+          const hoaPlace = Object.values(s.disciplinePlacements).find((p: any) => p?.hoaPlace !== undefined)?.hoaPlace
+          return { ...s, hoaPlace }
+        })
+        .sort((a: any, b: any) => (a.hoaPlace || 999) - (b.hoaPlace || 999))
+        .slice(0, tournament.haaLadyPlaces || 2)
+    }
+
+    const hoaWinnerIds = new Set([
+      ...hoaathletes.map(s => s.athleteId),
+      ...hoaMaleathletes.map(s => s.athleteId),
+      ...hoaFemaleathletes.map(s => s.athleteId)
+    ])
+
+    return { hoaathletes, hoaMaleathletes, hoaFemaleathletes, hoaWinnerIds }
+  }, [allathletes, tournament.enableHOA, tournament.haaOverallPlaces, tournament.haaMenPlaces, tournament.haaLadyPlaces])
+
+  // MEMOIZED: HAA (High All-Around) - Per discipline champions (highest in EACH discipline)
+  // PERFORMANCE: Only recalculates when athlete scores or config changes
+  const haaByDiscipline = useMemo(() => {
+    const haaResults: Record<string, { combined: athletescore[], male: athletescore[], female: athletescore[] }> = {}
+
+    if (tournament.enableHAA) {
       tournament.disciplines.forEach((td: any) => {
         const disciplineId = td.disciplineId
 
-        // Filter athletes who have HOA placement for this discipline
-        const athletesWithHOAPlace = allathletes.filter(
-          athlete => athlete.disciplinePlacements[disciplineId]?.hoaPlace !== undefined
+        // Filter athletes who have HAA placement for this discipline (using haaIndividualPlace from "HAA" concurrent place)
+        const athletesWithHAAPlace = allathletes.filter(
+          athlete => {
+            const placement = athlete.disciplinePlacements[disciplineId]
+            // Check both haaIndividualPlace (stored from parsePlacementText) and legacy field
+            return placement?.haaIndividualPlace !== undefined && placement?.haaIndividualPlace !== null
+          }
         )
 
-        // Always separate by gender - use configured place limits from Tournament Setup
-        hoaResults[disciplineId] = {
+        // Separate by gender - use configured place limits from Tournament Setup
+        haaResults[disciplineId] = {
           combined: [],
-          male: [...athletesWithHOAPlace]
+          male: [...athletesWithHAAPlace]
             .filter(s => s.gender === 'M')
             .sort((a, b) => {
-              const aPlace = a.disciplinePlacements[disciplineId]?.hoaPlace || 999
-              const bPlace = b.disciplinePlacements[disciplineId]?.hoaPlace || 999
+              const aPlace = a.disciplinePlacements[disciplineId]?.haaIndividualPlace || 999
+              const bPlace = b.disciplinePlacements[disciplineId]?.haaIndividualPlace || 999
               return aPlace - bPlace
             })
             .slice(0, tournament.hoaMenPlaces || 2),
-          female: [...athletesWithHOAPlace]
+          female: [...athletesWithHAAPlace]
             .filter(s => s.gender === 'F')
             .sort((a, b) => {
-              const aPlace = a.disciplinePlacements[disciplineId]?.hoaPlace || 999
-              const bPlace = b.disciplinePlacements[disciplineId]?.hoaPlace || 999
+              const aPlace = a.disciplinePlacements[disciplineId]?.haaIndividualPlace || 999
+              const bPlace = b.disciplinePlacements[disciplineId]?.haaIndividualPlace || 999
               return aPlace - bPlace
             })
             .slice(0, tournament.hoaLadyPlaces || 2)
@@ -366,68 +451,8 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       })
     }
 
-    return hoaResults
-  }, [allathletes, tournament.enableHOA, tournament.disciplines, tournament.hoaMenPlaces, tournament.hoaLadyPlaces])
-
-  // MEMOIZED: HAA (High All-Around) - All disciplines combined
-  // PERFORMANCE: Only recalculates when athlete scores or config changes
-  const { haaathletes, haaMaleathletes, haaFemaleathletes, haaWinnerIds } = useMemo(() => {
-    let haaathletes: athletescore[] = []
-    let haaMaleathletes: athletescore[] = []
-    let haaFemaleathletes: athletescore[] = []
-
-    if (tournament.enableHAA) {
-      // Overall HAA - only show athletes with haaIndividualPlace set and no gender designation
-      haaathletes = [...allathletes]
-        .filter(s => {
-          if (!s.haaIndividualPlace) return false
-          // Check if haaConcurrent is gender-neutral (no "Men's", "Male", "Lady's", "Ladies", "Female", "Women")
-          const concurrent = (s.haaConcurrent || '').toLowerCase()
-          const isGenderSpecific = concurrent.includes("men") ||
-                                   concurrent.includes("male") ||
-                                   concurrent.includes("lady") ||
-                                   concurrent.includes("ladies") ||
-                                   concurrent.includes("female") ||
-                                   concurrent.includes("women")
-          return !isGenderSpecific
-        })
-        .sort((a, b) => (a.haaIndividualPlace || 999) - (b.haaIndividualPlace || 999))
-        .slice(0, tournament.haaOverallPlaces || 2)
-
-      // Get Overall HAA winner IDs to exclude from gender-specific categories
-      const overallHAAWinnerIds = new Set(haaathletes.map(s => s.athleteId))
-
-      // HAA for males - only show athletes with haaIndividualPlace and gender-specific designation
-      haaMaleathletes = [...allathletes]
-        .filter(s => {
-          if (!s.haaIndividualPlace || overallHAAWinnerIds.has(s.athleteId)) return false
-          const concurrent = (s.haaConcurrent || '').toLowerCase()
-          return concurrent.includes("men") || concurrent.includes("male")
-        })
-        .sort((a, b) => (a.haaIndividualPlace || 999) - (b.haaIndividualPlace || 999))
-        .slice(0, tournament.haaMenPlaces || 2)
-
-      // HAA for females - only show athletes with haaIndividualPlace and gender-specific designation
-      haaFemaleathletes = [...allathletes]
-        .filter(s => {
-          if (!s.haaIndividualPlace || overallHAAWinnerIds.has(s.athleteId)) return false
-          const concurrent = (s.haaConcurrent || '').toLowerCase()
-          return concurrent.includes("lady") || concurrent.includes("ladies") ||
-                 concurrent.includes("female") || concurrent.includes("women")
-        })
-        .sort((a, b) => (a.haaIndividualPlace || 999) - (b.haaIndividualPlace || 999))
-        .slice(0, tournament.haaLadyPlaces || 2)
-    }
-
-    // Collect all HAA winners for exclusion from division leaderboards
-    const haaWinnerIds = new Set([
-      ...haaathletes.map(s => s.athleteId),
-      ...haaMaleathletes.map(s => s.athleteId),
-      ...haaFemaleathletes.map(s => s.athleteId)
-    ])
-
-    return { haaathletes, haaMaleathletes, haaFemaleathletes, haaWinnerIds }
-  }, [allathletes, tournament.enableHAA, tournament.haaOverallPlaces, tournament.haaMenPlaces, tournament.haaLadyPlaces])
+    return haaResults
+  }, [allathletes, tournament.enableHAA, tournament.disciplines, tournament.hoaMenPlaces, tournament.hoaLadyPlaces])
 
   // MEMOIZED: HAA All Shooters - Show everyone who competed in multiple core disciplines
   const allHAAathletes = useMemo(() => {
@@ -519,10 +544,11 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         s => s.division === division && s.disciplineScores[disciplineId] !== undefined
       )
       
-      // Exclude HAA winners from division leaderboards if configured
-      if (tournament.haaExcludesDivision && tournament.enableHAA) {
+      // Exclude HOA winners (overall) from division leaderboards if configured
+      // Note: Config field is named haaExcludesDivision but now excludes HOA (overall) winners
+      if (tournament.haaExcludesDivision && tournament.enableHOA) {
         athletesInDisciplineAndDivision = athletesInDisciplineAndDivision.filter(
-          s => !haaWinnerIds.has(s.athleteId)
+          s => !hoaWinnerIds.has(s.athleteId)
         )
       }
       
@@ -676,22 +702,22 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       {/* HOA/HAA View */}
       {activeView === 'hoa-haa' && (
         <div className="space-y-3">
-          {/* HAA Section - All disciplines combined */}
-          {tournament.enableHAA && (
+          {/* HOA Section - Overall champions across all disciplines */}
+          {tournament.enableHOA && (
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
               <div className="mb-3">
-                <h2 className="text-lg font-bold text-gray-900">🎯 HAA - High All-Around</h2>
-                <p className="text-gray-600 text-xs">All Disciplines Combined</p>
+                <h2 className="text-lg font-bold text-gray-900">👑 HOA - High Over All</h2>
+                <p className="text-gray-600 text-xs">Overall Champions Across All Disciplines</p>
               </div>
 
               <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-1 lg:grid-cols-3 gap-2'}>
-                {/* HAA Overall */}
-                {haaathletes.length > 0 && (
+                {/* HOA Overall */}
+                {hoaathletes.length > 0 && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                     <div className="bg-white p-2 border-b border-gray-200">
                       <h3 className="text-sm font-bold text-gray-900">Overall</h3>
                       <p className="text-gray-600 text-xs">
-                        {haaathletes.length} athlete{haaathletes.length !== 1 ? 's' : ''}
+                        {hoaathletes.length} athlete{hoaathletes.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="overflow-x-auto">
@@ -704,7 +730,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {haaathletes.map((athlete, idx) => {
+                          {hoaathletes.map((athlete, idx) => {
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
@@ -728,13 +754,13 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                   </div>
                 )}
 
-                {/* HAA Male */}
-                {haaMaleathletes.length > 0 && (
+                {/* HOA Male */}
+                {hoaMaleathletes.length > 0 && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                     <div className="bg-white p-2 border-b border-gray-200">
                       <h3 className="text-sm font-bold text-gray-900">Male</h3>
                       <p className="text-gray-600 text-xs">
-                        {haaMaleathletes.length} athlete{haaMaleathletes.length !== 1 ? 's' : ''}
+                        {hoaMaleathletes.length} athlete{hoaMaleathletes.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="overflow-x-auto">
@@ -747,7 +773,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {haaMaleathletes.map((athlete, idx) => {
+                          {hoaMaleathletes.map((athlete, idx) => {
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
@@ -771,13 +797,13 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                   </div>
                 )}
 
-                {/* HAA Female */}
-                {haaFemaleathletes.length > 0 && (
+                {/* HOA Female */}
+                {hoaFemaleathletes.length > 0 && (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                     <div className="bg-white p-2 border-b border-gray-200">
                       <h3 className="text-sm font-bold text-gray-900">Female</h3>
                       <p className="text-gray-600 text-xs">
-                        {haaFemaleathletes.length} athlete{haaFemaleathletes.length !== 1 ? 's' : ''}
+                        {hoaFemaleathletes.length} athlete{hoaFemaleathletes.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <div className="overflow-x-auto">
@@ -790,7 +816,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {haaFemaleathletes.map((athlete, idx) => {
+                          {hoaFemaleathletes.map((athlete, idx) => {
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
@@ -817,35 +843,35 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             </div>
           )}
 
-          {/* HOA Section - Per discipline */}
-          {tournament.enableHOA && (
+          {/* HAA Section - Per discipline champions */}
+          {tournament.enableHAA && (
             <>
               {tournament.disciplines.map((td: any) => {
                 const disciplineId = td.disciplineId
                 const disciplineName = td.discipline.displayName
-                const hoaResults = hoaByDiscipline[disciplineId]
+                const haaResults = haaByDiscipline[disciplineId]
 
-                if (!hoaResults) return null
+                if (!haaResults) return null
 
-                const hasResults = hoaResults.male.length > 0 || hoaResults.female.length > 0
+                const hasResults = haaResults.male.length > 0 || haaResults.female.length > 0
 
                 if (!hasResults) return null
 
                 return (
                   <div key={disciplineId} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                     <div className="mb-3">
-                      <h2 className="text-lg font-bold text-gray-900">👑 HOA - {disciplineName}</h2>
-                      <p className="text-gray-600 text-xs">High Over All for this discipline</p>
+                      <h2 className="text-lg font-bold text-gray-900">🎯 HAA - {disciplineName}</h2>
+                      <p className="text-gray-600 text-xs">High All-Around for this discipline</p>
                     </div>
 
                     <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-1 lg:grid-cols-2 gap-2'}>
-                      {/* HOA Male */}
-                      {hoaResults.male.length > 0 && (
+                      {/* HAA Male */}
+                      {haaResults.male.length > 0 && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                           <div className="bg-white p-2 border-b border-gray-200">
                             <h3 className="text-sm font-bold text-gray-900">Male</h3>
                             <p className="text-gray-600 text-xs">
-                              {hoaResults.male.length} athlete{hoaResults.male.length !== 1 ? 's' : ''}
+                              {haaResults.male.length} athlete{haaResults.male.length !== 1 ? 's' : ''}
                             </p>
                           </div>
                           <div className="overflow-x-auto">
@@ -858,7 +884,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-200">
-                                {hoaResults.male.map((athlete, idx) => (
+                                {haaResults.male.map((athlete, idx) => (
                                   <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                     <td className="px-2 py-1 text-gray-600">
                                       {idx < 3 ? getMedal(idx) : `${idx + 1}`}
@@ -880,13 +906,13 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                         </div>
                       )}
 
-                      {/* HOA Female */}
-                      {hoaResults.female.length > 0 && (
+                      {/* HAA Female */}
+                      {haaResults.female.length > 0 && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
                           <div className="bg-white p-2 border-b border-gray-200">
                             <h3 className="text-sm font-bold text-gray-900">Female</h3>
                             <p className="text-gray-600 text-xs">
-                              {hoaResults.female.length} athlete{hoaResults.female.length !== 1 ? 's' : ''}
+                              {haaResults.female.length} athlete{haaResults.female.length !== 1 ? 's' : ''}
                             </p>
                           </div>
                           <div className="overflow-x-auto">
@@ -899,7 +925,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-200">
-                                {hoaResults.female.map((athlete, idx) => (
+                                {haaResults.female.map((athlete, idx) => (
                                   <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                     <td className="px-2 py-1 text-gray-600">
                                       {idx < 3 ? getMedal(idx) : `${idx + 1}`}
