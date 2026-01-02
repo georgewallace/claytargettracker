@@ -47,12 +47,13 @@ export async function POST(
     if (tournamentSetupSheet) {
       const setupData = XLSX.utils.sheet_to_json(tournamentSetupSheet, { header: 1, defval: '' }) as any[]
 
-      const haaOverallPlaces = setupData[20]?.[1] || 2
-      const haaMenPlaces = setupData[21]?.[1] || 2
-      const haaLadyPlaces = setupData[22]?.[1] || 2
-      const hoaOverallPlaces = setupData[26]?.[1] || 0
-      const hoaMenPlaces = setupData[27]?.[1] || 2
-      const hoaLadyPlaces = setupData[28]?.[1] || 2
+      // Row 20 = index 19, Row 21 = index 20, etc. (0-indexed array)
+      const haaOverallPlaces = setupData[19]?.[1] || 2
+      const haaMenPlaces = setupData[20]?.[1] || 2
+      const haaLadyPlaces = setupData[21]?.[1] || 2
+      const hoaOverallPlaces = setupData[25]?.[1] || 0
+      const hoaMenPlaces = setupData[26]?.[1] || 2
+      const hoaLadyPlaces = setupData[27]?.[1] || 2
 
       await prisma.tournament.update({
         where: { id: tournamentId },
