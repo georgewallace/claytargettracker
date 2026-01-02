@@ -729,29 +729,29 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
           }
         },
         update: {
-          concurrentPlace: shootData.concurrentPlace,
-          classPlace: shootData.classPlace,
-          teamPlace: shootData.teamPlace,
-          hoaPlace: shootData.hoaIndividualPlace, // SWAPPED: Store hoaIndividualPlace in hoaPlace DB field
-          individualRank: shootData.individualRank,
-          teamRank: shootData.teamRank,
-          teamScore: shootData.teamScore,
-          haaIndividualPlace: shootData.haaPlace, // SWAPPED: Store haaPlace in haaIndividualPlace DB field
-          haaConcurrent: shootData.hoaConcurrent // SWAPPED: Store hoaConcurrent in haaConcurrent DB field
+          concurrentPlace: shootData.concurrentPlace ?? null,
+          classPlace: shootData.classPlace ?? null,
+          teamPlace: shootData.teamPlace ?? null,
+          hoaPlace: shootData.hoaIndividualPlace ?? null, // SWAPPED: Store hoaIndividualPlace in hoaPlace DB field
+          individualRank: shootData.individualRank ?? null,
+          teamRank: shootData.teamRank ?? null,
+          teamScore: shootData.teamScore ?? null,
+          haaIndividualPlace: shootData.haaPlace ?? null, // SWAPPED: Store haaPlace in haaIndividualPlace DB field
+          haaConcurrent: shootData.hoaConcurrent ?? null // SWAPPED: Store hoaConcurrent in haaConcurrent DB field
         },
         create: {
           athleteId: shootData.athleteId,
           tournamentId: shootData.tournamentId,
           disciplineId: shootData.disciplineId,
-          concurrentPlace: shootData.concurrentPlace,
-          classPlace: shootData.classPlace,
-          teamPlace: shootData.teamPlace,
-          hoaPlace: shootData.hoaIndividualPlace, // SWAPPED: Store hoaIndividualPlace in hoaPlace DB field
-          individualRank: shootData.individualRank,
-          teamRank: shootData.teamRank,
-          teamScore: shootData.teamScore,
-          haaIndividualPlace: shootData.haaPlace, // SWAPPED: Store haaPlace in haaIndividualPlace DB field
-          haaConcurrent: shootData.hoaConcurrent // SWAPPED: Store hoaConcurrent in haaConcurrent DB field
+          concurrentPlace: shootData.concurrentPlace ?? null,
+          classPlace: shootData.classPlace ?? null,
+          teamPlace: shootData.teamPlace ?? null,
+          hoaPlace: shootData.hoaIndividualPlace ?? null, // SWAPPED: Store hoaIndividualPlace in hoaPlace DB field
+          individualRank: shootData.individualRank ?? null,
+          teamRank: shootData.teamRank ?? null,
+          teamScore: shootData.teamScore ?? null,
+          haaIndividualPlace: shootData.haaPlace ?? null, // SWAPPED: Store haaPlace in haaIndividualPlace DB field
+          haaConcurrent: shootData.hoaConcurrent ?? null // SWAPPED: Store hoaConcurrent in haaConcurrent DB field
         }
       })
     )
