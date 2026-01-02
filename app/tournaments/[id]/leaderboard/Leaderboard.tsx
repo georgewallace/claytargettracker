@@ -183,6 +183,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         classPlace: shoot.classPlace || undefined,
         teamPlace: shoot.teamPlace || undefined,
         hoaPlace: shoot.hoaPlace || undefined,
+        haaIndividualPlace: shoot.haaIndividualPlace || undefined,
         individualRank: shoot.individualRank || undefined,
         teamRank: shoot.teamRank || undefined,
         teamScore: shoot.teamScore || undefined
