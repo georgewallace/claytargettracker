@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAuthWithApiKey } from '@/lib/auth'
 import * as XLSX from 'xlsx'
 
-// Helper function to parse placement text like "Varsity Men's Skeet Runner Up" or "HOA Lady's Skeet Champion"
-// SWAPPED: What was "HOA" in Excel text is now HAA per-discipline placement
+// Helper function to parse placement text like "Varsity Men's Skeet Runner Up" or "HAA Lady's Skeet Champion"
+// Parses per-discipline placements from Excel "Skeet/Trap/Sporting Concurrent Place" columns
 function parsePlacementText(text: string, athleteGender: string | null, athleteDivision: string | null): {
   concurrentPlace?: number
   haaPlace?: number
@@ -14,9 +14,9 @@ function parsePlacementText(text: string, athleteGender: string | null, athleteD
   const lowerText = text.toLowerCase().trim()
   const result: { concurrentPlace?: number; haaPlace?: number } = {}
 
-  // Determine if this is HAA (per-discipline) or division-specific
-  // SWAPPED: Excel text starting with "hoa " is now treated as HAA
-  const isHAA = lowerText.startsWith('hoa ')
+  // Determine if this is HAA (per-discipline overall) or division-specific
+  // Excel text starting with "haa " indicates per-discipline overall champion (e.g., "HAA Lady's Skeet Champion")
+  const isHAA = lowerText.startsWith('haa ')
 
   // Check gender matching
   const isMale = lowerText.includes("men's") || lowerText.includes("mens") || lowerText.includes("male")
@@ -365,13 +365,13 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
       }
 
       // Extract HOA placement data (applies to all disciplines)
-      // SWAPPED: What was "HAA" in Excel is now HOA overall placement
-      // Parse text-based placement values like "HAA Champion", "HAA Men's Champion", etc.
+      // Parse overall placement from "HOA Individual Place" column
+      // Note: Despite the column name "HOA" in Excel, this represents overall (all-around) placement
       let hoaIndividualPlace: number | undefined
       let hoaConcurrent: string | undefined
 
       const athleteGender = athlete.gender
-      const hoaPlaceText = row['HAA Individual Place']?.toString().trim() || '' // Excel still says "HAA" but it's now HOA data
+      const hoaPlaceText = row['HOA Individual Place']?.toString().trim() || ''
 
       // Parse HOA placement text to numeric value
       if (hoaPlaceText) {
@@ -408,23 +408,23 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
       // Try numeric columns as fallback
       if (!hoaIndividualPlace) {
         if (athleteGender === 'M') {
-          hoaIndividualPlace = row['HAA Male Place'] ? parseInt(row['HAA Male Place']) :
-                              row['HAA Men Place'] ? parseInt(row['HAA Men Place']) : undefined
+          hoaIndividualPlace = row['HOA Male Place'] ? parseInt(row['HOA Male Place']) :
+                              row['HOA Men Place'] ? parseInt(row['HOA Men Place']) : undefined
         } else if (athleteGender === 'F') {
-          hoaIndividualPlace = row['HAA Female Place'] ? parseInt(row['HAA Female Place']) :
-                              row['HAA Ladies Place'] ? parseInt(row['HAA Ladies Place']) :
-                              row['HAA Women Place'] ? parseInt(row['HAA Women Place']) : undefined
+          hoaIndividualPlace = row['HOA Female Place'] ? parseInt(row['HOA Female Place']) :
+                              row['HOA Ladies Place'] ? parseInt(row['HOA Ladies Place']) :
+                              row['HOA Women Place'] ? parseInt(row['HOA Women Place']) : undefined
         }
       }
 
       // Get HOA Concurrent (division) - only if not already set
       if (!hoaConcurrent) {
-        hoaConcurrent = row['HAA Concurrent']?.toString().trim() ||
-                       row['HAA Male Concurrent']?.toString().trim() ||
-                       row['HAA Men Concurrent']?.toString().trim() ||
-                       row['HAA Female Concurrent']?.toString().trim() ||
-                       row['HAA Ladies Concurrent']?.toString().trim() ||
-                       row['HAA Women Concurrent']?.toString().trim() || undefined
+        hoaConcurrent = row['HOA Concurrent']?.toString().trim() ||
+                       row['HOA Male Concurrent']?.toString().trim() ||
+                       row['HOA Men Concurrent']?.toString().trim() ||
+                       row['HOA Female Concurrent']?.toString().trim() ||
+                       row['HOA Ladies Concurrent']?.toString().trim() ||
+                       row['HOA Women Concurrent']?.toString().trim() || undefined
       }
 
       let imported = false
