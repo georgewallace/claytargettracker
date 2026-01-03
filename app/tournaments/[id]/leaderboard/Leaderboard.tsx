@@ -729,7 +729,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                         <tbody className="divide-y divide-gray-200">
                           {hoaathletes.map((athlete, idx) => {
                             return (
-                              <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                              <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
                                   {getMedal(idx)}
                                 </td>
@@ -772,7 +772,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                         <tbody className="divide-y divide-gray-200">
                           {hoaMaleathletes.map((athlete, idx) => {
                             return (
-                              <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                              <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
                                   {getMedal(idx)}
                                 </td>
@@ -815,7 +815,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                         <tbody className="divide-y divide-gray-200">
                           {hoaFemaleathletes.map((athlete, idx) => {
                             return (
-                              <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                              <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
                                   {getMedal(idx)}
                                 </td>
@@ -882,7 +882,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                               </thead>
                               <tbody className="divide-y divide-gray-200">
                                 {haaResults.male.map((athlete, idx) => (
-                                  <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                                  <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
                                     <td className="px-2 py-1 text-gray-600">
                                       {getMedal(idx)}
                                     </td>
@@ -923,7 +923,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                               </thead>
                               <tbody className="divide-y divide-gray-200">
                                 {haaResults.female.map((athlete, idx) => (
-                                  <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                                  <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
                                     <td className="px-2 py-1 text-gray-600">
                                       {getMedal(idx)}
                                     </td>
@@ -1002,7 +1002,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                   className={`transition ${
                                     isRecent
                                       ? 'bg-green-50 animate-pulse'
-                                      : idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'
+                                      : 'hover:bg-gray-50'
                                   }`}
                                   title={athlete.teamName || 'Independent'}
                                 >
@@ -1094,7 +1094,6 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                         <tr
                           key={athlete.athleteId}
                           className={`transition ${
-                            idx < 3 ? 'bg-yellow-50' :
                             isRecent ? 'bg-green-50' :
                             'hover:bg-gray-50'
                           }`}
@@ -1149,8 +1148,11 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             const disciplineId = td.disciplineId
             const discipline = td.discipline
 
-            // Get squads for this discipline
-            const disciplineSquads = squadScores.filter(s => s.disciplineId === disciplineId)
+            // Get squads for this discipline (exclude Unassigned division)
+            const disciplineSquads = squadScores.filter(s =>
+              s.disciplineId === disciplineId &&
+              s.division !== 'Unassigned'
+            )
 
             if (disciplineSquads.length === 0) return null
 
@@ -1213,9 +1215,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                               {divisionSquads.map((squad, idx) => (
                                 <tr
                                   key={squad.squadId}
-                                  className={`transition ${
-                                    idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'
-                                  } ${!squad.isComplete ? 'border-l-2 border-l-yellow-400' : ''}`}
+                                  className={`transition hover:bg-gray-50 ${!squad.isComplete ? 'border-l-2 border-l-yellow-400' : ''}`}
                                 >
                                   <td className="px-2 py-1 text-gray-600">
                                     {getMedal(idx)}
@@ -1340,7 +1340,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                     className={`transition ${
                                       isRecent
                                         ? 'bg-green-50 animate-pulse'
-                                        : idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'
+                                        : 'hover:bg-gray-50'
                                     }`}
                                     title={athlete.teamName || 'Independent'}
                                   >
@@ -1442,7 +1442,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                     return (
                       <div
                         key={team.teamName}
-                        className={`${isTopThree ? 'bg-yellow-50' : 'bg-gray-50'} border border-gray-200 rounded-lg overflow-hidden`}
+                        className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden"
                       >
                         <div className="bg-white p-2 border-b border-gray-200">
                           <div className="flex items-center justify-between">
