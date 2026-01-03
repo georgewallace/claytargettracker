@@ -107,40 +107,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
   // Determine initial view
   const [activeView, setActiveView] = useState<'divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa' | 'haa-all'>('divisions')
-
-  // Auto-cycle through views
-  useEffect(() => {
-    if (!autoRefresh) return
-
-    const views: ('divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa' | 'haa-all')[] =
-      ['divisions', 'classes', 'teams', 'hoa-haa', 'haa-all', 'squads']
-
-    // Use configured interval or default to 15 seconds
-    const tabInterval = tournament.leaderboardTabInterval || 15000
-
-    const interval = setInterval(() => {
-      setActiveView(current => {
-        const currentIndex = views.indexOf(current)
-        const nextIndex = (currentIndex + 1) % views.length
-        return views[nextIndex]
-      })
-      // Reset HAA All page when switching views
-      setHaaAllPage(0)
-    }, tabInterval)
-
-    return () => clearInterval(interval)
-  }, [autoRefresh, tournament.leaderboardTabInterval])
-
-  // Auto-cycle through HAA All pages
-  useEffect(() => {
-    if (!autoRefresh || activeView !== 'haa-all') return
-
-    const pageInterval = setInterval(() => {
-      setHaaAllPage(current => current + 1) // Will wrap in the render logic
-    }, 5000) // 5 seconds per page
-
-    return () => clearInterval(pageInterval)
-  }, [autoRefresh, activeView])
+  const [haaDisciplineIndex, setHaaDisciplineIndex] = useState(0)
 
   // Initialize activeDiscipline to first discipline
   useEffect(() => {
@@ -149,24 +116,63 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     }
   }, [tournament.disciplines, activeDiscipline])
 
-  // Auto-cycle through disciplines
+  // Coordinated auto-cycle through views and disciplines
   useEffect(() => {
     if (!autoRefresh) return
 
     const disciplineIds = tournament.disciplines.map((d: any) => d.disciplineId)
     if (disciplineIds.length === 0) return
 
-    const disciplineInterval = setInterval(() => {
-      setActiveDiscipline(current => {
-        if (!current) return disciplineIds[0]
-        const currentIndex = disciplineIds.indexOf(current)
-        const nextIndex = (currentIndex + 1) % disciplineIds.length
-        return disciplineIds[nextIndex]
-      })
-    }, 10000) // 10 seconds per discipline
+    // Use configured interval (in seconds, convert to ms) or default to 15 seconds
+    const intervalMs = (tournament.leaderboardTabInterval || 15) * 1000
 
-    return () => clearInterval(disciplineInterval)
-  }, [autoRefresh, tournament.disciplines])
+    const interval = setInterval(() => {
+      // Views that cycle through disciplines: divisions, classes, teams, squads
+      const disciplineCycleViews: Array<'divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa' | 'haa-all'> = ['divisions', 'classes', 'teams', 'squads']
+
+      if (activeView === 'haa-all') {
+        // HAA All: just cycle pages, then move to next view
+        setHaaAllPage(current => current + 1)
+        // After cycling through pages a few times, move to next view
+        // (simplified: just move to next view each interval)
+        setActiveView('divisions')
+        setActiveDiscipline(disciplineIds[0])
+      } else if (activeView === 'hoa-haa') {
+        // HOA/HAA: cycle through disciplines for HAA section
+        const currentDisciplineIndex = haaDisciplineIndex
+        const nextDisciplineIndex = (currentDisciplineIndex + 1) % disciplineIds.length
+
+        if (nextDisciplineIndex === 0) {
+          // Completed all disciplines, move to next view
+          setActiveView('haa-all')
+          setHaaAllPage(0)
+        }
+        setHaaDisciplineIndex(nextDisciplineIndex)
+      } else if (disciplineCycleViews.includes(activeView)) {
+        // For divisions, classes, teams, squads: cycle through all disciplines
+        const currentDisciplineIndex = disciplineIds.indexOf(activeDiscipline!)
+        const nextDisciplineIndex = (currentDisciplineIndex + 1) % disciplineIds.length
+
+        if (nextDisciplineIndex === 0) {
+          // Completed all disciplines for this view, move to next view
+          const viewOrder: Array<'divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa' | 'haa-all'> = ['divisions', 'classes', 'teams', 'squads', 'hoa-haa', 'haa-all']
+          const currentViewIndex = viewOrder.indexOf(activeView)
+          const nextView = viewOrder[(currentViewIndex + 1) % viewOrder.length]
+          setActiveView(nextView)
+
+          if (nextView === 'hoa-haa') {
+            setHaaDisciplineIndex(0)
+          } else if (nextView === 'haa-all') {
+            setHaaAllPage(0)
+          }
+        }
+
+        setActiveDiscipline(disciplineIds[nextDisciplineIndex])
+      }
+    }, intervalMs)
+
+    return () => clearInterval(interval)
+  }, [autoRefresh, tournament.disciplines, tournament.leaderboardTabInterval, activeView, activeDiscipline, haaDisciplineIndex])
 
   // Fullscreen toggle
   const toggleFullscreen = () => {
@@ -687,37 +693,8 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           </button>
         </div>
 
-        {/* Discipline Filter */}
-        <div className="flex gap-2 flex-wrap">
-          {tournament.disciplines.map((td: any) => (
-            <button
-              key={td.disciplineId}
-              onClick={() => setActiveDiscipline(td.disciplineId)}
-              className={`px-3 py-1.5 rounded text-sm transition font-medium ${
-                activeDiscipline === td.disciplineId
-                  ? 'bg-green-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-              }`}
-            >
-              {td.discipline.displayName}
-            </button>
-          ))}
-        </div>
-
         {/* Display and Fullscreen Controls */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSingleColumnMode(!singleColumnMode)}
-            className={`px-3 py-1.5 rounded text-sm transition font-medium ${
-              singleColumnMode
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-            }`}
-            title={singleColumnMode ? 'Switch to Grid Layout' : 'Switch to Wrap Layout'}
-          >
-            {singleColumnMode ? '📊' : '📦'} {singleColumnMode ? 'Grid' : 'Wrap'}
-          </button>
-          <div className="w-px h-6 bg-gray-300"></div>
           <button
             onClick={() => setZoom(Math.max(50, zoom - 10))}
             className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition font-medium border border-gray-300"
@@ -898,22 +875,44 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             </div>
           )}
 
-          {/* HAA Section - Per discipline champions */}
-          {tournament.enableHAA && (
-            <>
-              {tournament.disciplines.map((td: any) => {
-                const disciplineId = td.disciplineId
-                const disciplineName = td.discipline.displayName
-                const haaResults = haaByDiscipline[disciplineId]
+          {/* HAA Section - Per discipline champions (cycles through disciplines) */}
+          {tournament.enableHAA && (() => {
+            // Get the current discipline based on haaDisciplineIndex
+            const currentDiscipline = tournament.disciplines[haaDisciplineIndex % tournament.disciplines.length]
+            if (!currentDiscipline) return null
 
-                if (!haaResults) return null
+            const disciplineId = currentDiscipline.disciplineId
+            const disciplineName = currentDiscipline.discipline.displayName
+            const haaResults = haaByDiscipline[disciplineId]
 
-                const hasResults = haaResults.male.length > 0 || haaResults.female.length > 0
+            if (!haaResults) return null
 
-                if (!hasResults) return null
+            const hasResults = haaResults.male.length > 0 || haaResults.female.length > 0
 
-                return (
-                  <div key={disciplineId} className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+            if (!hasResults) return null
+
+            return (
+              <>
+                {/* Discipline Filter Tabs */}
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+                  <div className="flex gap-2 flex-wrap">
+                    {tournament.disciplines.map((td: any, idx: number) => (
+                      <button
+                        key={td.disciplineId}
+                        onClick={() => setHaaDisciplineIndex(idx)}
+                        className={`px-3 py-1.5 rounded text-sm transition font-medium ${
+                          idx === haaDisciplineIndex % tournament.disciplines.length
+                            ? 'bg-green-600 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                        }`}
+                      >
+                        {td.discipline.displayName}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                     <div className="mb-3">
                       <h2 className="text-lg font-bold text-gray-900">🎯 HAA - {disciplineName}</h2>
                       <p className="text-gray-600 text-xs">High All-Around for this discipline</p>
@@ -1003,16 +1002,35 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                       )}
                     </div>
                   </div>
-                )
-              })}
-            </>
-          )}
+              </>
+            )
+          })()}
         </div>
       )}
 
       {/* Divisions View - Compact Grid with Classes Styling */}
       {activeView === 'divisions' && (
-        <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
+        <div className="space-y-3">
+          {/* Discipline Filter Tabs */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+            <div className="flex gap-2 flex-wrap">
+              {tournament.disciplines.map((td: any) => (
+                <button
+                  key={td.disciplineId}
+                  onClick={() => setActiveDiscipline(td.disciplineId)}
+                  className={`px-3 py-1.5 rounded text-sm transition font-medium ${
+                    activeDiscipline === td.disciplineId
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  }`}
+                >
+                  {td.discipline.displayName}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
           {tournament.disciplines
             .filter((td: any) => !activeDiscipline || td.disciplineId === activeDiscipline)
             .map((td: any) => {
@@ -1094,6 +1112,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
               <p className="text-gray-500 text-sm">No scores recorded yet</p>
             </div>
           )}
+          </div>
         </div>
       )}
 
@@ -1220,7 +1239,27 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
       {/* Squads View - Compact Grid */}
       {activeView === 'squads' && (
-        <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
+        <div className="space-y-3">
+          {/* Discipline Filter Tabs */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+            <div className="flex gap-2 flex-wrap">
+              {tournament.disciplines.map((td: any) => (
+                <button
+                  key={td.disciplineId}
+                  onClick={() => setActiveDiscipline(td.disciplineId)}
+                  className={`px-3 py-1.5 rounded text-sm transition font-medium ${
+                    activeDiscipline === td.disciplineId
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  }`}
+                >
+                  {td.discipline.displayName}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
           {tournament.disciplines
             .filter((td: any) => !activeDiscipline || td.disciplineId === activeDiscipline)
             .map((td: any) => {
@@ -1332,12 +1371,33 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
               </div>
             )
           })}
+          </div>
         </div>
       )}
 
       {/* Classes View - Compact Grid */}
       {activeView === 'classes' && (
-        <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
+        <div className="space-y-3">
+          {/* Discipline Filter Tabs */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+            <div className="flex gap-2 flex-wrap">
+              {tournament.disciplines.map((td: any) => (
+                <button
+                  key={td.disciplineId}
+                  onClick={() => setActiveDiscipline(td.disciplineId)}
+                  className={`px-3 py-1.5 rounded text-sm transition font-medium ${
+                    activeDiscipline === td.disciplineId
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  }`}
+                >
+                  {td.discipline.displayName}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
           {tournament.disciplines
             .filter((td: any) => !activeDiscipline || td.disciplineId === activeDiscipline)
             .map((tournamentDiscipline: any) => {
@@ -1454,12 +1514,33 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
               <p className="text-gray-500 text-sm">No disciplines found</p>
             </div>
           )}
+          </div>
         </div>
       )}
 
       {/* Teams View - Compact Grid */}
       {activeView === 'teams' && (
         <div className="space-y-3">
+          {/* Discipline Filter Tabs */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+            <div className="flex gap-2 flex-wrap">
+              {tournament.disciplines.map((td: any) => (
+                <button
+                  key={td.disciplineId}
+                  onClick={() => setActiveDiscipline(td.disciplineId)}
+                  className={`px-3 py-1.5 rounded text-sm transition font-medium ${
+                    activeDiscipline === td.disciplineId
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  }`}
+                >
+                  {td.discipline.displayName}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
           {tournament.disciplines
             .filter((td: any) => !activeDiscipline || td.disciplineId === activeDiscipline)
             .map((tournamentDiscipline: any) => {
@@ -1577,6 +1658,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
               <p className="text-gray-500 text-sm">No disciplines found</p>
             </div>
           )}
+          </div>
         </div>
       )}
 
