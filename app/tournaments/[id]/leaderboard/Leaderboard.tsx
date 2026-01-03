@@ -84,6 +84,8 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [zoom, setZoom] = useState(100)
   const [singleColumnMode, setSingleColumnMode] = useState(false)
+  const [haaAllPage, setHaaAllPage] = useState(0)
+  const [activeDiscipline, setActiveDiscipline] = useState<string | null>(null)
 
   // Fetch leaderboard data with React Query
   // PERFORMANCE: Uses 1-minute cache + stale-while-revalidate
@@ -122,10 +124,49 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         const nextIndex = (currentIndex + 1) % views.length
         return views[nextIndex]
       })
+      // Reset HAA All page when switching views
+      setHaaAllPage(0)
     }, tabInterval)
 
     return () => clearInterval(interval)
   }, [autoRefresh, tournament.leaderboardTabInterval])
+
+  // Auto-cycle through HAA All pages
+  useEffect(() => {
+    if (!autoRefresh || activeView !== 'haa-all') return
+
+    const pageInterval = setInterval(() => {
+      setHaaAllPage(current => current + 1) // Will wrap in the render logic
+    }, 5000) // 5 seconds per page
+
+    return () => clearInterval(pageInterval)
+  }, [autoRefresh, activeView])
+
+  // Initialize activeDiscipline to first discipline
+  useEffect(() => {
+    if (!activeDiscipline && tournament.disciplines.length > 0) {
+      setActiveDiscipline(tournament.disciplines[0].disciplineId)
+    }
+  }, [tournament.disciplines, activeDiscipline])
+
+  // Auto-cycle through disciplines
+  useEffect(() => {
+    if (!autoRefresh) return
+
+    const disciplineIds = tournament.disciplines.map((d: any) => d.disciplineId)
+    if (disciplineIds.length === 0) return
+
+    const disciplineInterval = setInterval(() => {
+      setActiveDiscipline(current => {
+        if (!current) return disciplineIds[0]
+        const currentIndex = disciplineIds.indexOf(current)
+        const nextIndex = (currentIndex + 1) % disciplineIds.length
+        return disciplineIds[nextIndex]
+      })
+    }, 10000) // 10 seconds per discipline
+
+    return () => clearInterval(disciplineInterval)
+  }, [autoRefresh, tournament.disciplines])
 
   // Fullscreen toggle
   const toggleFullscreen = () => {
@@ -563,7 +604,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
   })
 
   return (
-    <div className="space-y-4" style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}>
+    <div className="space-y-6" style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}>
       {/* Controls Bar */}
       <div className="bg-white border border-gray-200 rounded-lg p-2 flex items-center justify-between gap-2 shadow-sm">
         <div className="flex items-center gap-3">
@@ -645,7 +686,24 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             👥 Squads
           </button>
         </div>
-        
+
+        {/* Discipline Filter */}
+        <div className="flex gap-2 flex-wrap">
+          {tournament.disciplines.map((td: any) => (
+            <button
+              key={td.disciplineId}
+              onClick={() => setActiveDiscipline(td.disciplineId)}
+              className={`px-3 py-1.5 rounded text-sm transition font-medium ${
+                activeDiscipline === td.disciplineId
+                  ? 'bg-green-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+              }`}
+            >
+              {td.discipline.displayName}
+            </button>
+          ))}
+        </div>
+
         {/* Display and Fullscreen Controls */}
         <div className="flex items-center gap-2">
           <button
@@ -955,7 +1013,9 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       {/* Divisions View - Compact Grid with Classes Styling */}
       {activeView === 'divisions' && (
         <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
-          {tournament.disciplines.map((td: any) => {
+          {tournament.disciplines
+            .filter((td: any) => !activeDiscipline || td.disciplineId === activeDiscipline)
+            .map((td: any) => {
             const disciplineId = td.disciplineId
             const discipline = td.discipline
             const disciplineDivisions = athletesByDisciplineAndDivision[disciplineId]
@@ -1038,113 +1098,132 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       )}
 
       {/* HAA All Shooters View */}
-      {activeView === 'haa-all' && tournament.enableHAA && (
-        <div className="space-y-3">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-            <div className="mb-4">
-              <h2 className="text-xl font-bold text-gray-900">📊 HAA - All Shooters</h2>
-              <p className="text-gray-600 text-sm">
-                All athletes who competed in at least 2 core disciplines
-                {coreDisciplines.length > 0 && tournament.disciplines && (
-                  <span className="ml-1">
-                    ({tournament.disciplines
-                      .filter((td: any) => coreDisciplines.includes(td.disciplineId))
-                      .map((td: any) => td.discipline.displayName)
-                      .join(', ')})
-                  </span>
+      {activeView === 'haa-all' && tournament.enableHAA && (() => {
+        const ITEMS_PER_PAGE = 20
+        const totalPages = Math.ceil(allHAAathletes.length / ITEMS_PER_PAGE)
+        const currentPage = totalPages > 0 ? haaAllPage % totalPages : 0
+        const startIdx = currentPage * ITEMS_PER_PAGE
+        const endIdx = startIdx + ITEMS_PER_PAGE
+        const paginatedAthletes = allHAAathletes.slice(startIdx, endIdx)
+
+        return (
+          <div className="space-y-3">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">📊 HAA - All Shooters</h2>
+                  <p className="text-gray-600 text-sm">
+                    All athletes who competed in at least 2 core disciplines
+                    {coreDisciplines.length > 0 && tournament.disciplines && (
+                      <span className="ml-1">
+                        ({tournament.disciplines
+                          .filter((td: any) => coreDisciplines.includes(td.disciplineId))
+                          .map((td: any) => td.discipline.displayName)
+                          .join(', ')})
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {totalPages > 1 && (
+                  <div className="text-sm font-medium text-gray-600">
+                    Page {currentPage + 1} of {totalPages}
+                  </div>
                 )}
-              </p>
+              </div>
+
+              {paginatedAthletes.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Rank
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Athlete
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Division
+                        </th>
+                        {tournament.disciplines
+                          .filter((td: any) => coreDisciplines.includes(td.disciplineId))
+                          .map((td: any) => (
+                            <th key={td.disciplineId} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              {td.discipline.displayName}
+                            </th>
+                          ))}
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Total
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Events
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {paginatedAthletes.map((athlete: any, idx: number) => {
+                        const isRecent = athlete.lastUpdated &&
+                          (new Date().getTime() - new Date(athlete.lastUpdated).getTime()) < 2 * 60 * 1000
+                        const actualRank = startIdx + idx + 1
+
+                        return (
+                          <tr
+                            key={athlete.athleteId}
+                            className={`transition ${
+                              isRecent ? 'bg-green-50' :
+                              'hover:bg-gray-50'
+                            }`}
+                          >
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">
+                              {actualRank}.
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {isRecent && <span className="mr-1">✨</span>}
+                              {athlete.athleteName}
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-600">
+                              {athlete.division || 'N/A'}
+                            </td>
+                            {tournament.disciplines
+                              .filter((td: any) => coreDisciplines.includes(td.disciplineId))
+                              .map((td: any) => {
+                                const score = athlete.disciplineScores[td.disciplineId]
+                                return (
+                                  <td key={td.disciplineId} className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-700">
+                                    {score !== undefined ? Math.round(score) : '-'}
+                                  </td>
+                                )
+                              })}
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-center font-bold text-indigo-600">
+                              {Math.round(athlete.haaTotal)}
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-600">
+                              {athlete.haaDisciplinesCompeted}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                  <p className="text-gray-500 text-sm">
+                    No athletes have competed in at least 2 core disciplines yet
+                  </p>
+                </div>
+              )}
             </div>
-
-            {allHAAathletes.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Rank
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Athlete
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Division
-                      </th>
-                      {tournament.disciplines
-                        .filter((td: any) => coreDisciplines.includes(td.disciplineId))
-                        .map((td: any) => (
-                          <th key={td.disciplineId} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            {td.discipline.displayName}
-                          </th>
-                        ))}
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total
-                      </th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Events
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {allHAAathletes.map((athlete: any, idx: number) => {
-                      const isRecent = athlete.lastUpdated &&
-                        (new Date().getTime() - new Date(athlete.lastUpdated).getTime()) < 2 * 60 * 1000
-
-                      return (
-                        <tr
-                          key={athlete.athleteId}
-                          className={`transition ${
-                            isRecent ? 'bg-green-50' :
-                            'hover:bg-gray-50'
-                          }`}
-                        >
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">
-                            {idx + 1}.
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {isRecent && <span className="mr-1">✨</span>}
-                            {athlete.athleteName}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-600">
-                            {athlete.division || 'N/A'}
-                          </td>
-                          {tournament.disciplines
-                            .filter((td: any) => coreDisciplines.includes(td.disciplineId))
-                            .map((td: any) => {
-                              const score = athlete.disciplineScores[td.disciplineId]
-                              return (
-                                <td key={td.disciplineId} className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-700">
-                                  {score !== undefined ? Math.round(score) : '-'}
-                                </td>
-                              )
-                            })}
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-center font-bold text-indigo-600">
-                            {Math.round(athlete.haaTotal)}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-600">
-                            {athlete.haaDisciplinesCompeted}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-                <p className="text-gray-500 text-sm">
-                  No athletes have competed in at least 2 core disciplines yet
-                </p>
-              </div>
-            )}
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Squads View - Compact Grid */}
       {activeView === 'squads' && (
         <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
-          {tournament.disciplines.map((td: any) => {
+          {tournament.disciplines
+            .filter((td: any) => !activeDiscipline || td.disciplineId === activeDiscipline)
+            .map((td: any) => {
             const disciplineId = td.disciplineId
             const discipline = td.discipline
 
@@ -1259,7 +1338,9 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       {/* Classes View - Compact Grid */}
       {activeView === 'classes' && (
         <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
-          {tournament.disciplines.map((tournamentDiscipline: any) => {
+          {tournament.disciplines
+            .filter((td: any) => !activeDiscipline || td.disciplineId === activeDiscipline)
+            .map((tournamentDiscipline: any) => {
             const disciplineId = tournamentDiscipline.disciplineId
             const disciplineName = tournamentDiscipline.discipline.displayName
 
@@ -1379,7 +1460,9 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       {/* Teams View - Compact Grid */}
       {activeView === 'teams' && (
         <div className="space-y-3">
-          {tournament.disciplines.map((tournamentDiscipline: any) => {
+          {tournament.disciplines
+            .filter((td: any) => !activeDiscipline || td.disciplineId === activeDiscipline)
+            .map((tournamentDiscipline: any) => {
             const disciplineId = tournamentDiscipline.disciplineId
             const disciplineName = tournamentDiscipline.discipline.displayName
 
