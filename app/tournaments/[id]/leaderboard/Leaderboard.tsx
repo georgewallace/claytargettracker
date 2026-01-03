@@ -546,15 +546,9 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       let athletesInDisciplineAndDivision = allathletes.filter(
         s => s.division === division && s.disciplineScores[disciplineId] !== undefined
       )
-      
-      // Exclude HOA winners (overall) from division leaderboards if configured
-      // Note: Config field is named haaExcludesDivision but now excludes HOA (overall) winners
-      if (tournament.haaExcludesDivision && tournament.enableHOA) {
-        athletesInDisciplineAndDivision = athletesInDisciplineAndDivision.filter(
-          s => !hoaWinnerIds.has(s.athleteId)
-        )
-      }
-      
+
+      // HAA/HOA winners now appear in BOTH their division tab AND the HAA/HOA sections
+
       athletesInDisciplineAndDivision.sort((a, b) => {
         // Sort by score for this specific discipline
         const aScore = a.disciplineScores[disciplineId] || 0
