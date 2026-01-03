@@ -153,23 +153,35 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       const currentDiscipline = activeDisciplineRef.current
       const currentHaaDisciplineIndex = haaDisciplineIndexRef.current
 
+      console.log('[Leaderboard Rotation]', { currentView, currentDiscipline, currentHaaDisciplineIndex, intervalMs })
+
       if (currentView === 'haa-all') {
-        // HAA All: just cycle pages, then move to next view
-        setHaaAllPage(current => current + 1)
-        // After cycling through pages a few times, move to next view
-        // (simplified: just move to next view each interval)
-        setActiveView('divisions')
-        setActiveDiscipline(disciplineIds[0])
+        // HAA All: cycle through pages, then move to next view
+        setHaaAllPage(current => {
+          const nextPage = current + 1
+          // Calculate total pages from allHAAathletes
+          const ITEMS_PER_PAGE = 20
+          const totalPages = Math.ceil(tournament.shoots.length / ITEMS_PER_PAGE) || 1
+
+          // If we've cycled through all pages, move to next view
+          if (nextPage >= totalPages) {
+            setActiveView('divisions')
+            setActiveDiscipline(disciplineIds[0])
+            return 0
+          }
+          return nextPage
+        })
       } else if (currentView === 'hoa-haa') {
         // HOA/HAA: cycle through disciplines for HAA section
         const nextDisciplineIndex = (currentHaaDisciplineIndex + 1) % disciplineIds.length
+
+        setHaaDisciplineIndex(nextDisciplineIndex)
 
         if (nextDisciplineIndex === 0) {
           // Completed all disciplines, move to next view
           setActiveView('haa-all')
           setHaaAllPage(0)
         }
-        setHaaDisciplineIndex(nextDisciplineIndex)
       } else if (disciplineCycleViews.includes(currentView)) {
         // For divisions, classes, teams, squads: cycle through all disciplines
         const currentDisciplineIndex = disciplineIds.indexOf(currentDiscipline!)
