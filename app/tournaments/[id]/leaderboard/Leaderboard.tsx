@@ -149,8 +149,8 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       return
     }
 
-    // Use configured interval (in seconds, convert to ms) or default to 15 seconds
-    const intervalMs = (tournament.leaderboardTabInterval || 15) * 1000
+    // Use configured interval (already in milliseconds) or default to 15 seconds
+    const intervalMs = tournament.leaderboardTabInterval || 15000
 
     console.log('[Leaderboard] Starting rotation interval', { intervalMs, disciplineIds })
 
