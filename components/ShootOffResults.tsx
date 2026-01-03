@@ -41,10 +41,7 @@ export default function ShootOffResults({ shootOffs, tournamentId, isAdmin }: Sh
             {/* Position Badge */}
             <div className="flex items-center justify-between mb-4">
               <div className="text-4xl">
-                {shootOff.position === 1 ? '🥇' : 
-                 shootOff.position === 2 ? '🥈' : 
-                 shootOff.position === 3 ? '🥉' : 
-                 `#${shootOff.position}`}
+                #{shootOff.position}
               </div>
               <div className="bg-white/20 backdrop-blur rounded-full px-3 py-1">
                 <span className="text-xs font-semibold text-white">COMPLETE</span>

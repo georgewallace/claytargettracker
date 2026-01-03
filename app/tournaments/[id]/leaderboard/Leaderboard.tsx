@@ -231,6 +231,11 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         squad.members.forEach((member: any) => {
           const athletescore = athletescores[member.athleteId]
           if (athletescore) {
+            // SKIP unaffiliated or unassigned athletes from squad scoring
+            if (!athletescore.teamName || athletescore.division === 'Unassigned') {
+              return
+            }
+
             // Only add the score for THIS discipline, not total score across all disciplines
             const disciplineScore = athletescore.disciplineScores[disciplineId] || 0
             if (disciplineScore > 0) {
@@ -488,12 +493,9 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       .sort((a, b) => b.haaTotal - a.haaTotal) // Sort by total score descending
   }, [allathletes, tournament.enableHAA, coreDisciplines])
 
-  // Get medal emoji
+  // Get rank number
   const getMedal = (index: number) => {
-    if (index === 0) return '🥇'
-    if (index === 1) return '🥈'
-    if (index === 2) return '🥉'
-    return ''
+    return `${index + 1}.`
   }
 
   // Get discipline name by ID
@@ -735,7 +737,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
-                                  {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                  {getMedal(idx)}
                                 </td>
                                 <td className="px-2 py-1 font-medium text-gray-900 text-xs">
                                   <div className="flex flex-col">
@@ -778,7 +780,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
-                                  {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                  {getMedal(idx)}
                                 </td>
                                 <td className="px-2 py-1 font-medium text-gray-900 text-xs">
                                   <div className="flex flex-col">
@@ -821,7 +823,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                             return (
                               <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                 <td className="px-2 py-1 text-gray-600">
-                                  {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                  {getMedal(idx)}
                                 </td>
                                 <td className="px-2 py-1 font-medium text-gray-900 text-xs">
                                   <div className="flex flex-col">
@@ -888,7 +890,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                 {haaResults.male.map((athlete, idx) => (
                                   <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                     <td className="px-2 py-1 text-gray-600">
-                                      {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                      {getMedal(idx)}
                                     </td>
                                     <td className="px-2 py-1 font-medium text-gray-900 text-xs">
                                       <div className="flex flex-col">
@@ -929,7 +931,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                 {haaResults.female.map((athlete, idx) => (
                                   <tr key={athlete.athleteId} className={`transition ${idx < 3 ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
                                     <td className="px-2 py-1 text-gray-600">
-                                      {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                      {getMedal(idx)}
                                     </td>
                                     <td className="px-2 py-1 font-medium text-gray-900 text-xs">
                                       <div className="flex flex-col">
@@ -1011,7 +1013,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                   title={athlete.teamName || 'Independent'}
                                 >
                                   <td className="px-2 py-1 text-gray-600">
-                                    {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                    {getMedal(idx)}
                                   </td>
                                   <td className="px-2 py-1 font-medium text-gray-900 text-xs truncate max-w-[120px]" title={athlete.athleteName}>
                                     {athlete.athleteName}
@@ -1222,7 +1224,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                   } ${!squad.isComplete ? 'border-l-2 border-l-yellow-400' : ''}`}
                                 >
                                   <td className="px-2 py-1 text-gray-600">
-                                    {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                    {getMedal(idx)}
                                   </td>
                                   <td className="px-2 py-1 font-medium text-gray-900 text-xs">
                                     <div className="flex flex-col">
@@ -1349,7 +1351,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                                     title={athlete.teamName || 'Independent'}
                                   >
                                     <td className="px-2 py-1 text-gray-600">
-                                      {idx < 3 ? getMedal(idx) : `${idx + 1}`}
+                                      {getMedal(idx)}
                                     </td>
                                     <td className="px-2 py-1 font-medium text-gray-900 text-xs truncate max-w-[120px]" title={athlete.athleteName}>
                                       {athlete.athleteName}
@@ -1387,9 +1389,11 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             const disciplineId = tournamentDiscipline.disciplineId
             const disciplineName = tournamentDiscipline.discipline.displayName
 
-            // Get athletes who competed in this discipline and have teams
+            // Get athletes who competed in this discipline and have teams (excluding unassigned)
             const disciplineathletes = allathletes.filter(
-              athlete => athlete.disciplineScores[disciplineId] !== undefined && athlete.teamName
+              athlete => athlete.disciplineScores[disciplineId] !== undefined &&
+                         athlete.teamName &&
+                         athlete.division !== 'Unassigned'
             )
 
             if (disciplineathletes.length === 0) return null
@@ -1454,7 +1458,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                               )}
                               <div className="min-w-0 flex-1">
                                 <h3 className="text-sm font-bold text-gray-900 truncate">
-                                  {index < 3 && getMedal(index)} {team.teamName}
+                                  {getMedal(index)} {team.teamName}
                                 </h3>
                                 <p className="text-gray-600 text-xs">
                                   {team.totalathletes} athlete{team.totalathletes !== 1 ? 's' : ''}
