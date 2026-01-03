@@ -136,13 +136,23 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
   // Coordinated auto-cycle through views and disciplines
   useEffect(() => {
-    if (!autoRefresh) return
+    console.log('[Leaderboard] Rotation useEffect running', { autoRefresh, disciplineCount: tournament.disciplines.length })
+
+    if (!autoRefresh) {
+      console.log('[Leaderboard] AutoRefresh is OFF - rotation disabled')
+      return
+    }
 
     const disciplineIds = tournament.disciplines.map((d: any) => d.disciplineId)
-    if (disciplineIds.length === 0) return
+    if (disciplineIds.length === 0) {
+      console.log('[Leaderboard] No disciplines found - rotation disabled')
+      return
+    }
 
     // Use configured interval (in seconds, convert to ms) or default to 15 seconds
     const intervalMs = (tournament.leaderboardTabInterval || 15) * 1000
+
+    console.log('[Leaderboard] Starting rotation interval', { intervalMs, disciplineIds })
 
     const interval = setInterval(() => {
       // Views that cycle through disciplines: divisions, classes, teams, squads
@@ -205,7 +215,10 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       }
     }, intervalMs)
 
-    return () => clearInterval(interval)
+    return () => {
+      console.log('[Leaderboard] Clearing rotation interval')
+      clearInterval(interval)
+    }
   }, [autoRefresh, tournament.disciplines, tournament.leaderboardTabInterval])
 
   // Fullscreen toggle
