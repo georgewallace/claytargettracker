@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import ShootOffResults from '@/components/ShootOffResults'
 
@@ -109,6 +109,24 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
   const [activeView, setActiveView] = useState<'divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa' | 'haa-all'>('divisions')
   const [haaDisciplineIndex, setHaaDisciplineIndex] = useState(0)
 
+  // Use refs to track current values without triggering effect re-runs
+  const activeViewRef = useRef(activeView)
+  const activeDisciplineRef = useRef(activeDiscipline)
+  const haaDisciplineIndexRef = useRef(haaDisciplineIndex)
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    activeViewRef.current = activeView
+  }, [activeView])
+
+  useEffect(() => {
+    activeDisciplineRef.current = activeDiscipline
+  }, [activeDiscipline])
+
+  useEffect(() => {
+    haaDisciplineIndexRef.current = haaDisciplineIndex
+  }, [haaDisciplineIndex])
+
   // Initialize activeDiscipline to first discipline
   useEffect(() => {
     if (!activeDiscipline && tournament.disciplines.length > 0) {
@@ -130,17 +148,21 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       // Views that cycle through disciplines: divisions, classes, teams, squads
       const disciplineCycleViews: Array<'divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa' | 'haa-all'> = ['divisions', 'classes', 'teams', 'squads']
 
-      if (activeView === 'haa-all') {
+      // Get current values from refs
+      const currentView = activeViewRef.current
+      const currentDiscipline = activeDisciplineRef.current
+      const currentHaaDisciplineIndex = haaDisciplineIndexRef.current
+
+      if (currentView === 'haa-all') {
         // HAA All: just cycle pages, then move to next view
         setHaaAllPage(current => current + 1)
         // After cycling through pages a few times, move to next view
         // (simplified: just move to next view each interval)
         setActiveView('divisions')
         setActiveDiscipline(disciplineIds[0])
-      } else if (activeView === 'hoa-haa') {
+      } else if (currentView === 'hoa-haa') {
         // HOA/HAA: cycle through disciplines for HAA section
-        const currentDisciplineIndex = haaDisciplineIndex
-        const nextDisciplineIndex = (currentDisciplineIndex + 1) % disciplineIds.length
+        const nextDisciplineIndex = (currentHaaDisciplineIndex + 1) % disciplineIds.length
 
         if (nextDisciplineIndex === 0) {
           // Completed all disciplines, move to next view
@@ -148,15 +170,15 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           setHaaAllPage(0)
         }
         setHaaDisciplineIndex(nextDisciplineIndex)
-      } else if (disciplineCycleViews.includes(activeView)) {
+      } else if (disciplineCycleViews.includes(currentView)) {
         // For divisions, classes, teams, squads: cycle through all disciplines
-        const currentDisciplineIndex = disciplineIds.indexOf(activeDiscipline!)
+        const currentDisciplineIndex = disciplineIds.indexOf(currentDiscipline!)
         const nextDisciplineIndex = (currentDisciplineIndex + 1) % disciplineIds.length
 
         if (nextDisciplineIndex === 0) {
           // Completed all disciplines for this view, move to next view
           const viewOrder: Array<'divisions' | 'squads' | 'classes' | 'teams' | 'hoa-haa' | 'haa-all'> = ['divisions', 'classes', 'teams', 'squads', 'hoa-haa', 'haa-all']
-          const currentViewIndex = viewOrder.indexOf(activeView)
+          const currentViewIndex = viewOrder.indexOf(currentView)
           const nextView = viewOrder[(currentViewIndex + 1) % viewOrder.length]
           setActiveView(nextView)
 
@@ -172,7 +194,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     }, intervalMs)
 
     return () => clearInterval(interval)
-  }, [autoRefresh, tournament.disciplines, tournament.leaderboardTabInterval, activeView, activeDiscipline, haaDisciplineIndex])
+  }, [autoRefresh, tournament.disciplines, tournament.leaderboardTabInterval])
 
   // Fullscreen toggle
   const toggleFullscreen = () => {
