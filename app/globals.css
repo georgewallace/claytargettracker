@@ -54,3 +54,15 @@ select:disabled,
 textarea:disabled {
   color: #6b7280 !important; /* gray-500 for disabled */
 }
+
+/* Hide navbar and footer when in fullscreen mode */
+:fullscreen nav,
+:fullscreen footer,
+:-webkit-full-screen nav,
+:-webkit-full-screen footer,
+:-moz-full-screen nav,
+:-moz-full-screen footer,
+:-ms-fullscreen nav,
+:-ms-fullscreen footer {
+  display: none !important;
+}

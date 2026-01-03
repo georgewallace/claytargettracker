@@ -778,283 +778,6 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         />
       )}
 
-      {/* HOA/HAA View */}
-      {activeView === 'hoa-haa' && (
-        <div className="space-y-3">
-          {/* HOA Section - Overall champions across all disciplines */}
-          {tournament.enableHOA && (
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-              <div className="mb-3">
-                <h2 className="text-lg font-bold text-gray-900">👑 HOA - High Over All</h2>
-                <p className="text-gray-600 text-xs">Overall Champions Across All Disciplines</p>
-              </div>
-
-              <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-1 lg:grid-cols-3 gap-2'}>
-                {/* HOA Overall */}
-                {hoaathletes.length > 0 && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-white p-2 border-b border-gray-200">
-                      <h3 className="text-sm font-bold text-gray-900">Overall</h3>
-                      <p className="text-gray-600 text-xs">
-                        {hoaathletes.length} athlete{hoaathletes.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-xs">
-                        <thead className="bg-gray-100">
-                          <tr>
-                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
-                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
-                            <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {hoaathletes.map((athlete, idx) => {
-                            return (
-                              <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
-                                <td className="px-2 py-1 text-gray-600">
-                                  {getMedal(idx)}
-                                </td>
-                                <td className="px-2 py-1 font-medium text-gray-900 text-xs">
-                                  <div className="flex flex-col">
-                                    <div className="font-bold truncate">{athlete.athleteName}</div>
-                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
-                                  </div>
-                                </td>
-                                <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                  {Math.floor(athlete.totalScore)}
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* HOA Male */}
-                {hoaMaleathletes.length > 0 && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-white p-2 border-b border-gray-200">
-                      <h3 className="text-sm font-bold text-gray-900">Male</h3>
-                      <p className="text-gray-600 text-xs">
-                        {hoaMaleathletes.length} athlete{hoaMaleathletes.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-xs">
-                        <thead className="bg-gray-100">
-                          <tr>
-                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
-                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
-                            <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {hoaMaleathletes.map((athlete, idx) => {
-                            return (
-                              <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
-                                <td className="px-2 py-1 text-gray-600">
-                                  {getMedal(idx)}
-                                </td>
-                                <td className="px-2 py-1 font-medium text-gray-900 text-xs">
-                                  <div className="flex flex-col">
-                                    <div className="font-bold truncate">{athlete.athleteName}</div>
-                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
-                                  </div>
-                                </td>
-                                <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                  {Math.floor(athlete.totalScore)}
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* HOA Female */}
-                {hoaFemaleathletes.length > 0 && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-white p-2 border-b border-gray-200">
-                      <h3 className="text-sm font-bold text-gray-900">Female</h3>
-                      <p className="text-gray-600 text-xs">
-                        {hoaFemaleathletes.length} athlete{hoaFemaleathletes.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-xs">
-                        <thead className="bg-gray-100">
-                          <tr>
-                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
-                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
-                            <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {hoaFemaleathletes.map((athlete, idx) => {
-                            return (
-                              <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
-                                <td className="px-2 py-1 text-gray-600">
-                                  {getMedal(idx)}
-                                </td>
-                                <td className="px-2 py-1 font-medium text-gray-900 text-xs">
-                                  <div className="flex flex-col">
-                                    <div className="font-bold truncate">{athlete.athleteName}</div>
-                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
-                                  </div>
-                                </td>
-                                <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                  {Math.floor(athlete.totalScore)}
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* HAA Section - Per discipline champions (cycles through disciplines) */}
-          {tournament.enableHAA && (() => {
-            // Get the current discipline based on haaDisciplineIndex
-            const currentDiscipline = tournament.disciplines[haaDisciplineIndex % tournament.disciplines.length]
-            if (!currentDiscipline) return null
-
-            const disciplineId = currentDiscipline.disciplineId
-            const disciplineName = currentDiscipline.discipline.displayName
-            const haaResults = haaByDiscipline[disciplineId]
-
-            if (!haaResults) return null
-
-            const hasResults = haaResults.male.length > 0 || haaResults.female.length > 0
-
-            if (!hasResults) return null
-
-            return (
-              <>
-                {/* Discipline Filter Tabs */}
-                <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-                  <div className="flex gap-2 flex-wrap">
-                    {tournament.disciplines.map((td: any, idx: number) => (
-                      <button
-                        key={td.disciplineId}
-                        onClick={() => setHaaDisciplineIndex(idx)}
-                        className={`px-3 py-1.5 rounded text-sm transition font-medium ${
-                          idx === haaDisciplineIndex % tournament.disciplines.length
-                            ? 'bg-green-600 text-white shadow-md'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                        }`}
-                      >
-                        {td.discipline.displayName}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-                    <div className="mb-3">
-                      <h2 className="text-lg font-bold text-gray-900">🎯 HAA - {disciplineName}</h2>
-                      <p className="text-gray-600 text-xs">High All-Around for this discipline</p>
-                    </div>
-
-                    <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-1 lg:grid-cols-2 gap-2'}>
-                      {/* HAA Male */}
-                      {haaResults.male.length > 0 && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-                          <div className="bg-white p-2 border-b border-gray-200">
-                            <h3 className="text-sm font-bold text-gray-900">Male</h3>
-                            <p className="text-gray-600 text-xs">
-                              {haaResults.male.length} athlete{haaResults.male.length !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full text-xs">
-                              <thead className="bg-gray-100">
-                                <tr>
-                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
-                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
-                                  <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-200">
-                                {haaResults.male.map((athlete, idx) => (
-                                  <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
-                                    <td className="px-2 py-1 text-gray-600">
-                                      {getMedal(idx)}
-                                    </td>
-                                    <td className="px-2 py-1 font-medium text-gray-900 text-xs">
-                                      <div className="flex flex-col">
-                                        <div className="font-bold truncate">{athlete.athleteName}</div>
-                                        <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
-                                      </div>
-                                    </td>
-                                    <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                      {Math.floor(athlete.disciplineScores[disciplineId])}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* HAA Female */}
-                      {haaResults.female.length > 0 && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-                          <div className="bg-white p-2 border-b border-gray-200">
-                            <h3 className="text-sm font-bold text-gray-900">Female</h3>
-                            <p className="text-gray-600 text-xs">
-                              {haaResults.female.length} athlete{haaResults.female.length !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full text-xs">
-                              <thead className="bg-gray-100">
-                                <tr>
-                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
-                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
-                                  <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-200">
-                                {haaResults.female.map((athlete, idx) => (
-                                  <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
-                                    <td className="px-2 py-1 text-gray-600">
-                                      {getMedal(idx)}
-                                    </td>
-                                    <td className="px-2 py-1 font-medium text-gray-900 text-xs">
-                                      <div className="flex flex-col">
-                                        <div className="font-bold truncate">{athlete.athleteName}</div>
-                                        <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
-                                      </div>
-                                    </td>
-                                    <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                      {Math.floor(athlete.disciplineScores[disciplineId])}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-              </>
-            )
-          })()}
-        </div>
-      )}
-
       {/* Divisions View - Compact Grid with Classes Styling */}
       {activeView === 'divisions' && (
         <div className="space-y-3">
@@ -1159,265 +882,6 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
               <p className="text-gray-500 text-sm">No scores recorded yet</p>
             </div>
           )}
-          </div>
-        </div>
-      )}
-
-      {/* HAA All Shooters View */}
-      {activeView === 'haa-all' && tournament.enableHAA && (() => {
-        const ITEMS_PER_PAGE = 20
-        const totalPages = Math.ceil(allHAAathletes.length / ITEMS_PER_PAGE)
-        const currentPage = totalPages > 0 ? haaAllPage % totalPages : 0
-        const startIdx = currentPage * ITEMS_PER_PAGE
-        const endIdx = startIdx + ITEMS_PER_PAGE
-        const paginatedAthletes = allHAAathletes.slice(startIdx, endIdx)
-
-        return (
-          <div className="space-y-3">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">📊 HAA - All Shooters</h2>
-                  <p className="text-gray-600 text-sm">
-                    All athletes who competed in at least 2 core disciplines
-                    {coreDisciplines.length > 0 && tournament.disciplines && (
-                      <span className="ml-1">
-                        ({tournament.disciplines
-                          .filter((td: any) => coreDisciplines.includes(td.disciplineId))
-                          .map((td: any) => td.discipline.displayName)
-                          .join(', ')})
-                      </span>
-                    )}
-                  </p>
-                </div>
-                {totalPages > 1 && (
-                  <div className="text-sm font-medium text-gray-600">
-                    Page {currentPage + 1} of {totalPages}
-                  </div>
-                )}
-              </div>
-
-              {paginatedAthletes.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Rank
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Athlete
-                        </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Division
-                        </th>
-                        {tournament.disciplines
-                          .filter((td: any) => coreDisciplines.includes(td.disciplineId))
-                          .map((td: any) => (
-                            <th key={td.disciplineId} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              {td.discipline.displayName}
-                            </th>
-                          ))}
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Total
-                        </th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Events
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {paginatedAthletes.map((athlete: any, idx: number) => {
-                        const isRecent = athlete.lastUpdated &&
-                          (new Date().getTime() - new Date(athlete.lastUpdated).getTime()) < 2 * 60 * 1000
-                        const actualRank = startIdx + idx + 1
-
-                        return (
-                          <tr
-                            key={athlete.athleteId}
-                            className={`transition ${
-                              isRecent ? 'bg-green-50' :
-                              'hover:bg-gray-50'
-                            }`}
-                          >
-                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">
-                              {actualRank}.
-                            </td>
-                            <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {isRecent && <span className="mr-1">✨</span>}
-                              {athlete.athleteName}
-                            </td>
-                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-600">
-                              {athlete.division || 'N/A'}
-                            </td>
-                            {tournament.disciplines
-                              .filter((td: any) => coreDisciplines.includes(td.disciplineId))
-                              .map((td: any) => {
-                                const score = athlete.disciplineScores[td.disciplineId]
-                                return (
-                                  <td key={td.disciplineId} className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-700">
-                                    {score !== undefined ? Math.round(score) : '-'}
-                                  </td>
-                                )
-                              })}
-                            <td className="px-3 py-2 whitespace-nowrap text-sm text-center font-bold text-indigo-600">
-                              {Math.round(athlete.haaTotal)}
-                            </td>
-                            <td className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-600">
-                              {athlete.haaDisciplinesCompeted}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-                  <p className="text-gray-500 text-sm">
-                    No athletes have competed in at least 2 core disciplines yet
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })()}
-
-      {/* Squads View - Compact Grid */}
-      {activeView === 'squads' && (
-        <div className="space-y-3">
-          {/* Discipline Filter Tabs */}
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
-            <div className="flex gap-2 flex-wrap">
-              {tournament.disciplines.map((td: any) => (
-                <button
-                  key={td.disciplineId}
-                  onClick={() => setActiveDiscipline(td.disciplineId)}
-                  className={`px-3 py-1.5 rounded text-sm transition font-medium ${
-                    activeDiscipline === td.disciplineId
-                      ? 'bg-green-600 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                  }`}
-                >
-                  {td.discipline.displayName}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
-          {tournament.disciplines
-            .filter((td: any) => !activeDiscipline || td.disciplineId === activeDiscipline)
-            .map((td: any) => {
-            const disciplineId = td.disciplineId
-            const discipline = td.discipline
-
-            // Get squads for this discipline (exclude Unassigned division)
-            const disciplineSquads = squadScores.filter(s =>
-              s.disciplineId === disciplineId &&
-              s.division !== 'Unassigned'
-            )
-
-            if (disciplineSquads.length === 0) return null
-
-            // Group squads by division
-            const squadsByDivision: Record<string, SquadScore[]> = {}
-            disciplineSquads.forEach(squad => {
-              const division = squad.division || 'Mixed'
-              if (!squadsByDivision[division]) {
-                squadsByDivision[division] = []
-              }
-              squadsByDivision[division].push(squad)
-            })
-
-            // Sort divisions from highest to youngest
-            const divisionOrder = ['college', 'varsity', 'junior varsity', 'intermediate', 'novice']
-            const sortedDivisions = Object.keys(squadsByDivision).sort((a, b) => {
-              const aIndex = divisionOrder.indexOf(a.toLowerCase())
-              const bIndex = divisionOrder.indexOf(b.toLowerCase())
-              if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex
-              if (aIndex !== -1) return -1
-              if (bIndex !== -1) return 1
-              return a.localeCompare(b)
-            })
-
-            return (
-              <div key={disciplineId} className={`bg-white border border-gray-200 rounded-lg shadow-sm p-3 ${singleColumnMode ? 'flex-1 min-w-0' : ''}`}>
-                {/* Discipline Header */}
-                <div className="mb-3">
-                  <h2 className="text-lg font-bold text-gray-900">👥 {discipline.displayName} - Squad Standings</h2>
-                  <p className="text-gray-600 text-xs">
-                    {sortedDivisions.length} division{sortedDivisions.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
-
-                {/* Squad Tables Grid */}
-                <div className={singleColumnMode ? 'flex flex-col gap-2' : 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2'}>
-                  {sortedDivisions.map(division => {
-                    const divisionSquads = squadsByDivision[division]
-                      .sort((a, b) => b.totalScore - a.totalScore)
-
-                    return (
-                      <div key={`${disciplineId}-${division}`} className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-                        <div className="bg-white p-2 border-b border-gray-200">
-                          <h3 className="text-sm font-bold text-gray-900">{division}</h3>
-                          <p className="text-gray-600 text-xs">
-                            {divisionSquads.length} squad{divisionSquads.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full text-xs">
-                            <thead className="bg-gray-100">
-                              <tr>
-                                <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
-                                <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Squad</th>
-                                <th className="px-2 py-1 text-center text-xs font-semibold text-gray-600">Ath</th>
-                                <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                              {divisionSquads.map((squad, idx) => (
-                                <tr
-                                  key={squad.squadId}
-                                  className={`transition hover:bg-gray-50 ${!squad.isComplete ? 'border-l-2 border-l-yellow-400' : ''}`}
-                                >
-                                  <td className="px-2 py-1 text-gray-600">
-                                    {getMedal(idx)}
-                                  </td>
-                                  <td className="px-2 py-1 font-medium text-gray-900 text-xs">
-                                    <div className="flex flex-col">
-                                      <div className="font-bold">
-                                        {squad.squadName}
-                                        {!squad.isComplete && (
-                                          <span className="ml-1 text-yellow-600 text-xs" title={`${squad.completionPercentage}% complete`}>
-                                            ⚠
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="text-xs text-gray-600 mt-0.5">
-                                        {squad.members.join(', ')}
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-2 py-1 text-xs text-gray-600 text-center">
-                                    {squad.memberCount}
-                                  </td>
-                                  <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
-                                    {Math.floor(squad.totalScore)}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
           </div>
         </div>
       )}
@@ -1708,6 +1172,542 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           </div>
         </div>
       )}
+
+      {/* Squads View - Compact Grid */}
+      {activeView === 'squads' && (
+        <div className="space-y-3">
+          {/* Discipline Filter Tabs */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+            <div className="flex gap-2 flex-wrap">
+              {tournament.disciplines.map((td: any) => (
+                <button
+                  key={td.disciplineId}
+                  onClick={() => setActiveDiscipline(td.disciplineId)}
+                  className={`px-3 py-1.5 rounded text-sm transition font-medium ${
+                    activeDiscipline === td.disciplineId
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                  }`}
+                >
+                  {td.discipline.displayName}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={singleColumnMode ? 'flex gap-3' : 'space-y-3'}>
+          {tournament.disciplines
+            .filter((td: any) => !activeDiscipline || td.disciplineId === activeDiscipline)
+            .map((td: any) => {
+            const disciplineId = td.disciplineId
+            const discipline = td.discipline
+
+            // Get squads for this discipline (exclude Unassigned division)
+            const disciplineSquads = squadScores.filter(s =>
+              s.disciplineId === disciplineId &&
+              s.division !== 'Unassigned'
+            )
+
+            if (disciplineSquads.length === 0) return null
+
+            // Group squads by division
+            const squadsByDivision: Record<string, SquadScore[]> = {}
+            disciplineSquads.forEach(squad => {
+              const division = squad.division || 'Mixed'
+              if (!squadsByDivision[division]) {
+                squadsByDivision[division] = []
+              }
+              squadsByDivision[division].push(squad)
+            })
+
+            // Sort divisions from highest to youngest
+            const divisionOrder = ['college', 'varsity', 'junior varsity', 'intermediate', 'novice']
+            const sortedDivisions = Object.keys(squadsByDivision).sort((a, b) => {
+              const aIndex = divisionOrder.indexOf(a.toLowerCase())
+              const bIndex = divisionOrder.indexOf(b.toLowerCase())
+              if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex
+              if (aIndex !== -1) return -1
+              if (bIndex !== -1) return 1
+              return a.localeCompare(b)
+            })
+
+            return (
+              <div key={disciplineId} className={`bg-white border border-gray-200 rounded-lg shadow-sm p-3 ${singleColumnMode ? 'flex-1 min-w-0' : ''}`}>
+                {/* Discipline Header */}
+                <div className="mb-3">
+                  <h2 className="text-lg font-bold text-gray-900">👥 {discipline.displayName} - Squad Standings</h2>
+                  <p className="text-gray-600 text-xs">
+                    {sortedDivisions.length} division{sortedDivisions.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+
+                {/* Squad Tables Grid */}
+                <div className={singleColumnMode ? 'flex flex-col gap-2' : 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2'}>
+                  {sortedDivisions.map(division => {
+                    const divisionSquads = squadsByDivision[division]
+                      .sort((a, b) => b.totalScore - a.totalScore)
+
+                    return (
+                      <div key={`${disciplineId}-${division}`} className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="bg-white p-2 border-b border-gray-200">
+                          <h3 className="text-sm font-bold text-gray-900">{division}</h3>
+                          <p className="text-gray-600 text-xs">
+                            {divisionSquads.length} squad{divisionSquads.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-xs">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                                <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Squad</th>
+                                <th className="px-2 py-1 text-center text-xs font-semibold text-gray-600">Ath</th>
+                                <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {divisionSquads.map((squad, idx) => (
+                                <tr
+                                  key={squad.squadId}
+                                  className={`transition hover:bg-gray-50 ${!squad.isComplete ? 'border-l-2 border-l-yellow-400' : ''}`}
+                                >
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {getMedal(idx)}
+                                  </td>
+                                  <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                    <div className="flex flex-col">
+                                      <div className="font-bold">
+                                        {squad.squadName}
+                                        {!squad.isComplete && (
+                                          <span className="ml-1 text-yellow-600 text-xs" title={`${squad.completionPercentage}% complete`}>
+                                            ⚠
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-xs text-gray-600 mt-0.5">
+                                        {squad.members.join(', ')}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-2 py-1 text-xs text-gray-600 text-center">
+                                    {squad.memberCount}
+                                  </td>
+                                  <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                    {Math.floor(squad.totalScore)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+          </div>
+        </div>
+      )}
+
+      {/* HOA/HAA View */}
+      {activeView === 'hoa-haa' && (
+        <div className="space-y-3">
+          {/* HOA Section - Overall champions across all disciplines */}
+          {tournament.enableHOA && (
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+              <div className="mb-3">
+                <h2 className="text-lg font-bold text-gray-900">👑 HOA - High Over All</h2>
+                <p className="text-gray-600 text-xs">Overall Champions Across All Disciplines</p>
+              </div>
+
+              <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-1 lg:grid-cols-3 gap-2'}>
+                {/* HOA Overall */}
+                {hoaathletes.length > 0 && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-white p-2 border-b border-gray-200">
+                      <h3 className="text-sm font-bold text-gray-900">Overall</h3>
+                      <p className="text-gray-600 text-xs">
+                        {hoaathletes.length} athlete{hoaathletes.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
+                            <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {hoaathletes.map((athlete, idx) => {
+                            return (
+                              <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
+                                <td className="px-2 py-1 text-gray-600">
+                                  {getMedal(idx)}
+                                </td>
+                                <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                  <div className="flex flex-col">
+                                    <div className="font-bold truncate">{athlete.athleteName}</div>
+                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                                  </div>
+                                </td>
+                                <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                  {Math.floor(athlete.totalScore)}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* HOA Male */}
+                {hoaMaleathletes.length > 0 && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-white p-2 border-b border-gray-200">
+                      <h3 className="text-sm font-bold text-gray-900">Male</h3>
+                      <p className="text-gray-600 text-xs">
+                        {hoaMaleathletes.length} athlete{hoaMaleathletes.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
+                            <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {hoaMaleathletes.map((athlete, idx) => {
+                            return (
+                              <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
+                                <td className="px-2 py-1 text-gray-600">
+                                  {getMedal(idx)}
+                                </td>
+                                <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                  <div className="flex flex-col">
+                                    <div className="font-bold truncate">{athlete.athleteName}</div>
+                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                                  </div>
+                                </td>
+                                <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                  {Math.floor(athlete.totalScore)}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* HOA Female */}
+                {hoaFemaleathletes.length > 0 && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-white p-2 border-b border-gray-200">
+                      <h3 className="text-sm font-bold text-gray-900">Female</h3>
+                      <p className="text-gray-600 text-xs">
+                        {hoaFemaleathletes.length} athlete{hoaFemaleathletes.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                            <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
+                            <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {hoaFemaleathletes.map((athlete, idx) => {
+                            return (
+                              <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
+                                <td className="px-2 py-1 text-gray-600">
+                                  {getMedal(idx)}
+                                </td>
+                                <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                  <div className="flex flex-col">
+                                    <div className="font-bold truncate">{athlete.athleteName}</div>
+                                    <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                                  </div>
+                                </td>
+                                <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                  {Math.floor(athlete.totalScore)}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* HAA Section - Per discipline champions (cycles through disciplines) */}
+          {tournament.enableHAA && (() => {
+            // Get the current discipline based on haaDisciplineIndex
+            const currentDiscipline = tournament.disciplines[haaDisciplineIndex % tournament.disciplines.length]
+            if (!currentDiscipline) return null
+
+            const disciplineId = currentDiscipline.disciplineId
+            const disciplineName = currentDiscipline.discipline.displayName
+            const haaResults = haaByDiscipline[disciplineId]
+
+            if (!haaResults) return null
+
+            const hasResults = haaResults.male.length > 0 || haaResults.female.length > 0
+
+            if (!hasResults) return null
+
+            return (
+              <>
+                {/* Discipline Filter Tabs */}
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+                  <div className="flex gap-2 flex-wrap">
+                    {tournament.disciplines.map((td: any, idx: number) => (
+                      <button
+                        key={td.disciplineId}
+                        onClick={() => setHaaDisciplineIndex(idx)}
+                        className={`px-3 py-1.5 rounded text-sm transition font-medium ${
+                          idx === haaDisciplineIndex % tournament.disciplines.length
+                            ? 'bg-green-600 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                        }`}
+                      >
+                        {td.discipline.displayName}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
+                    <div className="mb-3">
+                      <h2 className="text-lg font-bold text-gray-900">🎯 HAA - {disciplineName}</h2>
+                      <p className="text-gray-600 text-xs">High All-Around for this discipline</p>
+                    </div>
+
+                    <div className={singleColumnMode ? 'flex flex-wrap gap-2' : 'grid grid-cols-1 lg:grid-cols-2 gap-2'}>
+                      {/* HAA Male */}
+                      {haaResults.male.length > 0 && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                          <div className="bg-white p-2 border-b border-gray-200">
+                            <h3 className="text-sm font-bold text-gray-900">Male</h3>
+                            <p className="text-gray-600 text-xs">
+                              {haaResults.male.length} athlete{haaResults.male.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-xs">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
+                                  <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200">
+                                {haaResults.male.map((athlete, idx) => (
+                                  <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
+                                    <td className="px-2 py-1 text-gray-600">
+                                      {getMedal(idx)}
+                                    </td>
+                                    <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                      <div className="flex flex-col">
+                                        <div className="font-bold truncate">{athlete.athleteName}</div>
+                                        <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                                      </div>
+                                    </td>
+                                    <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                      {Math.floor(athlete.disciplineScores[disciplineId])}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* HAA Female */}
+                      {haaResults.female.length > 0 && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                          <div className="bg-white p-2 border-b border-gray-200">
+                            <h3 className="text-sm font-bold text-gray-900">Female</h3>
+                            <p className="text-gray-600 text-xs">
+                              {haaResults.female.length} athlete{haaResults.female.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-xs">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600 w-8">#</th>
+                                  <th className="px-2 py-1 text-left text-xs font-semibold text-gray-600">Name</th>
+                                  <th className="px-2 py-1 text-right text-xs font-semibold text-gray-600 bg-white">Pts</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200">
+                                {haaResults.female.map((athlete, idx) => (
+                                  <tr key={athlete.athleteId} className={`transition ${'hover:bg-gray-50'}`}>
+                                    <td className="px-2 py-1 text-gray-600">
+                                      {getMedal(idx)}
+                                    </td>
+                                    <td className="px-2 py-1 font-medium text-gray-900 text-xs">
+                                      <div className="flex flex-col">
+                                        <div className="font-bold truncate">{athlete.athleteName}</div>
+                                        <div className="text-xs text-gray-600 truncate">{athlete.teamName || 'Independent'}</div>
+                                      </div>
+                                    </td>
+                                    <td className="px-2 py-1 text-right font-bold text-gray-900 bg-white">
+                                      {Math.floor(athlete.disciplineScores[disciplineId])}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+              </>
+            )
+          })()}
+        </div>
+      )}
+
+      {/* HAA All Shooters View */}
+      {activeView === 'haa-all' && tournament.enableHAA && (() => {
+        const ITEMS_PER_PAGE = 20
+        const totalPages = Math.ceil(allHAAathletes.length / ITEMS_PER_PAGE)
+        const currentPage = totalPages > 0 ? haaAllPage % totalPages : 0
+        const startIdx = currentPage * ITEMS_PER_PAGE
+        const endIdx = startIdx + ITEMS_PER_PAGE
+        const paginatedAthletes = allHAAathletes.slice(startIdx, endIdx)
+
+        return (
+          <div className="space-y-3">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">📊 HAA - All Shooters</h2>
+                  <p className="text-gray-600 text-sm">
+                    All athletes who competed in at least 2 core disciplines
+                    {coreDisciplines.length > 0 && tournament.disciplines && (
+                      <span className="ml-1">
+                        ({tournament.disciplines
+                          .filter((td: any) => coreDisciplines.includes(td.disciplineId))
+                          .map((td: any) => td.discipline.displayName)
+                          .join(', ')})
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {totalPages > 1 && (
+                  <div className="text-sm font-medium text-gray-600">
+                    Page {currentPage + 1} of {totalPages}
+                  </div>
+                )}
+              </div>
+
+              {paginatedAthletes.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Rank
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Athlete
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Division
+                        </th>
+                        {tournament.disciplines
+                          .filter((td: any) => coreDisciplines.includes(td.disciplineId))
+                          .map((td: any) => (
+                            <th key={td.disciplineId} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              {td.discipline.displayName}
+                            </th>
+                          ))}
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Total
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Events
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {paginatedAthletes.map((athlete: any, idx: number) => {
+                        const isRecent = athlete.lastUpdated &&
+                          (new Date().getTime() - new Date(athlete.lastUpdated).getTime()) < 2 * 60 * 1000
+                        const actualRank = startIdx + idx + 1
+
+                        return (
+                          <tr
+                            key={athlete.athleteId}
+                            className={`transition ${
+                              isRecent ? 'bg-green-50' :
+                              'hover:bg-gray-50'
+                            }`}
+                          >
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">
+                              {actualRank}.
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {isRecent && <span className="mr-1">✨</span>}
+                              {athlete.athleteName}
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-600">
+                              {athlete.division || 'N/A'}
+                            </td>
+                            {tournament.disciplines
+                              .filter((td: any) => coreDisciplines.includes(td.disciplineId))
+                              .map((td: any) => {
+                                const score = athlete.disciplineScores[td.disciplineId]
+                                return (
+                                  <td key={td.disciplineId} className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-700">
+                                    {score !== undefined ? Math.round(score) : '-'}
+                                  </td>
+                                )
+                              })}
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-center font-bold text-indigo-600">
+                              {Math.round(athlete.haaTotal)}
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-center text-gray-600">
+                              {athlete.haaDisciplinesCompeted}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                  <p className="text-gray-500 text-sm">
+                    No athletes have competed in at least 2 core disciplines yet
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Legend */}
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
