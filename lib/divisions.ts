@@ -129,40 +129,54 @@ export function getEffectiveDivision(
 
 // Predefined squad names (Division + Number format)
 export const squadNameOptions = [
-  // Collegiate squads
+  // Collegiate squads (1-5 for multiple squads per station)
   { value: 'Collegiate 1', label: 'Collegiate 1', division: 'Collegiate' },
   { value: 'Collegiate 2', label: 'Collegiate 2', division: 'Collegiate' },
   { value: 'Collegiate 3', label: 'Collegiate 3', division: 'Collegiate' },
+  { value: 'Collegiate 4', label: 'Collegiate 4', division: 'Collegiate' },
+  { value: 'Collegiate 5', label: 'Collegiate 5', division: 'Collegiate' },
 
-  // Intermediate squads
+  // Intermediate squads (1-5 for multiple squads per station)
   { value: 'Intermediate 1', label: 'Intermediate 1', division: 'Intermediate' },
   { value: 'Intermediate 2', label: 'Intermediate 2', division: 'Intermediate' },
   { value: 'Intermediate 3', label: 'Intermediate 3', division: 'Intermediate' },
+  { value: 'Intermediate 4', label: 'Intermediate 4', division: 'Intermediate' },
+  { value: 'Intermediate 5', label: 'Intermediate 5', division: 'Intermediate' },
 
-  // Junior Varsity squads
+  // Junior Varsity squads (1-5 for multiple squads per station)
   { value: 'Junior Varsity 1', label: 'Junior Varsity 1', division: 'Junior Varsity' },
   { value: 'Junior Varsity 2', label: 'Junior Varsity 2', division: 'Junior Varsity' },
   { value: 'Junior Varsity 3', label: 'Junior Varsity 3', division: 'Junior Varsity' },
+  { value: 'Junior Varsity 4', label: 'Junior Varsity 4', division: 'Junior Varsity' },
+  { value: 'Junior Varsity 5', label: 'Junior Varsity 5', division: 'Junior Varsity' },
 
-  // Novice squads
+  // Novice squads (1-5 for multiple squads per station)
   { value: 'Novice 1', label: 'Novice 1', division: 'Novice' },
   { value: 'Novice 2', label: 'Novice 2', division: 'Novice' },
   { value: 'Novice 3', label: 'Novice 3', division: 'Novice' },
+  { value: 'Novice 4', label: 'Novice 4', division: 'Novice' },
+  { value: 'Novice 5', label: 'Novice 5', division: 'Novice' },
 
-  // Open squads
+  // Open squads (1-5 for multiple squads per station)
   { value: 'Open 1', label: 'Open 1', division: 'Open' },
   { value: 'Open 2', label: 'Open 2', division: 'Open' },
   { value: 'Open 3', label: 'Open 3', division: 'Open' },
+  { value: 'Open 4', label: 'Open 4', division: 'Open' },
+  { value: 'Open 5', label: 'Open 5', division: 'Open' },
 
-  // Unassigned squads
+  // Unassigned squads (1-5 for multiple squads per station)
   { value: 'Unassigned 1', label: 'Unassigned 1', division: 'Unassigned' },
   { value: 'Unassigned 2', label: 'Unassigned 2', division: 'Unassigned' },
   { value: 'Unassigned 3', label: 'Unassigned 3', division: 'Unassigned' },
+  { value: 'Unassigned 4', label: 'Unassigned 4', division: 'Unassigned' },
+  { value: 'Unassigned 5', label: 'Unassigned 5', division: 'Unassigned' },
 
-  // Varsity squads
+  // Varsity squads (1-5 for multiple squads per station)
   { value: 'Varsity 1', label: 'Varsity 1', division: 'Varsity' },
   { value: 'Varsity 2', label: 'Varsity 2', division: 'Varsity' },
   { value: 'Varsity 3', label: 'Varsity 3', division: 'Varsity' },
+  { value: 'Varsity 4', label: 'Varsity 4', division: 'Varsity' },
+  { value: 'Varsity 5', label: 'Varsity 5', division: 'Varsity' },
 ]
 
 // Get squad names filtered by division

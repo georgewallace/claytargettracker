@@ -173,28 +173,21 @@ export async function GET(
                                 disciplineName === 'trap' ? 'Trap' :
                                 disciplineName === 'sporting_clays' ? 'Sporting Clays' : ''
 
-      // Determine if squad has mixed divisions
-      const squadDivisions = assignment.squad.members
-        .map((m: any) => m.athlete.divisionOverride || m.athlete.division)
-        .filter(Boolean)
-      const uniqueDivisions = [...new Set(squadDivisions)]
-
-      // Team Concurrent should be the division if same division, "Open" if mixed
-      const teamConcurrent = uniqueDivisions.length > 1
-        ? 'Open'
-        : (uniqueDivisions[0] || '')
-
-      // Construct full name
-      const firstName = assignment.athlete.user.firstName || ''
-      const lastName = assignment.athlete.user.lastName || ''
-      const fullName = firstName && lastName ? `${firstName} ${lastName}` : assignment.athlete.user.name
-
       // Parse team name and concurrent squad from squad name
       // Format: "Team Name - Division N" or "Unaffiliated - Division N"
       const squadName = assignment.squad.name
       const parts = squadName.split(' - ')
       const teamName = parts.length > 1 ? parts[0] : 'Unaffiliated'
       const concurrentSquad = parts.length > 1 ? parts.slice(1).join(' - ') : squadName
+
+      // Team Concurrent is Concurrent Squad with last 2 characters removed
+      // Example: "Varsity 1" → "Varsity"
+      const teamConcurrent = concurrentSquad ? concurrentSquad.slice(0, -2) : ''
+
+      // Construct full name
+      const firstName = assignment.athlete.user.firstName || ''
+      const lastName = assignment.athlete.user.lastName || ''
+      const fullName = firstName && lastName ? `${firstName} ${lastName}` : assignment.athlete.user.name
 
       return {
         // Primary columns in requested order
