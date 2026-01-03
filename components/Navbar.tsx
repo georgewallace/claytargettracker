@@ -40,7 +40,7 @@ export default function Navbar({ user }: NavbarProps) {
                 <circle cx="12" cy="12" r="6"></circle>
                 <circle cx="12" cy="12" r="2"></circle>
               </svg>
-              <span className="ml-2 text-xl font-bold text-gray-900">Clay Target Tournaments</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">COYESS Tournaments</span>
             </Link>
           </div>
 

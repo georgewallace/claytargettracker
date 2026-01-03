@@ -395,7 +395,7 @@ export const isDemoMode = () => DEMO_MODE
 
 // Demo mode notice message
 export const DEMO_NOTICE = `
-🎭 DEMO MODE - This is a demonstration of the Clay Target Tracker application.
+🎭 DEMO MODE - This is a demonstration of the COYESS Tournaments application.
 All data is simulated and changes will not be saved.
 `
 
