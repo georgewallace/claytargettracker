@@ -136,23 +136,13 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
   // Coordinated auto-cycle through views and disciplines
   useEffect(() => {
-    console.log('[Leaderboard] Rotation useEffect running', { autoRefresh, disciplineCount: tournament.disciplines.length })
-
-    if (!autoRefresh) {
-      console.log('[Leaderboard] AutoRefresh is OFF - rotation disabled')
-      return
-    }
+    if (!autoRefresh) return
 
     const disciplineIds = tournament.disciplines.map((d: any) => d.disciplineId)
-    if (disciplineIds.length === 0) {
-      console.log('[Leaderboard] No disciplines found - rotation disabled')
-      return
-    }
+    if (disciplineIds.length === 0) return
 
     // Use configured interval (already in milliseconds) or default to 15 seconds
     const intervalMs = tournament.leaderboardTabInterval || 15000
-
-    console.log('[Leaderboard] Starting rotation interval', { intervalMs, disciplineIds })
 
     const interval = setInterval(() => {
       // Views that cycle through disciplines: divisions, classes, teams, squads
@@ -162,8 +152,6 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       const currentView = activeViewRef.current
       const currentDiscipline = activeDisciplineRef.current
       const currentHaaDisciplineIndex = haaDisciplineIndexRef.current
-
-      console.log('[Leaderboard Rotation]', { currentView, currentDiscipline, currentHaaDisciplineIndex, intervalMs })
 
       if (currentView === 'haa-all') {
         // HAA All: cycle through pages, then move to next view
@@ -215,10 +203,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       }
     }, intervalMs)
 
-    return () => {
-      console.log('[Leaderboard] Clearing rotation interval')
-      clearInterval(interval)
-    }
+    return () => clearInterval(interval)
   }, [autoRefresh, tournament.disciplines, tournament.leaderboardTabInterval])
 
   // Fullscreen toggle
@@ -709,6 +694,16 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             🏅 Teams
           </button>
           <button
+            onClick={() => setActiveView('squads')}
+            className={`px-3 py-1.5 rounded text-sm transition font-medium ${
+              activeView === 'squads'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+            }`}
+          >
+            👥 Squads
+          </button>
+          <button
             onClick={() => setActiveView('hoa-haa')}
             className={`px-3 py-1.5 rounded text-sm transition font-medium ${
               activeView === 'hoa-haa'
@@ -727,16 +722,6 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             }`}
           >
             📊 HAA All
-          </button>
-          <button
-            onClick={() => setActiveView('squads')}
-            className={`px-3 py-1.5 rounded text-sm transition font-medium ${
-              activeView === 'squads'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-            }`}
-          >
-            👥 Squads
           </button>
         </div>
 
@@ -1710,7 +1695,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       })()}
 
       {/* Legend */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+      <div className="leaderboard-legend bg-white border border-gray-200 rounded-lg shadow-sm p-4">
         <h3 className="text-lg font-bold text-gray-900 mb-3">📖 Legend & Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-gray-900 text-sm">
           <div>

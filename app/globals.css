@@ -55,14 +55,18 @@ textarea:disabled {
   color: #6b7280 !important; /* gray-500 for disabled */
 }
 
-/* Hide navbar and footer when in fullscreen mode */
+/* Hide navbar, footer, and legend when in fullscreen mode */
 :fullscreen nav,
 :fullscreen footer,
+:fullscreen .leaderboard-legend,
 :-webkit-full-screen nav,
 :-webkit-full-screen footer,
+:-webkit-full-screen .leaderboard-legend,
 :-moz-full-screen nav,
 :-moz-full-screen footer,
+:-moz-full-screen .leaderboard-legend,
 :-ms-fullscreen nav,
-:-ms-fullscreen footer {
+:-ms-fullscreen footer,
+:-ms-fullscreen .leaderboard-legend {
   display: none !important;
 }
