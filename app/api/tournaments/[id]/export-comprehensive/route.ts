@@ -98,6 +98,25 @@ export async function GET(
       const hasTrap = registeredDisciplines.includes('trap') ? 'Yes' : 'No'
       const hasSportingClays = registeredDisciplines.includes('sporting_clays') ? 'Yes' : 'No'
 
+      // Format grade as numerical value
+      let gradeValue: string | number = ''
+      if (athlete.grade) {
+        const gradeLower = athlete.grade.toLowerCase()
+        // Handle legacy 'K' value
+        if (gradeLower === 'k') {
+          gradeValue = 0
+        }
+        // Keep Collegiate as string
+        else if (gradeLower === 'collegiate' || gradeLower === 'college') {
+          gradeValue = 'Collegiate'
+        }
+        // Parse as number
+        else {
+          const gradeNum = parseInt(athlete.grade, 10)
+          gradeValue = !isNaN(gradeNum) ? gradeNum : athlete.grade
+        }
+      }
+
       return {
         // Primary columns in requested order
         'Shooter ID': athlete.shooterId || '',
@@ -117,7 +136,7 @@ export async function GET(
         'Sporting Class': athlete.nscaClass || '',
 
         // Additional columns
-        'Grade': athlete.grade || '',
+        'Grade': gradeValue,
         'Registration Date': reg.createdAt.toISOString().split('T')[0],
         'Status': athlete.isActive ? 'Active' : 'Inactive'
       }
