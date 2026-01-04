@@ -111,21 +111,25 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
 
     if (!over || active.id === over.id) return
 
-    // Permission check: Only admins or coaches with all their team members can reorder
-    if (userRole === 'coach' && coachedTeamId) {
-      const allMembersFromCoachTeam = squad.members.every(
-        (member: any) => member.athlete?.teamId === coachedTeamId
-      )
-      if (!allMembersFromCoachTeam) {
-        alert('You can only reorder positions for squads containing only your team members')
-        return
-      }
-    }
-
     const oldIndex = sortedMembers.findIndex((m: any) => m.id === active.id)
     const newIndex = sortedMembers.findIndex((m: any) => m.id === over.id)
 
     if (oldIndex === -1 || newIndex === -1) return
+
+    // Permission check for coaches: Can only swap positions between their own team members
+    if (userRole === 'coach' && coachedTeamId) {
+      const athleteBeingMoved = sortedMembers[oldIndex]
+      const athleteAtTargetPosition = sortedMembers[newIndex]
+
+      const isMovedAthleteFromCoachTeam = athleteBeingMoved.athlete?.teamId === coachedTeamId
+      const isTargetAthleteFromCoachTeam = athleteAtTargetPosition.athlete?.teamId === coachedTeamId
+
+      // Only allow reordering if BOTH athletes are from the coach's team
+      if (!isMovedAthleteFromCoachTeam || !isTargetAthleteFromCoachTeam) {
+        alert('You can only reorder positions between your own team members')
+        return
+      }
+    }
 
     // Optimistically update UI - reorder and update position values
     const reordered = arrayMove(sortedMembers, oldIndex, newIndex).map((member: any, index: number) => ({
