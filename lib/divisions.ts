@@ -2,31 +2,40 @@
 export function calculateDivision(grade: string | null | undefined): string | null {
   if (!grade) return null
 
-  const gradeNum = grade.toLowerCase()
+  const gradeStr = grade.toLowerCase()
 
-  // Novice: 6th grade and below
-  if (['k', '1', '2', '3', '4', '5', '6'].includes(gradeNum)) {
+  // Handle legacy 'k' value
+  if (gradeStr === 'k') {
+    return 'Novice'
+  }
+
+  // Handle 'collegiate' variations
+  if (gradeStr === 'collegiate' || gradeStr === 'college') {
+    return 'Collegiate'
+  }
+
+  // Parse numeric grade (handles both numeric strings and actual numbers)
+  const gradeNum = parseInt(grade, 10)
+  if (isNaN(gradeNum)) return null
+
+  // Novice: Kindergarten (0) through 6th grade
+  if (gradeNum >= 0 && gradeNum <= 6) {
     return 'Novice'
   }
 
   // Intermediate: 7th – 8th grade
-  if (['7', '8'].includes(gradeNum)) {
+  if (gradeNum >= 7 && gradeNum <= 8) {
     return 'Intermediate'
   }
 
   // Junior Varsity: 9th grade
-  if (gradeNum === '9') {
+  if (gradeNum === 9) {
     return 'Junior Varsity'
   }
 
   // Varsity: 10th – 12th grade
-  if (['10', '11', '12'].includes(gradeNum)) {
+  if (gradeNum >= 10 && gradeNum <= 12) {
     return 'Varsity'
-  }
-
-  // Collegiate: College/Trade School
-  if (gradeNum === 'college') {
-    return 'Collegiate'
   }
 
   return null
@@ -34,7 +43,7 @@ export function calculateDivision(grade: string | null | undefined): string | nu
 
 // Get all available grade options
 export const gradeOptions = [
-  { value: 'K', label: 'Kindergarten' },
+  { value: '0', label: 'Kindergarten' },
   { value: '1', label: '1st Grade' },
   { value: '2', label: '2nd Grade' },
   { value: '3', label: '3rd Grade' },
@@ -47,7 +56,7 @@ export const gradeOptions = [
   { value: '10', label: '10th Grade' },
   { value: '11', label: '11th Grade' },
   { value: '12', label: '12th Grade' },
-  { value: 'College', label: 'College-Trade School' }
+  { value: 'Collegiate', label: 'College-Trade School' }
 ]
 
 // Month options
