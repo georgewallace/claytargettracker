@@ -171,15 +171,15 @@ export default function SquadCard({ squad, squadCapacity, tournamentId, discipli
   // Classify the squad
   const classification = classifySquad(squad.members)
 
-  // Determine if the user can delete this squad
+  // Determine if the user can edit this squad
   const canEditSquad = () => {
     // Admins can edit any squad
     if (userRole === 'admin') return true
 
     // Coaches can only edit squads where all members are from their team
     if (userRole === 'coach' && coachedTeamId) {
-      // Empty squads can be edited by coaches
-      if (squad.members.length === 0) return true
+      // Cannot edit empty squads or squads without their team members
+      if (squad.members.length === 0) return false
 
       // Check if all members are from the coach's team
       const allMembersFromCoachTeam = squad.members.every(
