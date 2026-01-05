@@ -1,9 +1,9 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import Leaderboard from './Leaderboard'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
-import { requireAuth } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 
 // Force dynamic rendering (real-time leaderboard data)
 export const dynamic = 'force-dynamic'
@@ -104,7 +104,10 @@ export default async function LeaderboardPage({ params }: PageProps) {
   }
 
   // Require authentication to view leaderboard
-  const user = await requireAuth()
+  const user = await getCurrentUser()
+  if (!user) {
+    redirect('/login')
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-indigo-900 to-purple-900 py-8">
