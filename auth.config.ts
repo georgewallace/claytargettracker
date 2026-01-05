@@ -12,8 +12,7 @@ export const authConfig = {
       // Public pages that don't require authentication
       const publicPaths = ['/login', '/signup', '/signup/athlete', '/signup/coach', '/', '/help']
       const isPublicPage = publicPaths.includes(pathname) ||
-                          pathname.startsWith('/signup/') ||
-                          pathname.includes('/leaderboard') // Allow public access to leaderboards
+                          pathname.startsWith('/signup/')
 
       if (isPublicPage) {
         return true
