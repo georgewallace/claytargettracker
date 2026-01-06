@@ -30,8 +30,8 @@ interface ProfileFormProps {
   athlete: athlete
 }
 
-const NSCA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA', 'Master']
-const ATA_CLASSES = ['A', 'AA', 'AAA']
+const NSCA_CLASSES = ['D', 'C', 'B', 'A', 'AA', 'Master']
+const ATA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA']
 const NSSA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA']
 
 export default function ProfileForm({ athlete }: ProfileFormProps) {
