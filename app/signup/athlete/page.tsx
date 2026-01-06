@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
+import { gradeOptions, calculateDivision as calculateDivisionFromGrade } from '@/lib/divisions'
 
 export default function AthleteSignupPage() {
   const router = useRouter()
@@ -24,37 +25,22 @@ export default function AthleteSignupPage() {
   const calculateDivision = (): string => {
     if (!grade) return ''
 
-    // Novice: 5th and 6th grade
-    if (grade === '5th' || grade === '6th') {
-      return 'Novice'
-    }
+    const gradeNum = parseInt(grade)
 
-    // Intermediate: 7th and 8th grade
-    if (grade === '7th' || grade === '8th') {
-      return 'Intermediate'
-    }
-
-    // High school (9th-12th)
-    if (['freshman', 'sophomore', 'junior', 'senior'].includes(grade)) {
-      // JV: Freshman (always) OR 10-12th grade first year
-      if (grade === 'freshman') {
+    // For 10th-12th grade, check first year competition status
+    if (!isNaN(gradeNum) && gradeNum >= 10 && gradeNum <= 12) {
+      if (firstYearCompetition === true) {
         return 'Junior Varsity'
       }
-      if (['sophomore', 'junior', 'senior'].includes(grade) && firstYearCompetition === true) {
-        return 'Junior Varsity'
-      }
-      // Varsity: 10-12th grade not first year
-      if (['sophomore', 'junior', 'senior'].includes(grade) && firstYearCompetition === false) {
+      if (firstYearCompetition === false) {
         return 'Varsity'
       }
+      // If they haven't answered yet, don't show a division
+      return ''
     }
 
-    // College/Trade School
-    if (grade === 'college') {
-      return 'Collegiate'
-    }
-
-    return ''
+    // For all other grades, use standard calculation
+    return calculateDivisionFromGrade(grade) || ''
   }
 
   const division = calculateDivision()
@@ -245,20 +231,16 @@ export default function AthleteSignupPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Select grade</option>
-                <option value="5th">5th Grade</option>
-                <option value="6th">6th Grade</option>
-                <option value="7th">7th Grade</option>
-                <option value="8th">8th Grade</option>
-                <option value="freshman">9th Grade (Freshman)</option>
-                <option value="sophomore">10th Grade (Sophomore)</option>
-                <option value="junior">11th Grade (Junior)</option>
-                <option value="senior">12th Grade (Senior)</option>
-                <option value="college">College/Trade School</option>
+                {gradeOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 
-            {/* First Year Competition - Only show for high school */}
-            {['sophomore', 'junior', 'senior'].includes(grade) && (
+            {/* First Year Competition - Only show for 10th-12th grade */}
+            {['10', '11', '12'].includes(grade) && (
               <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Is this your first year competing? *
