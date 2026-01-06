@@ -33,6 +33,7 @@ export async function PUT(request: NextRequest) {
       birthMonth,
       birthYear,
       grade,
+      firstYearCompetition,
       nscaClass,
       ataClass,
       nssaClass,
@@ -49,8 +50,26 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Auto-calculate division based on grade using the standard calculation
-    const division = grade ? calculateDivision(grade) : shooter.division
+    // Auto-calculate division based on grade and first year status
+    let division = shooter.division
+    if (grade) {
+      const gradeNum = parseInt(grade)
+
+      // For 10th-12th grade, check first year competition status
+      if (!isNaN(gradeNum) && gradeNum >= 10 && gradeNum <= 12) {
+        if (firstYearCompetition === true) {
+          division = 'Junior Varsity'
+        } else if (firstYearCompetition === false) {
+          division = 'Varsity'
+        } else {
+          // If they haven't answered, use standard calculation
+          division = calculateDivision(grade)
+        }
+      } else {
+        // For all other grades, use standard calculation
+        division = calculateDivision(grade)
+      }
+    }
 
     // Update athlete profile
     const updatedShooter = await prisma.athlete.update({

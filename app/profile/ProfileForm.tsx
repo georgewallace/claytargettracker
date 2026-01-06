@@ -59,7 +59,8 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
     nscaNumber: athlete.nscaNumber || '',
     nssaNumber: athlete.nssaNumber || ''
   })
-  
+
+  const [firstYearCompetition, setFirstYearCompetition] = useState<boolean | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -84,7 +85,8 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
         ...formData,
         birthDay,
         birthMonth,
-        birthYear
+        birthYear,
+        firstYearCompetition
       }
 
       const response = await fetch(`/api/profile`, {
@@ -172,7 +174,11 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
           <select
             id="grade"
             value={formData.grade}
-            onChange={(e) => handleChange('grade', e.target.value)}
+            onChange={(e) => {
+              handleChange('grade', e.target.value)
+              // Reset first year competition when grade changes
+              setFirstYearCompetition(null)
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">Select Grade</option>
@@ -181,6 +187,42 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
             ))}
           </select>
         </div>
+
+        {/* First Year Competition - Only show for 10th-12th grade */}
+        {['10', '11', '12'].includes(formData.grade) && (
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Is this your first year competing in high school? *
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="firstYear"
+                  required
+                  checked={firstYearCompetition === true}
+                  onChange={() => setFirstYearCompetition(true)}
+                  className="mr-2 h-4 w-4"
+                />
+                <span className="text-gray-900 font-medium">Yes</span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="firstYear"
+                  required
+                  checked={firstYearCompetition === false}
+                  onChange={() => setFirstYearCompetition(false)}
+                  className="mr-2 h-4 w-4"
+                />
+                <span className="text-gray-900 font-medium">No</span>
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              This determines your division (Junior Varsity for first year, Varsity otherwise)
+            </p>
+          </div>
+        )}
 
         {/* Birth Date */}
         <div className="md:col-span-2">
