@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { calculateDivision } from '@/lib/divisions'
 
 export async function PUT(request: NextRequest) {
   try {
@@ -48,19 +49,8 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Auto-calculate division based on grade
-    let division = shooter.division
-    if (grade) {
-      const gradeNum = parseInt(grade)
-      if (!isNaN(gradeNum)) {
-        if (gradeNum <= 8) division = 'Novice'
-        else if (gradeNum === 9) division = 'Intermediate'
-        else if (gradeNum === 10) division = 'JV'
-        else if (gradeNum >= 11 && gradeNum <= 12) division = 'Senior'
-      } else if (grade === 'College') {
-        division = 'College'
-      }
-    }
+    // Auto-calculate division based on grade using the standard calculation
+    const division = grade ? calculateDivision(grade) : shooter.division
 
     // Update athlete profile
     const updatedShooter = await prisma.athlete.update({
