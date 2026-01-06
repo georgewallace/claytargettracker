@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/auth'
 import { rateLimiters, getIdentifier, checkRateLimit, createRateLimitHeaders } from '@/lib/ratelimit'
 import { isValidEmail, isStrongPassword, sanitizeInput, validateCSRF, addSecurityHeaders } from '@/lib/security'
+import { calculateDivision as calculateDivisionFromGrade } from '@/lib/divisions'
 
 // Calculate division based on grade and first year status
 function calculateDivision(
@@ -11,37 +12,22 @@ function calculateDivision(
 ): string | undefined {
   if (!grade) return undefined
 
-  // Novice: 5th and 6th grade
-  if (grade === '5th' || grade === '6th') {
-    return 'Novice'
-  }
+  const gradeNum = parseInt(grade)
 
-  // Intermediate: 7th and 8th grade
-  if (grade === '7th' || grade === '8th') {
-    return 'Intermediate'
-  }
-
-  // High school (9th-12th)
-  if (['freshman', 'sophomore', 'junior', 'senior'].includes(grade)) {
-    // JV: Freshman (always) OR 10-12th grade first year
-    if (grade === 'freshman') {
+  // For 10th-12th grade, check first year competition status
+  if (!isNaN(gradeNum) && gradeNum >= 10 && gradeNum <= 12) {
+    if (firstYearCompetition === true) {
       return 'Junior Varsity'
     }
-    if (['sophomore', 'junior', 'senior'].includes(grade) && firstYearCompetition === true) {
-      return 'Junior Varsity'
-    }
-    // Varsity: 10-12th grade not first year
-    if (['sophomore', 'junior', 'senior'].includes(grade) && firstYearCompetition === false) {
+    if (firstYearCompetition === false) {
       return 'Varsity'
     }
+    // If they haven't answered, use standard calculation
+    return calculateDivisionFromGrade(grade) ?? undefined
   }
 
-  // College/Trade School
-  if (grade === 'college') {
-    return 'Collegiate'
-  }
-
-  return undefined
+  // For all other grades, use standard calculation
+  return calculateDivisionFromGrade(grade) ?? undefined
 }
 
 
