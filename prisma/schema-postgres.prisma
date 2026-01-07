@@ -26,6 +26,7 @@ model User {
   athlete            Athlete?
   createdTournaments Tournament[]
   coachedTeams       TeamCoach[] // Many-to-many relationship for coaches
+  coachJoinRequests  CoachJoinRequest[]
   apiKeys            ApiKey[]
 }
 
@@ -46,11 +47,12 @@ model Team {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  coaches      TeamCoach[] // Many-to-many relationship for coaches
-  athletes     Athlete[]
-  joinRequests TeamJoinRequest[]
+  coaches             TeamCoach[] // Many-to-many relationship for coaches
+  athletes            Athlete[]
+  joinRequests        TeamJoinRequest[]
+  coachJoinRequests   CoachJoinRequest[]
   tournamentRegistrations TeamTournamentRegistration[]
-  squads       Squad[]
+  squads              Squad[]
 }
 
 model TeamCoach {
@@ -77,13 +79,31 @@ model TeamJoinRequest {
   message   String?  // Optional message from athlete
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   team    Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
   athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  
+
   @@unique([teamId, athleteId]) // One request per athlete per team
   @@index([teamId])
   @@index([athleteId])
+  @@index([status])
+}
+
+model CoachJoinRequest {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  status    String   @default("pending") // pending, approved, rejected
+  message   String?  // Optional message from coach
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId]) // One request per coach per team
+  @@index([teamId])
+  @@index([userId])
   @@index([status])
 }
 
