@@ -119,7 +119,8 @@ export async function POST(request: NextRequest) {
     }
 
     // If athlete has a team, the team must be registered for the tournament
-    if (athlete.teamId) {
+    // UNLESS it's an individual team (isIndividualTeam = true), which auto-registers
+    if (athlete.teamId && athlete.team && !athlete.team.isIndividualTeam) {
       const teamRegistration = await prisma.teamTournamentRegistration.findUnique({
         where: {
           teamId_tournamentId: {
@@ -135,6 +136,24 @@ export async function POST(request: NextRequest) {
           { status: 403 }
         )
       }
+    }
+
+    // If athlete is on an individual team, ensure the team is registered
+    if (athlete.teamId && athlete.team && athlete.team.isIndividualTeam) {
+      await prisma.teamTournamentRegistration.upsert({
+        where: {
+          teamId_tournamentId: {
+            teamId: athlete.teamId,
+            tournamentId
+          }
+        },
+        create: {
+          teamId: athlete.teamId,
+          tournamentId,
+          registeredBy: user.id
+        },
+        update: {} // Do nothing if already exists
+      })
     }
 
     // Check if already registered
