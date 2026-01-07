@@ -87,7 +87,18 @@ export default async function Home() {
 
   // Get team registration status for all tournaments if athlete has a team
   let teamRegistrationsByTournament: { [tournamentId: string]: boolean } = {}
+  let athleteTeam = null
+
   if (user?.athlete?.teamId) {
+    // Fetch the athlete's team to check if it's an individual team
+    athleteTeam = await prisma.team.findUnique({
+      where: { id: user.athlete.teamId },
+      select: {
+        id: true,
+        isIndividualTeam: true
+      }
+    })
+
     const teamRegistrations = await prisma.teamTournamentRegistration.findMany({
       where: {
         teamId: user.athlete.teamId,
@@ -111,7 +122,7 @@ export default async function Home() {
       ? tournament.registrations.length > 0
       : false,
     isTeamRegistered: user?.athlete?.teamId
-      ? teamRegistrationsByTournament[tournament.id] || false
+      ? (athleteTeam?.isIndividualTeam || teamRegistrationsByTournament[tournament.id] || false) // Individual teams are always "registered"
       : true // If no team, treat as "team registered" (solo athlete)
   }))
 
