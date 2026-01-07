@@ -66,6 +66,7 @@ appfeedback.md
 !Athletes_Import_Template.xlsx
 !Coaches_Import_Template.xlsx
 *.sql
+!prisma/migrations/**/migration.sql
 *.json.backup
 staging-data-export.json
 staging_backup_*.sql
