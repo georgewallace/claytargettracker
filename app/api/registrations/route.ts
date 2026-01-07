@@ -86,12 +86,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Handle individual shooters (athletes without a team)
-    if (!athlete.teamId) {
+    // Handle individual shooters (athletes without a team OR on an individual team for a different tournament)
+    const needsIndividualTeamAssignment =
+      !athlete.teamId || // No team at all
+      (athlete.team?.isIndividualTeam && athlete.team?.tournamentId !== tournamentId) // On individual team for different tournament
+
+    if (needsIndividualTeamAssignment) {
       // Get or create the individual team for this tournament
       const individualTeam = await getOrCreateIndividualTeam(tournamentInfo.id, tournamentInfo.name)
 
-      // Assign athlete to the individual team
+      // Assign athlete to the individual team for THIS tournament
       await prisma.athlete.update({
         where: { id: athleteId },
         data: { teamId: individualTeam.id }
@@ -119,7 +123,7 @@ export async function POST(request: NextRequest) {
     }
 
     // If athlete has a team, the team must be registered for the tournament
-    // UNLESS it's an individual team (isIndividualTeam = true), which auto-registers
+    // UNLESS it's an individual team (isIndividualTeam = true), which auto-registers above
     if (athlete.teamId && athlete.team && !athlete.team.isIndividualTeam) {
       const teamRegistration = await prisma.teamTournamentRegistration.findUnique({
         where: {
@@ -136,24 +140,6 @@ export async function POST(request: NextRequest) {
           { status: 403 }
         )
       }
-    }
-
-    // If athlete is on an individual team, ensure the team is registered
-    if (athlete.teamId && athlete.team && athlete.team.isIndividualTeam) {
-      await prisma.teamTournamentRegistration.upsert({
-        where: {
-          teamId_tournamentId: {
-            teamId: athlete.teamId,
-            tournamentId
-          }
-        },
-        create: {
-          teamId: athlete.teamId,
-          tournamentId,
-          registeredBy: user.id
-        },
-        update: {} // Do nothing if already exists
-      })
     }
 
     // Check if already registered
