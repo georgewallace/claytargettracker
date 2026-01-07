@@ -61,7 +61,7 @@ async function retryOperation<T>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await operation()
-    } catch (error) {
+    } catch (error: any) {
       lastError = error
 
       // Only retry on connection errors
@@ -71,9 +71,10 @@ async function retryOperation<T>(
 
       // Exponential backoff: 1s, 2s, 4s
       const delay = baseDelay * Math.pow(2, attempt)
+      const errorMessage = error?.message || String(error)
       console.log(
         `Database connection error (attempt ${attempt + 1}/${maxRetries + 1}). ` +
-        `Retrying in ${delay}ms... Error: ${error?.message}`
+        `Retrying in ${delay}ms... Error: ${errorMessage}`
       )
 
       await new Promise(resolve => setTimeout(resolve, delay))
