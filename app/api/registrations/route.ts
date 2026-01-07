@@ -86,35 +86,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Handle individual shooters (athletes without a team OR on an individual team for a different tournament)
-    const needsIndividualTeamAssignment =
-      !athlete.teamId || // No team at all
-      (athlete.team?.isIndividualTeam && athlete.team?.tournamentId !== tournamentId) // On individual team for different tournament
+    // Handle individual shooters (athletes without a team)
+    if (!athlete.teamId) {
+      // Get or create the global "Individual Competitors" team
+      const individualTeam = await getOrCreateIndividualTeam()
 
-    if (needsIndividualTeamAssignment) {
-      // Get or create the individual team for this tournament
-      const individualTeam = await getOrCreateIndividualTeam(tournamentInfo.id, tournamentInfo.name)
-
-      // Assign athlete to the individual team for THIS tournament
+      // Assign athlete to the individual team (stays on this team for all tournaments)
       await prisma.athlete.update({
         where: { id: athleteId },
         data: { teamId: individualTeam.id }
-      })
-
-      // Create team registration for the individual team if it doesn't exist
-      await prisma.teamTournamentRegistration.upsert({
-        where: {
-          teamId_tournamentId: {
-            teamId: individualTeam.id,
-            tournamentId
-          }
-        },
-        create: {
-          teamId: individualTeam.id,
-          tournamentId,
-          registeredBy: user.id
-        },
-        update: {} // Do nothing if already exists
       })
 
       // Update athlete reference to include new team
@@ -122,8 +102,8 @@ export async function POST(request: NextRequest) {
       athlete.team = individualTeam
     }
 
-    // If athlete is on an individual team for THIS tournament, ensure it's registered
-    if (athlete.teamId && athlete.team?.isIndividualTeam && athlete.team?.tournamentId === tournamentId) {
+    // If athlete is on the individual team, ensure it's registered for THIS tournament
+    if (athlete.teamId && athlete.team?.isIndividualTeam) {
       await prisma.teamTournamentRegistration.upsert({
         where: {
           teamId_tournamentId: {

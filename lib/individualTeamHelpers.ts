@@ -1,15 +1,16 @@
 import { prisma } from '@/lib/prisma'
 
 /**
- * Get or create the individual competitors team for a tournament
+ * Get or create the global individual competitors team
+ * This is a single team used across ALL tournaments for athletes without a team
  * Creates on-demand when first needed
  */
-export async function getOrCreateIndividualTeam(tournamentId: string, tournamentName: string) {
-  // Try to find existing individual team for this tournament
+export async function getOrCreateIndividualTeam() {
+  // Try to find existing global individual team (not tournament-specific)
   let individualTeam = await prisma.team.findFirst({
     where: {
       isIndividualTeam: true,
-      tournamentId: tournamentId
+      tournamentId: null // Global team, not tournament-specific
     }
   })
 
@@ -17,9 +18,9 @@ export async function getOrCreateIndividualTeam(tournamentId: string, tournament
   if (!individualTeam) {
     individualTeam = await prisma.team.create({
       data: {
-        name: `Individual - ${tournamentName}`,
+        name: 'Individual Competitors',
         isIndividualTeam: true,
-        tournamentId: tournamentId,
+        tournamentId: null, // Not tournament-specific
         affiliation: null,
         logoUrl: null
       }
