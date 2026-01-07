@@ -37,13 +37,28 @@ interface JoinRequest {
   }
 }
 
+interface CoachJoinRequest {
+  id: string
+  message: string | null
+  createdAt: Date
+  user: {
+    id: string
+    name: string
+    email: string
+    firstName: string | null
+    lastName: string | null
+    phone: string | null
+  }
+}
+
 interface CoachTeamManagerProps {
   team: Team
   availableathletes: Athlete[]
   joinRequests: JoinRequest[]
+  coachJoinRequests: CoachJoinRequest[]
 }
 
-export default function CoachTeamManager({ team, availableathletes, joinRequests }: CoachTeamManagerProps) {
+export default function CoachTeamManager({ team, availableathletes, joinRequests, coachJoinRequests }: CoachTeamManagerProps) {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -188,6 +203,72 @@ export default function CoachTeamManager({ team, availableathletes, joinRequests
     }
   }
 
+  const handleApproveCoachRequest = async (requestId: string, coachName: string) => {
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const response = await fetch(`/api/teams/coach-join-requests/${requestId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve' })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to approve request')
+        return
+      }
+
+      setSuccess(`${coachName} approved and added as a coach!`)
+      setTimeout(() => {
+        router.refresh()
+        setSuccess('')
+      }, 1500)
+    } catch (error) {
+      setError('An error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRejectCoachRequest = async (requestId: string, coachName: string) => {
+    if (!confirm(`Reject coach request from ${coachName}?`)) {
+      return
+    }
+
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const response = await fetch(`/api/teams/coach-join-requests/${requestId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject' })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to reject request')
+        return
+      }
+
+      setSuccess(`Request from ${coachName} rejected`)
+      setTimeout(() => {
+        router.refresh()
+        setSuccess('')
+      }, 1500)
+    } catch (error) {
+      setError('An error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Messages */}
@@ -203,11 +284,11 @@ export default function CoachTeamManager({ team, availableathletes, joinRequests
         </div>
       )}
 
-      {/* Join Requests */}
+      {/* Athlete Join Requests */}
       {joinRequests.length > 0 && (
         <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg shadow-md p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Pending Join Requests ({joinRequests.length})
+            Pending Athlete Join Requests ({joinRequests.length})
           </h2>
           <p className="text-gray-600 mb-6">
             Review and approve/reject requests from athletes who want to join your team
@@ -245,6 +326,70 @@ export default function CoachTeamManager({ team, availableathletes, joinRequests
                   </button>
                   <button
                     onClick={() => handleRejectRequest(request.id, request.athlete.user.name)}
+                    disabled={loading}
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
+                  >
+                    ✗ Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Coach Join Requests */}
+      {coachJoinRequests.length > 0 && (
+        <div className="bg-blue-50 border-2 border-blue-300 rounded-lg shadow-md p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Pending Coach Join Requests ({coachJoinRequests.length})
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Review and approve/reject requests from coaches who want to join your team
+          </p>
+
+          <div className="space-y-3">
+            {coachJoinRequests.map((request) => (
+              <div
+                key={request.id}
+                className="flex items-start justify-between p-4 bg-white border border-blue-200 rounded-lg"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="font-medium text-gray-900">
+                      {request.user.name}
+                    </div>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Coach
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {request.user.email}
+                  </div>
+                  {request.user.phone && (
+                    <div className="text-sm text-gray-500">
+                      Phone: {request.user.phone}
+                    </div>
+                  )}
+                  {request.message && (
+                    <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-700 italic">
+                      "{request.message}"
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-400 mt-1">
+                    Requested: {new Date(request.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+                <div className="flex gap-2 ml-4">
+                  <button
+                    onClick={() => handleApproveCoachRequest(request.id, request.user.name)}
+                    disabled={loading}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
+                  >
+                    ✓ Approve
+                  </button>
+                  <button
+                    onClick={() => handleRejectCoachRequest(request.id, request.user.name)}
                     disabled={loading}
                     className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
                   >

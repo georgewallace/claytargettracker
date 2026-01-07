@@ -75,6 +75,24 @@ export default async function TeamsPage({ searchParams }: PageProps) {
     }
   }) : []
 
+  // Get coach join requests if they are a coach
+  const coachJoinRequests = user.role === 'coach' ? await prisma.coachJoinRequest.findMany({
+    where: {
+      userId: user.id
+    },
+    include: {
+      team: {
+        include: {
+          coaches: {
+            include: {
+              user: true
+            }
+          }
+        }
+      }
+    }
+  }) : []
+
   // Get coach's team if they are a coach
   const coachTeam = user.role === 'coach' ? await prisma.teamCoach.findFirst({
     where: {
@@ -162,10 +180,10 @@ export default async function TeamsPage({ searchParams }: PageProps) {
           </div>
         )}
 
-        {/* Pending Join Requests */}
+        {/* Pending Athlete Join Requests */}
         {isathlete && joinRequests.length > 0 && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Pending Join Requests</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Pending Athlete Join Requests</h3>
             <div className="space-y-2">
               {joinRequests.map(request => (
                 <div key={request.id} className="flex items-center justify-between bg-white p-4 rounded-md">
@@ -178,8 +196,38 @@ export default async function TeamsPage({ searchParams }: PageProps) {
                     )}
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    request.status === 'pending' 
+                    request.status === 'pending'
                       ? 'bg-yellow-100 text-yellow-800'
+                      : request.status === 'approved'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {request.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Pending Coach Join Requests */}
+        {user.role === 'coach' && coachJoinRequests.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Pending Coach Join Requests</h3>
+            <div className="space-y-2">
+              {coachJoinRequests.map(request => (
+                <div key={request.id} className="flex items-center justify-between bg-white p-4 rounded-md">
+                  <div>
+                    <p className="font-medium text-gray-900">{request.team.name}</p>
+                    {request.team.coaches.length > 0 && (
+                      <p className="text-sm text-gray-600">
+                        Coach{request.team.coaches.length > 1 ? 'es' : ''}: {request.team.coaches.map(c => c.user.name).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    request.status === 'pending'
+                      ? 'bg-blue-100 text-blue-800'
                       : request.status === 'approved'
                       ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
@@ -205,6 +253,9 @@ export default async function TeamsPage({ searchParams }: PageProps) {
               teams={teams}
               currentathlete={user.athlete || null}
               pendingRequests={joinRequests.filter(r => r.status === 'pending')}
+              isCoach={user.role === 'coach'}
+              hasCoachTeam={hasTeam}
+              coachPendingRequests={coachJoinRequests.filter(r => r.status === 'pending')}
               currentPage={currentPage}
               totalPages={totalPages}
               totalTeams={totalTeams}

@@ -98,6 +98,20 @@ export default async function MyTeamPage() {
     }
   })
 
+  // Get pending coach join requests for this team
+  const coachJoinRequests = await prisma.coachJoinRequest.findMany({
+    where: {
+      teamId: teamWithDetails.id,
+      status: 'pending'
+    },
+    include: {
+      user: true
+    },
+    orderBy: {
+      createdAt: 'asc'
+    }
+  })
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -116,10 +130,11 @@ export default async function MyTeamPage() {
         {/* Team Information Edit */}
         <TeamInfoEdit team={teamWithDetails} />
 
-        <CoachTeamManager 
+        <CoachTeamManager
           team={teamWithDetails}
           availableathletes={availableathletes}
           joinRequests={joinRequests}
+          coachJoinRequests={coachJoinRequests}
         />
       </div>
     </div>

@@ -25,6 +25,7 @@ export async function PATCH(
     // Extract fields from request
     const {
       divisionOverride,
+      teamId,
       grade,
       birthMonth,
       birthDay,
@@ -54,6 +55,7 @@ export async function PATCH(
       where: { id },
       data: {
         divisionOverride: divisionOverride === null ? null : divisionOverride || undefined,
+        teamId: teamId === null ? null : teamId || undefined,
         grade: grade === null ? null : grade || undefined,
         division: newDivision || undefined,
         birthMonth: birthMonth === null ? null : birthMonth || undefined,

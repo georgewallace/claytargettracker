@@ -25,6 +25,9 @@ interface TeamBrowserProps {
   teams: Team[]
   currentathlete: { id: string; teamId: string | null } | null
   pendingRequests: Array<{ teamId: string }>
+  isCoach: boolean
+  hasCoachTeam: boolean
+  coachPendingRequests: Array<{ teamId: string }>
   currentPage: number
   totalPages: number
   totalTeams: number
@@ -34,6 +37,9 @@ export default function TeamBrowser({
   teams,
   currentathlete,
   pendingRequests,
+  isCoach,
+  hasCoachTeam,
+  coachPendingRequests,
   currentPage,
   totalPages,
   totalTeams
@@ -45,6 +51,7 @@ export default function TeamBrowser({
   const [selectedTeam, setSelectedTeam] = useState<{ id: string; name: string } | null>(null)
   const [message, setMessage] = useState('')
   const [modalError, setModalError] = useState('')
+  const [isCoachRequest, setIsCoachRequest] = useState(false)
 
   const handleRequestJoinClick = (teamId: string, teamName: string) => {
     if (!currentathlete) {
@@ -60,6 +67,20 @@ export default function TeamBrowser({
     setSelectedTeam({ id: teamId, name: teamName })
     setMessage('')
     setModalError('')
+    setIsCoachRequest(false)
+    setShowModal(true)
+  }
+
+  const handleCoachRequestJoinClick = (teamId: string, teamName: string) => {
+    if (hasCoachTeam) {
+      setError('You are already coaching a team')
+      return
+    }
+
+    setSelectedTeam({ id: teamId, name: teamName })
+    setMessage('')
+    setModalError('')
+    setIsCoachRequest(true)
     setShowModal(true)
   }
 
@@ -68,6 +89,7 @@ export default function TeamBrowser({
     setSelectedTeam(null)
     setMessage('')
     setModalError('')
+    setIsCoachRequest(false)
   }
 
   const handleSubmitRequest = async () => {
@@ -78,10 +100,14 @@ export default function TeamBrowser({
     setError('')
 
     try {
-      const response = await fetch('/api/teams/join-requests', {
+      const endpoint = isCoachRequest
+        ? '/api/teams/coach-join-requests'
+        : '/api/teams/join-requests'
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           teamId: selectedTeam.id,
           message: message.trim() || null
         })
@@ -104,6 +130,10 @@ export default function TeamBrowser({
 
   const hasPendingRequest = (teamId: string) => {
     return pendingRequests.some(req => req.teamId === teamId)
+  }
+
+  const hasCoachPendingRequest = (teamId: string) => {
+    return coachPendingRequests.some(req => req.teamId === teamId)
   }
 
   return (
@@ -170,6 +200,27 @@ export default function TeamBrowser({
                     className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {requesting === team.id ? 'Requesting...' : 'Request to Join'}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {isCoach && !hasCoachTeam && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                {hasCoachPendingRequest(team.id) ? (
+                  <button
+                    disabled
+                    className="w-full px-4 py-2 bg-gray-100 text-gray-500 rounded-md cursor-not-allowed"
+                  >
+                    Coach Request Pending
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleCoachRequestJoinClick(team.id, team.name)}
+                    disabled={requesting === team.id}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {requesting === team.id ? 'Requesting...' : 'Request to Join as Coach'}
                   </button>
                 )}
               </div>
@@ -312,7 +363,7 @@ export default function TeamBrowser({
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-gray-900">
-                  Request to Join {selectedTeam.name}
+                  Request to Join {selectedTeam.name} {isCoachRequest && 'as Coach'}
                 </h3>
                 <button
                   onClick={handleModalClose}
@@ -333,7 +384,7 @@ export default function TeamBrowser({
 
               <div className="mb-6">
                 <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-                  Message to Coach (Optional)
+                  Message to {isCoachRequest ? 'Existing Coach' : 'Coach'} (Optional)
                 </label>
                 <textarea
                   id="message"
@@ -341,11 +392,13 @@ export default function TeamBrowser({
                   onChange={(e) => setMessage(e.target.value)}
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                  placeholder="Introduce yourself or explain why you'd like to join..."
+                  placeholder={isCoachRequest
+                    ? "Introduce yourself or explain why you'd like to coach this team..."
+                    : "Introduce yourself or explain why you'd like to join..."}
                   disabled={requesting !== null}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  This message will be sent to the team's coach along with your join request.
+                  This message will be sent to the team's coach{isCoachRequest ? ' for approval' : ''} along with your join request.
                 </p>
               </div>
 

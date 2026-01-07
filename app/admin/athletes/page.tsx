@@ -41,6 +41,7 @@ export default function ManageAthletesPage() {
 
   // Form state for editing
   const [editedDivisionOverride, setEditedDivisionOverride] = useState<string>('')
+  const [editedTeamId, setEditedTeamId] = useState<string>('')
   const [editedGrade, setEditedGrade] = useState<string>('')
   const [editedBirthMonth, setEditedBirthMonth] = useState<string>('')
   const [editedBirthDay, setEditedBirthDay] = useState<string>('')
@@ -114,6 +115,7 @@ export default function ManageAthletesPage() {
   const handleEditClick = (athlete: Athlete) => {
     setEditingAthlete(athlete)
     setEditedDivisionOverride(athlete.divisionOverride || '')
+    setEditedTeamId(athlete.team?.id || '')
     setEditedGrade(athlete.grade || '')
     setEditedBirthMonth(athlete.birthMonth?.toString() || '')
     setEditedBirthDay(athlete.birthDay?.toString() || '')
@@ -126,6 +128,7 @@ export default function ManageAthletesPage() {
     setShowEditModal(false)
     setEditingAthlete(null)
     setEditedDivisionOverride('')
+    setEditedTeamId('')
     setEditedGrade('')
     setEditedBirthMonth('')
     setEditedBirthDay('')
@@ -145,6 +148,7 @@ export default function ManageAthletesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           divisionOverride: editedDivisionOverride || null,
+          teamId: editedTeamId || null,
           grade: editedGrade || null,
           birthMonth: editedBirthMonth ? parseInt(editedBirthMonth) : null,
           birthDay: editedBirthDay ? parseInt(editedBirthDay) : null,
@@ -360,6 +364,27 @@ export default function ManageAthletesPage() {
                     </select>
                     <p className="mt-1 text-xs text-gray-500">
                       Current calculated division: {editingAthlete.division || 'Not calculated'}
+                    </p>
+                  </div>
+
+                  {/* Team Assignment */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Team
+                    </label>
+                    <select
+                      value={editedTeamId}
+                      onChange={(e) => setEditedTeamId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      disabled={saving}
+                    >
+                      <option value="">Unaffiliated</option>
+                      {teams.map(team => (
+                        <option key={team.id} value={team.id}>{team.name}</option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Current team: {editingAthlete.team?.name || 'Unaffiliated'}
                     </p>
                   </div>
 
