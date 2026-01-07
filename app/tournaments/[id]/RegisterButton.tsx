@@ -26,13 +26,11 @@ export default function RegisterButton({ tournamentId, athleteId, tournamentDisc
   )
   const [timeSlotSelections, setTimeSlotSelections] = useState<{[disciplineId: string]: string[]}>({})
   const [checkingTeamStatus, setCheckingTeamStatus] = useState(false)
-  const [teamNotRegistered, setTeamNotRegistered] = useState(false)
   const [isRegistered, setIsRegistered] = useState(false) // New: Track registration status optimistically
 
   const checkTeamRegistration = async () => {
     setCheckingTeamStatus(true)
     setError('')
-    setTeamNotRegistered(false)
 
     try {
       // Check team registration status by fetching available time slots for first discipline
@@ -57,19 +55,10 @@ export default function RegisterButton({ tournamentId, athleteId, tournamentDisc
 
       const { teamRegistrationStatus } = data
 
-      // Block if athlete has team but team not registered
-      // Allow if athlete has no team (they'll be assigned to individual team during registration)
-      if (teamRegistrationStatus.hasTeam && !teamRegistrationStatus.isTeamRegistered) {
-        setTeamNotRegistered(true)
-        setError(`Your team "${teamRegistrationStatus.teamName}" has not registered for this tournament yet. Please reach out to your coach.`)
-        setCheckingTeamStatus(false)
-        return false
-      }
-
-      // Athletes without teams can register as individuals
-      if (!teamRegistrationStatus.hasTeam) {
-        // No blocking - they'll be assigned to the tournament's individual team
-      }
+      // Allow all athletes to register individually
+      // Athletes can register regardless of team registration status
+      // If their team is registered, they'll be part of the team
+      // If not, they can still compete individually
 
       setCheckingTeamStatus(false)
       return true
@@ -217,13 +206,6 @@ export default function RegisterButton({ tournamentId, athleteId, tournamentDisc
           >
             {checkingTeamStatus ? 'Checking...' : 'Register'}
           </button>
-        )}
-
-        {/* Team Not Registered Error */}
-        {teamNotRegistered && error && (
-          <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
         )}
       </div>
 
