@@ -4,6 +4,7 @@ import { hashPassword } from '@/lib/auth'
 import { rateLimiters, getIdentifier, checkRateLimit, createRateLimitHeaders } from '@/lib/ratelimit'
 import { isValidEmail, isStrongPassword, sanitizeInput, validateCSRF, addSecurityHeaders } from '@/lib/security'
 import { calculateDivision as calculateDivisionFromGrade } from '@/lib/divisions'
+import { getOrCreateIndividualTeam } from '@/lib/individualTeamHelpers'
 
 // Calculate division based on grade and first year status
 function calculateDivision(
@@ -186,6 +187,10 @@ export async function POST(request: NextRequest) {
       // Calculate division and generate shooter ID for athletes
       const athleteData: any = {}
       if (userRole === 'athlete') {
+        // Assign to Unaffiliated team by default
+        const unaffiliatedTeam = await getOrCreateIndividualTeam()
+        athleteData.teamId = unaffiliatedTeam.id
+
         athleteData.grade = grade || undefined
         athleteData.division = calculateDivision(grade, firstYearCompetition)
         athleteData.gender = gender || undefined

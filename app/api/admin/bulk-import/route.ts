@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, hashPassword } from '@/lib/auth'
 import * as XLSX from 'xlsx'
 import { calculateDivision } from '@/lib/divisions'
+import { getOrCreateIndividualTeam } from '@/lib/individualTeamHelpers'
 
 export async function POST(request: NextRequest) {
   try {
@@ -127,6 +128,11 @@ async function processAthleteImport(data: any[], results: any) {
         }
       }
 
+      // If no team specified, assign to Unaffiliated team
+      if (!team) {
+        team = await getOrCreateIndividualTeam()
+      }
+
       // Get or create user
       let userId: string
       if (existingUserCheck) {
@@ -159,7 +165,7 @@ async function processAthleteImport(data: any[], results: any) {
       await prisma.athlete.create({
         data: {
           userId,
-          teamId: team?.id || null,
+          teamId: team.id,
           grade: grade || null,
           gender: normalizedGender,
           division,
