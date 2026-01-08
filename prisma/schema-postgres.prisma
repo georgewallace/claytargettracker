@@ -42,7 +42,7 @@ model Team {
   city             String?
   state            String?
   zip              String?
-  isIndividualTeam Boolean  @default(false) // True if this is an "Individual Competitors" team for a tournament
+  isIndividualTeam Boolean  @default(false) // True if this is an "Unaffiliated" team for a tournament
   tournamentId     String?  // If isIndividualTeam=true, links to the tournament
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

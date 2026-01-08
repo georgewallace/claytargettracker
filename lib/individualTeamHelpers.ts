@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 
 /**
- * Get or create the global individual competitors team
+ * Get or create the global unaffiliated team
  * This is a single team used across ALL tournaments for athletes without a team
  * Creates on-demand when first needed
  */
@@ -18,7 +18,7 @@ export async function getOrCreateIndividualTeam() {
   if (!individualTeam) {
     individualTeam = await prisma.team.create({
       data: {
-        name: 'Individual Competitors',
+        name: 'Unaffiliated',
         isIndividualTeam: true,
         tournamentId: null, // Not tournament-specific
         affiliation: null,
@@ -31,7 +31,7 @@ export async function getOrCreateIndividualTeam() {
 }
 
 /**
- * Check if a team is an individual competitors team
+ * Check if a team is an unaffiliated team
  */
 export function isIndividualTeam(team: { isIndividualTeam: boolean } | null): boolean {
   return team?.isIndividualTeam === true

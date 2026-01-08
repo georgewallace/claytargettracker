@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     // Handle individual shooters (athletes without a team)
     if (!athlete.teamId) {
-      // Get or create the global "Individual Competitors" team
+      // Get or create the global "Unaffiliated" team
       const individualTeam = await getOrCreateIndividualTeam()
 
       // Assign athlete to the individual team (stays on this team for all tournaments)
