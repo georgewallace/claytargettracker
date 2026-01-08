@@ -27,12 +27,19 @@ export default async function TeamsPage({ searchParams }: PageProps) {
   const skip = (currentPage - 1) * itemsPerPage
 
   // PERFORMANCE OPTIMIZATION: Get total count for pagination
-  const totalTeams = await prisma.team.count()
+  const totalTeams = await prisma.team.count({
+    where: {
+      isIndividualTeam: false  // Exclude Unaffiliated team
+    }
+  })
   const totalPages = Math.ceil(totalTeams / itemsPerPage)
 
   // PERFORMANCE OPTIMIZATION: Load paginated teams
   // Note: Athlete list is still fully loaded per team, but only for displayed teams
   const teams = await prisma.team.findMany({
+    where: {
+      isIndividualTeam: false  // Exclude Unaffiliated team
+    },
     include: {
       coaches: {
         include: {

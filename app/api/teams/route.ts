@@ -6,6 +6,9 @@ import { requireAuth } from '@/lib/auth'
 export async function GET() {
   try {
     const teams = await prisma.team.findMany({
+      where: {
+        isIndividualTeam: false  // Exclude Unaffiliated team
+      },
       include: {
         athletes: {
           include: {
@@ -22,7 +25,7 @@ export async function GET() {
         name: 'asc'
       }
     })
-    
+
     return NextResponse.json(teams)
   } catch (error) {
     console.error('Teams fetch error:', error)

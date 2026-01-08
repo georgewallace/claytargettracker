@@ -37,8 +37,11 @@ export default async function AdminCoachesPage() {
     }
   })
   
-  // Get all teams
+  // Get all teams (exclude Unaffiliated team)
   const teams = await prisma.team.findMany({
+    where: {
+      isIndividualTeam: false  // Exclude Unaffiliated team
+    },
     include: {
       coaches: {
         include: {
