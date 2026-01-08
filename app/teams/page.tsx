@@ -188,11 +188,11 @@ export default async function TeamsPage({ searchParams }: PageProps) {
         )}
 
         {/* Pending Athlete Join Requests */}
-        {isathlete && joinRequests.length > 0 && (
+        {isathlete && joinRequests.filter(r => r.status === 'pending').length > 0 && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Pending Athlete Join Requests</h3>
             <div className="space-y-2">
-              {joinRequests.map(request => (
+              {joinRequests.filter(r => r.status === 'pending').map(request => (
                 <div key={request.id} className="flex items-center justify-between bg-white p-4 rounded-md">
                   <div>
                     <p className="font-medium text-gray-900">{request.team.name}</p>

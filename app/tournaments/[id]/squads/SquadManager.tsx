@@ -956,29 +956,29 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
 
         {/* Stats & Filters */}
         <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="flex items-center justify-between">
-            <div className="grid grid-cols-4 gap-4 flex-1">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
               <div>
-                <p className="text-xs text-gray-600">Total athletes</p>
+                <p className="text-xs text-gray-600 whitespace-nowrap">Total athletes</p>
                 <p className="text-xl font-bold text-gray-900">{allathletes.length}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">Unassigned</p>
+                <p className="text-xs text-gray-600 whitespace-nowrap">Unassigned</p>
                 <p className="text-xl font-bold text-orange-600">{unassignedathletes.length}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">Time Slots</p>
+                <p className="text-xs text-gray-600 whitespace-nowrap">Time Slots</p>
                 <p className="text-xl font-bold text-gray-900">{sortedTimeSlots.length}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">Squads</p>
+                <p className="text-xs text-gray-600 whitespace-nowrap">Squads</p>
                 <p className="text-xl font-bold text-gray-900">
                   {sortedTimeSlots.reduce((sum, slot) => sum + slot.squads.length, 0)}
                 </p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-4 ml-6 pl-6 border-l border-gray-200">
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 lg:ml-6 lg:pl-6 lg:border-l lg:border-gray-200">
               {/* Auto-Assign Button */}
               <button
                 onClick={handleAutoAssignClick}
@@ -1018,14 +1018,14 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-12 gap-4">
-        {/* Unassigned athletes - Left Sidebar */}
-        <div className="col-span-3">
+      <div className="flex flex-col lg:grid lg:grid-cols-12 gap-4">
+        {/* Unassigned athletes - Left Sidebar (stacks on mobile, sidebar on desktop) */}
+        <div className="lg:col-span-3">
           <Unassignedathletes athletes={unassignedathletes} currentDisciplineId={activeDiscipline} />
         </div>
 
         {/* Time Slots & Squads - Main Area */}
-        <div className="col-span-9 space-y-4">
+        <div className="lg:col-span-9 space-y-4">
           {/* Add Time Slot Section */}
           {activeDiscipline && (
             <div className="bg-white rounded-lg shadow-md p-4">

@@ -100,8 +100,7 @@ export async function POST(request: NextRequest) {
           })
         }
       } catch (error) {
-        console.log(`Error auto-registering team ${teamId}:`, error)
-        // Continue even if team registration fails
+        // Continue even if team registration fails - team may already be registered
       }
     }
 
@@ -124,7 +123,6 @@ export async function POST(request: NextRequest) {
         successCount++
       } catch (error) {
         // Skip if already exists (race condition)
-        console.log(`Skipped shooter ${athleteId} - already registered`)
       }
     }
     

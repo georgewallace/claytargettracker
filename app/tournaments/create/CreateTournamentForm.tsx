@@ -52,8 +52,6 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
         // Leaderboard configuration
         leaderboardTabInterval
       }
-      
-      console.log('Submitting tournament with payload:', JSON.stringify(payload, null, 2))
 
       const response = await fetch('/api/tournaments', {
         method: 'POST',

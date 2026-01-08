@@ -29,6 +29,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // File size validation (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: 'File too large. Maximum file size is 10MB.' },
+        { status: 400 }
+      )
+    }
+
     if (!importType || !['athletes', 'coaches'].includes(importType)) {
       return NextResponse.json(
         { error: 'Invalid import type. Must be "athletes" or "coaches"' },

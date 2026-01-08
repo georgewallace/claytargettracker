@@ -31,6 +31,16 @@ export async function POST(
       )
     }
 
+    // Validate JSON data size (prevent excessively large payloads)
+    const jsonSize = JSON.stringify(sheets).length
+    const MAX_JSON_SIZE = 10 * 1024 * 1024 // 10MB
+    if (jsonSize > MAX_JSON_SIZE) {
+      return NextResponse.json(
+        { error: 'Data too large. Maximum data size is 10MB.' },
+        { status: 400 }
+      )
+    }
+
     // Create a workbook from the JSON data
     const workbook = XLSX.utils.book_new()
 

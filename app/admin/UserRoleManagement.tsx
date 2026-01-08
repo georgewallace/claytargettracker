@@ -14,6 +14,8 @@ export default function UserRoleManagement() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(20)
 
   useEffect(() => {
     fetchUsers()
@@ -61,6 +63,12 @@ export default function UserRoleManagement() {
     }
   }
 
+  // Calculate pagination
+  const totalPages = Math.ceil(users.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedUsers = users.slice(startIndex, endIndex)
+
   if (loading) {
     return <div className="text-center py-8">Loading users...</div>
   }
@@ -97,7 +105,7 @@ export default function UserRoleManagement() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
+            {paginatedUsers.map((user) => (
               <tr key={user.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {user.name}
@@ -135,6 +143,50 @@ export default function UserRoleManagement() {
       {users.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           No users found
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
+          <div className="text-sm text-gray-700">
+            Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+            <span className="font-medium">{Math.min(endIndex, users.length)}</span> of{' '}
+            <span className="font-medium">{users.length}</span> users
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 text-sm text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              First
+            </button>
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 text-sm text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1 text-sm text-gray-900 font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 text-sm text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 text-sm text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Last
+            </button>
+          </div>
         </div>
       )}
     </div>

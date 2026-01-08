@@ -417,10 +417,10 @@ export default function CoachTeamManager({ team, availableathletes, joinRequests
             {team.athletes.filter(a => a.isActive !== false).map((athlete) => (
               <div
                 key={athlete.id}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition gap-3"
               >
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <div className="font-medium text-gray-900">
                       {athlete.user.name}
                     </div>
@@ -439,10 +439,10 @@ export default function CoachTeamManager({ team, availableathletes, joinRequests
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-col xs:flex-row sm:flex-row">
                   <Link
                     href={`/athletes/${athlete.id}/edit`}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition text-sm"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition text-sm text-center"
                   >
                     Edit Details
                   </Link>
@@ -479,10 +479,10 @@ export default function CoachTeamManager({ team, availableathletes, joinRequests
                 {team.athletes.filter(a => a.isActive === false).map((athlete) => (
                   <div
                     key={athlete.id}
-                    className="flex items-center justify-between p-4 border border-gray-300 rounded-lg bg-gray-50"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gray-300 rounded-lg bg-gray-50 gap-3"
                   >
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <div className="font-medium text-gray-600">
                           {athlete.user.name}
                         </div>
@@ -501,10 +501,10 @@ export default function CoachTeamManager({ team, availableathletes, joinRequests
                         </div>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-col xs:flex-row sm:flex-row">
                       <Link
                         href={`/athletes/${athlete.id}/edit`}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition text-sm"
+                        className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition text-sm text-center"
                       >
                         Edit Details
                       </Link>

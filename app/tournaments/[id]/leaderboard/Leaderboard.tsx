@@ -644,25 +644,25 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
   return (
     <div className="space-y-6" style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}>
       {/* Controls Bar */}
-      <div className="bg-white border border-gray-200 rounded-lg p-2 flex items-center justify-between gap-2 shadow-sm">
-        <div className="flex items-center gap-3">
+      <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-2 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-2 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
           {/* Auto-refresh */}
-          <div className="flex items-center gap-2">
-            <div className={`w-2.5 h-2.5 rounded-full ${autoRefresh ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
-            <span className="text-gray-700 text-sm font-medium">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${autoRefresh ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+            <span className="text-gray-700 text-sm font-medium whitespace-nowrap">
               {autoRefresh ? 'Auto 30s' : 'Paused'}
             </span>
           </div>
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition font-medium border border-gray-300"
+            className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition font-medium border border-gray-300 w-full sm:w-auto"
           >
             {autoRefresh ? 'Pause' : 'Resume'}
           </button>
         </div>
-        
+
         {/* View Toggle */}
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap justify-center md:justify-start">
           <button
             onClick={() => setActiveView('divisions')}
             className={`px-3 py-1.5 rounded text-sm transition font-medium ${
@@ -681,7 +681,8 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
             }`}
           >
-            🎯 Classes
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-1" style={{color: 'rgb(255, 107, 53)'}}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+            Classes
           </button>
           <button
             onClick={() => setActiveView('teams')}
@@ -726,7 +727,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         </div>
 
         {/* Display and Fullscreen Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-center md:justify-end">
           <button
             onClick={() => setZoom(Math.max(50, zoom - 10))}
             className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition font-medium border border-gray-300"
@@ -734,7 +735,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           >
             −
           </button>
-          <span className="text-gray-700 text-sm font-medium min-w-[3rem] text-center">
+          <span className="text-gray-700 text-sm font-medium min-w-[3.5rem] text-center whitespace-nowrap">
             {zoom}%
           </span>
           <button
@@ -746,10 +747,10 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           </button>
           <button
             onClick={toggleFullscreen}
-            className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition font-medium border border-gray-300"
+            className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition font-medium border border-gray-300 whitespace-nowrap"
             title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
           >
-            {isFullscreen ? '⊗' : '⛶'} {isFullscreen ? 'Exit' : 'Fullscreen'}
+            <span className="hidden sm:inline">{isFullscreen ? '⊗' : '⛶'} </span>{isFullscreen ? 'Exit' : 'Full'}
           </button>
         </div>
       </div>
@@ -1479,7 +1480,10 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
                 <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3">
                     <div className="mb-3">
-                      <h2 className="text-lg font-bold text-gray-900">🎯 HAA - {disciplineName}</h2>
+                      <h2 className="text-lg font-bold text-gray-900">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block mr-1" style={{color: 'rgb(255, 107, 53)'}}><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                        HAA - {disciplineName}
+                      </h2>
                       <p className="text-gray-600 text-xs">High All-Around for this discipline</p>
                     </div>
 
