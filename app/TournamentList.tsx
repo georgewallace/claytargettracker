@@ -114,8 +114,8 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
               !isPast &&
               athleteId
 
-            const canRegister = isEligibleForRegistration && tournament.isTeamRegistered
-            const showDisabledButton = isEligibleForRegistration && !tournament.isTeamRegistered
+            const canRegister = isEligibleForRegistration
+            const showDisabledButton = false // Athletes can now register regardless of team registration status
 
             return (
               <div
@@ -203,21 +203,6 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
                       </div>
                     )}
 
-                    {/* Register Button - Disabled (Team Not Registered) */}
-                    {showDisabledButton && (
-                      <div className="flex-shrink-0 group relative">
-                        <button
-                          disabled
-                          className="bg-gray-400 text-white px-3 py-1.5 text-sm rounded-md cursor-not-allowed opacity-60"
-                          title="Your team must be registered first"
-                        >
-                          Register
-                        </button>
-                        <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-                          Team not registered yet
-                        </div>
-                      </div>
-                    )}
 
                     {/* View Details Link */}
                     {!canRegister && !showDisabledButton && (

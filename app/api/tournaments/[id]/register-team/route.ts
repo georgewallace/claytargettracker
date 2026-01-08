@@ -81,7 +81,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     return NextResponse.json({
-      message: `${team.name} registered for ${tournament.name}! Your athletes can now self-register.`,
+      message: `${team.name} registered for ${tournament.name}! Athletes can self-register anytime (team registration is optional).`,
       teamRegistration
     }, { status: 201 })
   } catch (error) {

@@ -182,10 +182,10 @@ export default function CoachRegistration({
             disabled={teamRegistering}
             className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
           >
-            {teamRegistering ? 'Registering Team...' : '✓ Register Team (Athletes Can Then Self-Register)'}
+            {teamRegistering ? 'Registering Team...' : '✓ Register Team (Optional)'}
           </button>
           <p className="text-sm text-gray-600 mt-2 text-center">
-            This marks your team as registered. Athletes can then register themselves without selecting times first.
+            This marks your team as registered. Athletes can self-register anytime, with or without team registration.
           </p>
         </div>
       )}
@@ -197,7 +197,7 @@ export default function CoachRegistration({
             ✓ Your team is registered for this tournament
           </p>
           <p className="text-sm text-green-700 mt-2 text-center">
-            Athletes can now self-register for this tournament
+            Athletes can self-register anytime (team registration is optional)
           </p>
         </div>
       )}

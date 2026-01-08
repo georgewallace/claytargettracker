@@ -120,24 +120,23 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // If athlete has a team, the team must be registered for the tournament
-    // UNLESS it's an individual team (isIndividualTeam = true), which auto-registers above
+    // Auto-register team if not already registered (applies to all non-individual teams)
+    // This allows athletes to register individually even if their team hasn't explicitly registered yet
     if (athlete.teamId && athlete.team && !athlete.team.isIndividualTeam) {
-      const teamRegistration = await prisma.teamTournamentRegistration.findUnique({
+      await prisma.teamTournamentRegistration.upsert({
         where: {
           teamId_tournamentId: {
             teamId: athlete.teamId,
             tournamentId
           }
-        }
+        },
+        create: {
+          teamId: athlete.teamId,
+          tournamentId,
+          registeredBy: user.id
+        },
+        update: {} // Do nothing if already exists
       })
-
-      if (!teamRegistration) {
-        return NextResponse.json(
-          { error: `Your team "${athlete.team?.name}" has not registered for this tournament yet. Please reach out to your coach.` },
-          { status: 403 }
-        )
-      }
     }
 
     // Check if already registered
