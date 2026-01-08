@@ -645,17 +645,17 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     <div className="space-y-6" style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}>
       {/* Controls Bar */}
       <div className="bg-white border border-gray-200 rounded-lg p-3 md:p-2 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-2 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          {/* Auto-refresh */}
-          <div className="flex items-center gap-2 min-w-0">
-            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${autoRefresh ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
-            <span className="text-gray-700 text-sm font-medium whitespace-nowrap">
-              {autoRefresh ? 'Auto 30s' : 'Paused'}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Auto-refresh indicator */}
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded border border-gray-200">
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${autoRefresh ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+            <span className="text-gray-700 text-xs font-medium whitespace-nowrap">
+              {autoRefresh ? '30s' : 'Off'}
             </span>
           </div>
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition font-medium border border-gray-300 w-full sm:w-auto"
+            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition font-medium border border-gray-300"
           >
             {autoRefresh ? 'Pause' : 'Resume'}
           </button>

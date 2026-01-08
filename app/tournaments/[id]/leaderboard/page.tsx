@@ -114,21 +114,21 @@ export default async function LeaderboardPage({ params }: PageProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-5xl font-bold text-white flex items-center gap-4">
-              🏆 Live Leaderboard
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+            <h1 className="text-3xl md:text-5xl font-bold text-white flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <span>🏆 Live Leaderboard</span>
               <Link
                 href={`/tournaments/${tournament.id}`}
-                className="text-base font-normal text-white hover:text-indigo-200 transition"
+                className="text-sm md:text-base font-normal text-white hover:text-indigo-200 transition"
               >
                 ← Back to Tournament
               </Link>
             </h1>
-            <p className="text-sm text-indigo-300">
+            <p className="text-xs md:text-sm text-indigo-300 whitespace-nowrap">
               Last updated: {new Date(tournament.updatedAt).toLocaleString()}
             </p>
           </div>
-          <p className="text-2xl text-indigo-200">{tournament.name}</p>
+          <p className="text-xl md:text-2xl text-indigo-200">{tournament.name}</p>
         </div>
 
         <Leaderboard 
