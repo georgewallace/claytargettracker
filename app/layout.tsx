@@ -23,6 +23,12 @@ export const metadata: Metadata = {
   description: "Track COYESS tournaments, scores, and Athletes",
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
