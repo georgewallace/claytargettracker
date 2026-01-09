@@ -68,10 +68,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         )
       }
 
-      // RULE: Athletes can only be on one team
-      if (athlete.teamId) {
+      // RULE: Athletes can only be on one team (excluding Unaffiliated team)
+      if (athlete.teamId && athlete.team && !athlete.team.isIndividualTeam) {
         return NextResponse.json(
-          { error: `This athlete is already on another team (${athlete.team?.name}). Athletes can only be on one team.` },
+          { error: `This athlete is already on another team (${athlete.team.name}). Athletes can only be on one team.` },
           { status: 400 }
         )
       }

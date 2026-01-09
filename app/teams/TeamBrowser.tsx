@@ -23,7 +23,15 @@ interface Team {
 
 interface TeamBrowserProps {
   teams: Team[]
-  currentathlete: { id: string; teamId: string | null } | null
+  currentathlete: {
+    id: string
+    teamId: string | null
+    team?: {
+      id: string
+      name: string
+      isIndividualTeam: boolean
+    } | null
+  } | null
   pendingRequests: Array<{ teamId: string }>
   isCoach: boolean
   hasCoachTeam: boolean
@@ -59,7 +67,8 @@ export default function TeamBrowser({
       return
     }
 
-    if (currentathlete.teamId) {
+    // Check if athlete is already on a team (excluding Unaffiliated team)
+    if (currentathlete.teamId && currentathlete.team && !currentathlete.team.isIndividualTeam) {
       setError('You are already on a team. Leave your current team before joining another.')
       return
     }
@@ -184,7 +193,7 @@ export default function TeamBrowser({
               </div>
             </div>
 
-            {currentathlete && !currentathlete.teamId && (
+            {currentathlete && (!currentathlete.teamId || (currentathlete.team?.isIndividualTeam)) && (
               <div className="mt-4 pt-4 border-t border-gray-200">
                 {hasPendingRequest(team.id) ? (
                   <button
@@ -226,7 +235,7 @@ export default function TeamBrowser({
               </div>
             )}
 
-            {currentathlete?.teamId === team.id && (
+            {currentathlete?.teamId === team.id && !currentathlete.team?.isIndividualTeam && (
               <div className="mt-4 pt-4 border-t border-gray-200">
                 <span className="text-sm font-medium text-green-600">
                   ✓ Your Team

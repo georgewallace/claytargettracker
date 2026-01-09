@@ -59,19 +59,30 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // RULE: Athletes can only be on one team
-    if (athleteToAdd.teamId && athleteToAdd.teamId !== team.id) {
-      return NextResponse.json(
-        { error: `This athlete is already on another team (${athleteToAdd.team?.name}). Athletes can only be on one team.` },
-        { status: 400 }
-      )
-    }
-    
-    if (athleteToAdd.teamId === team.id) {
-      return NextResponse.json(
-        { error: 'This athlete is already on your team' },
-        { status: 400 }
-      )
+    // RULE: Athletes can only be on one team (excluding Unaffiliated team)
+    if (athleteToAdd.teamId) {
+      // Allow adding athletes from the Unaffiliated team
+      if (athleteToAdd.team && !athleteToAdd.team.isIndividualTeam) {
+        if (athleteToAdd.teamId !== team.id) {
+          return NextResponse.json(
+            { error: `This athlete is already on another team (${athleteToAdd.team.name}). Athletes can only be on one team.` },
+            { status: 400 }
+          )
+        }
+
+        if (athleteToAdd.teamId === team.id) {
+          return NextResponse.json(
+            { error: 'This athlete is already on your team' },
+            { status: 400 }
+          )
+        }
+      } else if (athleteToAdd.teamId === team.id) {
+        // Even if on Unaffiliated team, check if somehow already on coach's team
+        return NextResponse.json(
+          { error: 'This athlete is already on your team' },
+          { status: 400 }
+        )
+      }
     }
     
     // Update athlete's team

@@ -17,12 +17,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if athlete is already on a team
+    // Check if athlete is already on a team (excluding Unaffiliated team)
     if (user.athlete.teamId) {
-      return NextResponse.json(
-        { error: 'You are already on a team' },
-        { status: 400 }
-      )
+      const currentTeam = await prisma.team.findUnique({
+        where: { id: user.athlete.teamId }
+      })
+
+      // Allow requests if currently on the Unaffiliated team (isIndividualTeam = true)
+      if (currentTeam && !currentTeam.isIndividualTeam) {
+        return NextResponse.json(
+          { error: 'You are already on a team. Leave your current team before joining another.' },
+          { status: 400 }
+        )
+      }
     }
 
     // Check if team exists

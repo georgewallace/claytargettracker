@@ -64,10 +64,17 @@ export default async function MyTeamPage() {
     )
   }
 
-  // Get only athletes without a team
+  // Get athletes without a team or on the Unaffiliated team
   const availableathletes = await prisma.athlete.findMany({
     where: {
-      teamId: null
+      OR: [
+        { teamId: null },
+        {
+          team: {
+            isIndividualTeam: true
+          }
+        }
+      ]
     },
     include: {
       user: true,
