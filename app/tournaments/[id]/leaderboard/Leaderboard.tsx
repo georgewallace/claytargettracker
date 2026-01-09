@@ -36,6 +36,7 @@ interface athletescore {
   athleteName: string
   teamName: string | null
   teamLogoUrl: string | null
+  isIndividualTeam: boolean | null
   division: string | null
   gender: string | null
   nscaClass: string | null
@@ -238,6 +239,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
           athleteName: shoot.athlete.user.name,
           teamName: shoot.athlete.team?.name || null,
           teamLogoUrl: shoot.athlete.team?.logoUrl || null,
+          isIndividualTeam: shoot.athlete.team?.isIndividualTeam || null,
           division: shoot.athlete.division || null,
           gender: shoot.athlete.gender || null,
           nscaClass: shoot.athlete.nscaClass || null,
@@ -1044,10 +1046,11 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
             const disciplineId = tournamentDiscipline.disciplineId
             const disciplineName = tournamentDiscipline.discipline.displayName
 
-            // Get athletes who competed in this discipline and have teams (excluding unassigned)
+            // Get athletes who competed in this discipline and have teams (excluding Unaffiliated team and unassigned)
             const disciplineathletes = allathletes.filter(
               athlete => athlete.disciplineScores[disciplineId] !== undefined &&
                          athlete.teamName &&
+                         !athlete.isIndividualTeam &&
                          athlete.division !== 'Unassigned'
             )
 
