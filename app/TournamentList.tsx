@@ -115,7 +115,6 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
               athleteId
 
             const canRegister = isEligibleForRegistration
-            const showDisabledButton = false // Athletes can now register regardless of team registration status
 
             return (
               <div
@@ -189,7 +188,7 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
                       Created by {tournament.createdBy.name}
                     </p>
 
-                    {/* Register Button - Enabled */}
+                    {/* Register Button */}
                     {canRegister && (
                       <div className="flex-shrink-0">
                         <RegisterButton
@@ -203,9 +202,8 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
                       </div>
                     )}
 
-
                     {/* View Details Link */}
-                    {!canRegister && !showDisabledButton && (
+                    {!canRegister && (
                       <Link
                         href={`/tournaments/${tournament.id}`}
                         className="text-indigo-600 hover:text-indigo-800 text-sm font-medium ml-auto"

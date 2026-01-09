@@ -158,6 +158,12 @@ export default function Navbar({ user }: NavbarProps) {
               <>
                 <div className="hidden md:flex items-center space-x-2">
                   <Link
+                    href="/help"
+                    className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
+                  >
+                    Help
+                  </Link>
+                  <Link
                     href="/profile"
                     className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
                   >
@@ -181,6 +187,12 @@ export default function Navbar({ user }: NavbarProps) {
               </>
             ) : (
               <>
+                <Link
+                  href="/help"
+                  className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition hidden md:block"
+                >
+                  Help
+                </Link>
                 <Link
                   href="/login"
                   className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition"
@@ -302,10 +314,31 @@ export default function Navbar({ user }: NavbarProps) {
                   Account
                 </div>
                 <Link
+                  href="/help"
+                  className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                >
+                  Help
+                </Link>
+                <Link
                   href="/profile"
                   className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
                 >
                   Profile
+                </Link>
+              </>
+            )}
+
+            {/* Help for non-logged in users */}
+            {!user && (
+              <>
+                <div className="px-3 py-2 mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Resources
+                </div>
+                <Link
+                  href="/help"
+                  className="block px-3 py-2 pl-6 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
+                >
+                  Help
                 </Link>
               </>
             )}

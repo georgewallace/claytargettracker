@@ -185,7 +185,7 @@ export default function CoachRegistration({
             {teamRegistering ? 'Registering Team...' : '✓ Register Team (Optional)'}
           </button>
           <p className="text-sm text-gray-600 mt-2 text-center">
-            This marks your team as registered. Athletes can self-register anytime, with or without team registration.
+            Team registration is for tracking purposes. Athletes can self-register regardless of team registration status.
           </p>
         </div>
       )}
@@ -197,7 +197,7 @@ export default function CoachRegistration({
             ✓ Your team is registered for this tournament
           </p>
           <p className="text-sm text-green-700 mt-2 text-center">
-            Athletes can self-register anytime (team registration is optional)
+            Athletes can self-register for this tournament (team registration is optional)
           </p>
         </div>
       )}
