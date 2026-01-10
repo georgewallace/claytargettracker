@@ -376,7 +376,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 failureReason = `Only one squad allowed per time slot for ${disciplineName} (already exists)`
                 continue // Skip this time slot, can't create another squad
               }
-              
+
               // For Trap, don't create a second squad for the same field
               if (isTrap && timeSlot.fieldNumber) {
                 const fieldSquads = existingSquads.filter(s => s.name.includes(timeSlot.fieldNumber || ''))
@@ -385,13 +385,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                   continue // Skip this time slot, field already has a squad
                 }
               }
-              
+
+              // PERMISSION CHECK: Coaches cannot create multiple squads in the same timeslot
+              if (user.role === 'coach' && existingSquads.length > 0) {
+                failureReason = 'Only admins can create additional squads in a timeslot (coaches can only use existing squads)'
+                continue // Skip this time slot, coaches can't create additional squads
+              }
+
               // Create new squad
               const squadNumber = existingSquads.length + 1
-              const squadName = isTrap && timeSlot.fieldNumber 
+              const squadName = isTrap && timeSlot.fieldNumber
                 ? `${timeSlot.fieldNumber} Squad ${squadNumber}`
                 : `Squad ${squadNumber}`
-                
+
               targetSquad = await prisma.squad.create({
                 data: {
                   timeSlotId: timeSlot.id,
@@ -460,13 +466,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 })
 
                 let targetSquad = existingSquads.find(s => s.members.length < squadCapacity)
-                
+
                 if (!targetSquad) {
+                  // PERMISSION CHECK: Coaches cannot create multiple squads in the same timeslot
+                  if (user.role === 'coach' && existingSquads.length > 0) {
+                    continue // Skip this athlete, coaches can't create additional squads
+                  }
+
                   const squadNumber = existingSquads.length + 1
-                  const squadName = isTrap && timeSlot.fieldNumber 
+                  const squadName = isTrap && timeSlot.fieldNumber
                     ? `${timeSlot.fieldNumber} Squad ${squadNumber}`
                     : `Squad ${squadNumber}`
-                    
+
                   targetSquad = await prisma.squad.create({
                     data: {
                       timeSlotId: timeSlot.id,
@@ -512,13 +523,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               })
 
               let targetSquad = existingSquads.find(s => s.members.length < squadCapacity)
-              
+
               if (!targetSquad) {
+                // PERMISSION CHECK: Coaches cannot create multiple squads in the same timeslot
+                if (user.role === 'coach' && existingSquads.length > 0) {
+                  continue // Skip this athlete, coaches can't create additional squads
+                }
+
                 const squadNumber = existingSquads.length + 1
-                const squadName = isTrap && timeSlot.fieldNumber 
+                const squadName = isTrap && timeSlot.fieldNumber
                   ? `${timeSlot.fieldNumber} Squad ${squadNumber}`
                   : `Squad ${squadNumber}`
-                  
+
                 targetSquad = await prisma.squad.create({
                   data: {
                     timeSlotId: timeSlot.id,
