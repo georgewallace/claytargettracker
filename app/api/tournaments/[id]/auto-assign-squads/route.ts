@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
-import { getUserFirstCoachedTeam } from '@/lib/teamHelpers'
 
 interface RouteParams {
   params: Promise<{
@@ -25,10 +24,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const user = await requireAuth()
     const { id: tournamentId } = await params
     
-    // Only coaches and admins can auto-assign squads
-    if (user.role !== 'coach' && user.role !== 'admin') {
+    // Only admins can auto-assign squads
+    if (user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Only administrators can use auto-assign squads' },
         { status: 403 }
       )
     }
@@ -43,19 +42,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       includeAthletesWithoutDivisions: false
     }))
 
-    // PERMISSION CHECK: Coaches can only auto-assign their own team
-    let coachedTeamId: string | null = null
-    if (user.role === 'coach') {
-      const coachedTeam = await getUserFirstCoachedTeam(user.id)
-      if (!coachedTeam) {
-        return NextResponse.json(
-          { error: 'You must be coaching a team to use auto-assign' },
-          { status: 403 }
-        )
-      }
-      coachedTeamId = coachedTeam.id
-    }
-
     // Get all registered athletes (filter by team/division based on options)
     const whereClause: any = {
       tournamentId
@@ -68,11 +54,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
     if (!options.includeAthletesWithoutDivisions) {
       athleteFilter.division = { not: null }
-    }
-
-    // PERMISSION CHECK: Coaches can only auto-assign athletes from their own team
-    if (user.role === 'coach' && coachedTeamId) {
-      athleteFilter.teamId = coachedTeamId
     }
     
     // Only apply athlete filter if there are conditions
@@ -98,11 +79,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     if (registrations.length === 0) {
-      const errorMessage = user.role === 'coach'
-        ? 'No registered athletes from your team found'
-        : 'No registered athletes with teams found'
       return NextResponse.json(
-        { error: errorMessage },
+        { error: 'No registered athletes with teams found' },
         { status: 400 }
       )
     }
@@ -408,12 +386,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 }
               }
 
-              // PERMISSION CHECK: Coaches cannot create multiple squads in the same timeslot
-              if (user.role === 'coach' && existingSquads.length > 0) {
-                failureReason = 'Only admins can create additional squads in a timeslot (coaches can only use existing squads)'
-                continue // Skip this time slot, coaches can't create additional squads
-              }
-
               // Create new squad
               const squadNumber = existingSquads.length + 1
               const squadName = isTrap && timeSlot.fieldNumber
@@ -490,11 +462,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
                 let targetSquad = existingSquads.find(s => s.members.length < squadCapacity)
 
                 if (!targetSquad) {
-                  // PERMISSION CHECK: Coaches cannot create multiple squads in the same timeslot
-                  if (user.role === 'coach' && existingSquads.length > 0) {
-                    continue // Skip this athlete, coaches can't create additional squads
-                  }
-
                   const squadNumber = existingSquads.length + 1
                   const squadName = isTrap && timeSlot.fieldNumber
                     ? `${timeSlot.fieldNumber} Squad ${squadNumber}`
@@ -547,11 +514,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               let targetSquad = existingSquads.find(s => s.members.length < squadCapacity)
 
               if (!targetSquad) {
-                // PERMISSION CHECK: Coaches cannot create multiple squads in the same timeslot
-                if (user.role === 'coach' && existingSquads.length > 0) {
-                  continue // Skip this athlete, coaches can't create additional squads
-                }
-
                 const squadNumber = existingSquads.length + 1
                 const squadName = isTrap && timeSlot.fieldNumber
                   ? `${timeSlot.fieldNumber} Squad ${squadNumber}`
