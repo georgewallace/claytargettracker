@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { getUserFirstCoachedTeam } from '@/lib/teamHelpers'
 
 interface RouteParams {
   params: Promise<{
@@ -42,11 +43,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       includeAthletesWithoutDivisions: false
     }))
 
+    // PERMISSION CHECK: Coaches can only auto-assign their own team
+    let coachedTeamId: string | null = null
+    if (user.role === 'coach') {
+      const coachedTeam = await getUserFirstCoachedTeam(user.id)
+      if (!coachedTeam) {
+        return NextResponse.json(
+          { error: 'You must be coaching a team to use auto-assign' },
+          { status: 403 }
+        )
+      }
+      coachedTeamId = coachedTeam.id
+    }
+
     // Get all registered athletes (filter by team/division based on options)
     const whereClause: any = {
       tournamentId
     }
-    
+
     // Build athlete filter based on options
     const athleteFilter: any = {}
     if (!options.includeAthletesWithoutTeams) {
@@ -54,6 +68,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
     if (!options.includeAthletesWithoutDivisions) {
       athleteFilter.division = { not: null }
+    }
+
+    // PERMISSION CHECK: Coaches can only auto-assign athletes from their own team
+    if (user.role === 'coach' && coachedTeamId) {
+      athleteFilter.teamId = coachedTeamId
     }
     
     // Only apply athlete filter if there are conditions
@@ -79,8 +98,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     if (registrations.length === 0) {
+      const errorMessage = user.role === 'coach'
+        ? 'No registered athletes from your team found'
+        : 'No registered athletes with teams found'
       return NextResponse.json(
-        { error: 'No registered athletes with teams found' },
+        { error: errorMessage },
         { status: 400 }
       )
     }
