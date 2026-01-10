@@ -15,11 +15,14 @@ interface TimeSlotSectionProps {
 
 export default function TimeSlotSection({ timeSlot, tournamentId, onUpdate, userRole, coachedTeamId }: TimeSlotSectionProps) {
   const [deleting, setDeleting] = useState(false)
-  
-  // Make the time slot droppable (can have multiple squads)
+
+  // Coaches can't create additional squads if one already exists (admins can)
+  const canCreateAdditionalSquad = userRole === 'admin' || timeSlot.squads.length === 0
+
+  // Make the time slot droppable
   const { setNodeRef, isOver } = useDroppable({
     id: `timeslot-${timeSlot.id}`,
-    disabled: false // Allow multiple squads per time slot
+    disabled: !canCreateAdditionalSquad // Disable for coaches when squads exist
   })
 
   const handleDeleteTimeSlot = async () => {
@@ -90,25 +93,27 @@ export default function TimeSlotSection({ timeSlot, tournamentId, onUpdate, user
         </div>
       )}
 
-      {/* Droppable Zone - Always available for creating new squads */}
-      <div
-        ref={setNodeRef}
-        className={`text-center py-${timeSlot.squads.length > 0 ? '4' : '8'} rounded-lg border-2 border-dashed transition ${
-          isOver
-            ? 'bg-indigo-50 border-indigo-400'
-            : 'bg-gray-50 border-gray-300'
-        }`}
-      >
-        {isOver ? (
-          <p className="text-indigo-600 font-medium text-sm">
-            Drop here to create a new squad
-          </p>
-        ) : (
-          <p className="text-gray-500 text-sm">
-            {timeSlot.squads.length > 0 ? 'Drop athlete to create another squad' : 'No squads yet • Drop an athlete here to create a squad'}
-          </p>
-        )}
-      </div>
+      {/* Droppable Zone - Only show if user can create additional squads */}
+      {canCreateAdditionalSquad && (
+        <div
+          ref={setNodeRef}
+          className={`text-center py-${timeSlot.squads.length > 0 ? '4' : '8'} rounded-lg border-2 border-dashed transition ${
+            isOver
+              ? 'bg-indigo-50 border-indigo-400'
+              : 'bg-gray-50 border-gray-300'
+          }`}
+        >
+          {isOver ? (
+            <p className="text-indigo-600 font-medium text-sm">
+              Drop here to create a new squad
+            </p>
+          ) : (
+            <p className="text-gray-500 text-sm">
+              {timeSlot.squads.length > 0 ? 'Drop athlete to create another squad' : 'No squads yet • Drop an athlete here to create a squad'}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -752,6 +752,12 @@ export default function SquadManager({ tournament: initialTournament, userRole, 
         }
       }
 
+      // PERMISSION CHECK: Only admins can create additional squads in a timeslot with existing squads
+      if (userRole === 'coach' && timeSlot.squads.length > 0) {
+        alert('❌ COACHES CANNOT CREATE ADDITIONAL SQUADS\n\nThis time slot already has a squad. Only administrators can create multiple squads in the same time slot.\n\nTo assign this athlete, either:\n• Drop them into an existing squad in this time slot\n• Choose a different time slot\n• Contact an administrator for assistance')
+        return
+      }
+
       // Store pending squad creation data and show modal
       setPendingSquadCreation({
         timeSlotId,
