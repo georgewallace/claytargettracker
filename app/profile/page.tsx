@@ -127,15 +127,15 @@ export default async function ProfilePage() {
                         </h3>
                         <div className="space-y-1">
                           <div className="flex justify-between text-xs">
-                            <span className="text-gray-600">Shoots:</span>
+                            <span className="text-gray-900">Shoots:</span>
                             <span className="font-medium">{stat.totalShoots}</span>
                           </div>
                           <div className="flex justify-between text-xs">
-                            <span className="text-gray-600">Total:</span>
+                            <span className="text-gray-900">Total:</span>
                             <span className="font-medium">{stat.totalTargets} / {stat.totalPossible}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-xs text-gray-600">Avg:</span>
+                            <span className="text-xs text-gray-900">Avg:</span>
                             <span className="text-lg font-bold text-indigo-600">{stat.average}%</span>
                           </div>
                         </div>
