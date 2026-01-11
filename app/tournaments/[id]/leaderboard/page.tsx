@@ -115,10 +115,10 @@ export default async function LeaderboardPage({ params }: PageProps) {
             <h1 className="text-3xl md:text-5xl font-bold text-white flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               <span>🏆 Live Leaderboard</span>
               <Link
-                href={`/tournaments/${tournament.id}`}
+                href={user ? `/tournaments/${tournament.id}` : '/'}
                 className="text-sm md:text-base font-normal text-white hover:text-indigo-200 transition"
               >
-                ← Back to Tournament
+                {user ? '← Back to Tournament' : '← Back to Tournaments'}
               </Link>
             </h1>
             <p className="text-xs md:text-sm text-indigo-300 whitespace-nowrap">

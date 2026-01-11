@@ -8,16 +8,18 @@ export const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user
       const pathname = nextUrl.pathname
-      
+
       // Public pages that don't require authentication
-      const publicPaths = ['/login', '/signup', '/signup/athlete', '/signup/coach', '/']
+      const publicPaths = ['/login', '/signup', '/signup/athlete', '/signup/coach', '/', '/help']
       const isPublicPage = publicPaths.includes(pathname) ||
-                          pathname.startsWith('/signup/')
+                          pathname.startsWith('/signup/') ||
+                          pathname.startsWith('/help/') ||
+                          pathname.match(/^\/tournaments\/[^/]+\/leaderboard$/)
 
       if (isPublicPage) {
         return true
       }
-      
+
       // Require authentication for all other pages
       return isLoggedIn
     },

@@ -19,6 +19,7 @@ interface Tournament {
   endDate: Date
   status: string
   description: string | null
+  enableLeaderboard: boolean
   isRegistered: boolean
   isTeamRegistered: boolean
   createdBy: {
@@ -188,29 +189,41 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
                       Created by {tournament.createdBy.name}
                     </p>
 
-                    {/* Register Button */}
-                    {canRegister && (
-                      <div className="flex-shrink-0">
-                        <RegisterButton
-                          tournamentId={tournament.id}
-                          athleteId={athleteId}
-                          tournamentDisciplines={tournament.disciplines.map(td => ({
-                            id: td.discipline.id,
-                            displayName: td.discipline.displayName
-                          }))}
-                        />
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {/* Leaderboard Button - Show for active/completed tournaments with leaderboard enabled */}
+                      {tournament.enableLeaderboard && (tournament.status === 'active' || tournament.status === 'completed') && (
+                        <Link
+                          href={`/tournaments/${tournament.id}/leaderboard`}
+                          className="text-xs px-3 py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-md font-medium transition border border-purple-300 whitespace-nowrap"
+                        >
+                          🏆 Leaderboard
+                        </Link>
+                      )}
 
-                    {/* View Details Link */}
-                    {!canRegister && (
-                      <Link
-                        href={`/tournaments/${tournament.id}`}
-                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium ml-auto"
-                      >
-                        View Details →
-                      </Link>
-                    )}
+                      {/* Register Button */}
+                      {canRegister && (
+                        <div className="flex-shrink-0">
+                          <RegisterButton
+                            tournamentId={tournament.id}
+                            athleteId={athleteId}
+                            tournamentDisciplines={tournament.disciplines.map(td => ({
+                              id: td.discipline.id,
+                              displayName: td.discipline.displayName
+                            }))}
+                          />
+                        </div>
+                      )}
+
+                      {/* View Details Link */}
+                      {!canRegister && (
+                        <Link
+                          href={`/tournaments/${tournament.id}`}
+                          className="text-indigo-600 hover:text-indigo-800 text-sm font-medium ml-auto whitespace-nowrap"
+                        >
+                          View Details →
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -242,6 +255,9 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Leaderboard
                 </th>
                 {isathlete && (
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -296,6 +312,19 @@ export default function TournamentList({ tournaments, isathlete, athleteId }: To
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(tournament.status)}`}>
                       {tournament.status}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    {tournament.enableLeaderboard && (tournament.status === 'active' || tournament.status === 'completed') ? (
+                      <Link
+                        href={`/tournaments/${tournament.id}/leaderboard`}
+                        className="inline-block text-xs px-3 py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-md font-medium transition border border-purple-300 whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        🏆 View
+                      </Link>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    )}
                   </td>
                   {isathlete && (
                     <td className="px-6 py-4 whitespace-nowrap text-center">
