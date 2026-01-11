@@ -12,21 +12,32 @@ export default function HelpContent() {
       title: 'Athlete Account Creation',
       description: 'Complete step-by-step instructions for athletes to create an account and join a team',
       icon: '🏃',
-      color: 'green'
+      color: 'green',
+      pdfPath: '/help-pdfs/COYESS Athlete Account Creation Instructions.pdf'
     },
     {
       id: 'coach-account-team-creation',
       title: 'Coach Account & Team Creation',
       description: 'Instructions for coaches to create accounts, set up teams, and manage rosters',
       icon: '👨‍🏫',
-      color: 'blue'
+      color: 'blue',
+      pdfPath: '/help-pdfs/COYESS Coach Account-Team Creation Instructions.pdf'
     },
     {
       id: 'athlete-tournament-registration',
       title: 'Athlete Tournament Registration',
       description: 'How to register for tournaments, select time slots, and view leaderboards',
       icon: '🏆',
-      color: 'purple'
+      color: 'purple',
+      pdfPath: '/help-pdfs/COYESS Athlete Tournament Registration Instructions.pdf'
+    },
+    {
+      id: 'team-tournament-registration',
+      title: 'Team Tournament Registration',
+      description: 'Team registration, athlete squadding, and reviewing scores during tournaments',
+      icon: '👥',
+      color: 'orange',
+      pdfPath: '/help-pdfs/COYESS Team Tournament Registration Instructions.pdf'
     },
   ]
 
@@ -69,24 +80,28 @@ export default function HelpContent() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredGuides.map((guide) => {
             const colorClasses = {
               green: 'border-green-300 bg-green-50 hover:border-green-500 hover:shadow-green-200',
               blue: 'border-blue-300 bg-blue-50 hover:border-blue-500 hover:shadow-blue-200',
               purple: 'border-purple-300 bg-purple-50 hover:border-purple-500 hover:shadow-purple-200',
+              orange: 'border-orange-300 bg-orange-50 hover:border-orange-500 hover:shadow-orange-200',
             }[guide.color]
 
             const textColorClasses = {
               green: 'text-green-700',
               blue: 'text-blue-700',
               purple: 'text-purple-700',
+              orange: 'text-orange-700',
             }[guide.color]
 
             return (
-              <Link
+              <a
                 key={guide.id}
-                href={`/help/${guide.id}`}
+                href={guide.pdfPath}
+                target="_blank"
+                rel="noopener noreferrer"
                 className={`block p-6 border-2 rounded-lg hover:shadow-xl transition-all ${colorClasses}`}
               >
                 <div className="text-4xl mb-3">{guide.icon}</div>
@@ -96,8 +111,8 @@ export default function HelpContent() {
                 <p className="text-sm text-gray-700 mb-4">
                   {guide.description}
                 </p>
-                <span className={`text-sm font-medium ${textColorClasses}`}>View Guide →</span>
-              </Link>
+                <span className={`text-sm font-medium ${textColorClasses}`}>Download PDF →</span>
+              </a>
             )
           })}
         </div>
