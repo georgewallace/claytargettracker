@@ -4,11 +4,6 @@ export function calculateDivision(grade: string | null | undefined): string | nu
 
   const gradeStr = grade.toLowerCase()
 
-  // Handle legacy 'k' value
-  if (gradeStr === 'k') {
-    return 'Novice'
-  }
-
   // Handle 'collegiate' variations
   if (gradeStr === 'collegiate' || gradeStr === 'college') {
     return 'Collegiate'
@@ -18,8 +13,8 @@ export function calculateDivision(grade: string | null | undefined): string | nu
   const gradeNum = parseInt(grade, 10)
   if (isNaN(gradeNum)) return null
 
-  // Novice: Kindergarten (0) through 6th grade
-  if (gradeNum >= 0 && gradeNum <= 6) {
+  // Novice: 5th through 6th grade
+  if (gradeNum >= 5 && gradeNum <= 6) {
     return 'Novice'
   }
 
@@ -43,11 +38,6 @@ export function calculateDivision(grade: string | null | undefined): string | nu
 
 // Get all available grade options
 export const gradeOptions = [
-  { value: '0', label: 'Kindergarten' },
-  { value: '1', label: '1st Grade' },
-  { value: '2', label: '2nd Grade' },
-  { value: '3', label: '3rd Grade' },
-  { value: '4', label: '4th Grade' },
   { value: '5', label: '5th Grade' },
   { value: '6', label: '6th Grade' },
   { value: '7', label: '7th Grade' },
