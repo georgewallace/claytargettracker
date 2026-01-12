@@ -61,7 +61,10 @@ export async function POST(request: NextRequest) {
       return addSecurityHeaders(response)
     }
 
-    const { email, password, firstName, lastName, role, grade, firstYearCompetition, gender, birthMonth, birthDay, birthYear } = await request.json()
+    let { email, password, firstName, lastName, role, grade, firstYearCompetition, gender, birthMonth, birthDay, birthYear } = await request.json()
+
+    // Normalize email to lowercase (email addresses are case-insensitive per RFC 5321)
+    email = email?.toLowerCase().trim()
 
     // Validate input
     if (!email || !password || !firstName || !lastName) {

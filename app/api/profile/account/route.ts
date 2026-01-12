@@ -16,7 +16,12 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { firstName, lastName, phone, email, currentPassword, newPassword } = body
+    let { firstName, lastName, phone, email, currentPassword, newPassword } = body
+
+    // Normalize email to lowercase (email addresses are case-insensitive per RFC 5321)
+    if (email) {
+      email = email.toLowerCase().trim()
+    }
 
     // Validate at least one field is provided
     if (!firstName && !lastName && !phone && !email && !newPassword) {
