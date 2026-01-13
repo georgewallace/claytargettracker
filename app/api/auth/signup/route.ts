@@ -137,7 +137,10 @@ export async function POST(request: NextRequest) {
     // Check for placeholder user with matching name (from bulk import)
     const placeholderUser = await prisma.user.findFirst({
       where: {
-        name: sanitizedName,
+        name: {
+          equals: sanitizedName,
+          mode: 'insensitive'
+        },
         email: {
           endsWith: '@placeholder.local'
         }
