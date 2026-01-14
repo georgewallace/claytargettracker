@@ -18,9 +18,10 @@ model User {
   firstName String?
   lastName  String?
   phone     String?
-  password  String
-  role      String   @default("athlete") // athlete, coach, admin
-  createdAt DateTime @default(now())
+  password           String
+  role               String   @default("athlete") // athlete, coach, admin
+  mustChangePassword Boolean  @default(false) // Set to true when admin resets password
+  createdAt          DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   athlete            Athlete?
