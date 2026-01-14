@@ -24,6 +24,7 @@ frontend:
         - |
           echo "=== Resolving any failed migrations ==="
           npx prisma migrate resolve --rolled-back "20241221_add_user_name_fields_and_team_contact_info" || echo "No failed migration to resolve"
+          npx prisma migrate resolve --applied "20260114_add_must_change_password" || echo "Migration not found or already resolved"
           echo "=== Running database migrations ==="
           MAX_RETRIES=3
           RETRY_COUNT=0
