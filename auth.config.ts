@@ -20,6 +20,11 @@ export const authConfig = {
         return true
       }
 
+      // Allow authenticated users to access change-password page
+      if (pathname === '/change-password' && isLoggedIn) {
+        return true
+      }
+
       // Require authentication for all other pages
       return isLoggedIn
     },
@@ -30,13 +35,14 @@ export const authConfig = {
         token.email = user.email
         token.name = user.name
         token.role = user.role
+        token.mustChangePassword = user.mustChangePassword
       }
-      
+
       // Handle session updates
       if (trigger === 'update' && session) {
         token = { ...token, ...session }
       }
-      
+
       return token
     },
     async session({ session, token }) {
@@ -45,6 +51,7 @@ export const authConfig = {
         session.user.email = token.email as string
         session.user.name = token.name as string
         session.user.role = token.role as string
+        session.user.mustChangePassword = token.mustChangePassword as boolean
       }
       return session
     },

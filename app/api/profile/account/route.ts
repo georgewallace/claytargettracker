@@ -85,7 +85,10 @@ export async function PUT(request: NextRequest) {
     if (lastName !== undefined) updateData.lastName = lastName
     if (phone !== undefined) updateData.phone = phone
     if (email) updateData.email = email
-    if (hashedPassword) updateData.password = hashedPassword
+    if (hashedPassword) {
+      updateData.password = hashedPassword
+      updateData.mustChangePassword = false // Clear flag when password is changed
+    }
 
     // Automatically update name field for backwards compatibility
     if (firstName !== undefined || lastName !== undefined) {

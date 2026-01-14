@@ -107,6 +107,11 @@ export async function getUserFromApiKey(): Promise<any | null> {
       return null
     }
 
+    // Check if user must change password
+    if (apiKeyRecord.user.mustChangePassword) {
+      return null // Deny API access until password is changed
+    }
+
     // Update last used timestamp (fire and forget)
     prisma.apiKey.update({
       where: { id: apiKeyRecord.id },

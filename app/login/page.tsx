@@ -29,7 +29,15 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/')
+      // Check if user needs to change password
+      const response = await fetch('/api/auth/session')
+      const session = await response.json()
+
+      if (session?.user?.mustChangePassword) {
+        router.push('/change-password?forced=true')
+      } else {
+        router.push('/')
+      }
       router.refresh()
     } catch (error) {
       setError('An error occurred. Please try again.')
