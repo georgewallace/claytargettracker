@@ -55,8 +55,10 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
     }),
     // Athlete count
     prisma.athlete.count(),
-    // Team count
-    prisma.team.count(),
+    // Team count (exclude Unaffiliated team)
+    prisma.team.count({
+      where: { isIndividualTeam: false }
+    }),
     // Coach count
     prisma.user.count({
       where: {
