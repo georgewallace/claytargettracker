@@ -5,6 +5,24 @@ import * as XLSX from 'xlsx'
 import { calculateDivision } from '@/lib/divisions'
 import { getOrCreateIndividualTeam } from '@/lib/individualTeamHelpers'
 
+async function generateShooterId(): Promise<string> {
+  const year = new Date().getFullYear().toString().slice(-2)
+  const prefix = `${year}-`
+
+  const existing = await prisma.athlete.findMany({
+    where: { shooterId: { startsWith: prefix } },
+    select: { shooterId: true },
+  })
+
+  let maxSeq = 999
+  for (const { shooterId } of existing) {
+    const seq = parseInt(shooterId!.slice(prefix.length), 10)
+    if (!isNaN(seq) && seq > maxSeq) maxSeq = seq
+  }
+
+  return `${prefix}${String(maxSeq + 1).padStart(4, '0')}`
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
@@ -155,6 +173,8 @@ async function processAthleteImport(data: any[], results: any) {
           data: {
             email: userEmail,
             name,
+            firstName,
+            lastName,
             password: defaultPassword,
             role: 'athlete'
           }
@@ -181,7 +201,7 @@ async function processAthleteImport(data: any[], results: any) {
           nscaClass: nscaClass || null,
           ataClass: ataClass || null,
           nssaClass: nssaClass || null,
-          shooterId: shooterId || null,
+          shooterId: shooterId || await generateShooterId(),
           isActive: true
         }
       })
@@ -251,6 +271,8 @@ async function processCoachImport(data: any[], results: any) {
           data: {
             email: userEmail,
             name,
+            firstName,
+            lastName,
             password: defaultPassword,
             role: 'coach'
           }

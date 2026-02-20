@@ -21,6 +21,7 @@
     "db:seed-history": "tsx scripts/seed-tournament-history.ts",
     "db:clear": "tsx scripts/clear-production-database.ts",
     "db:clear:staging": "bash scripts/clear-staging-db.sh",
+    "db:sync-from-prod": "bash scripts/sync-prod-to-staging.sh",
     "db:clear:production": "bash scripts/clear-production-db.sh",
     "help:sync": "tsx scripts/sync-help-docs.ts",
     "demo:dev": "NEXT_PUBLIC_DEMO_MODE=true next dev",
