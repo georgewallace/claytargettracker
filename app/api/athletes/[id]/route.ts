@@ -16,7 +16,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id } = await params
-    const { birthDay, birthMonth, birthYear, nscaClass, ataClass, nssaClass, grade, divisionOverride, isActive } = await request.json()
+    const { birthDay, birthMonth, birthYear, gender, nscaClass, ataClass, nssaClass, ataNumber, nscaNumber, nssaNumber, grade, divisionOverride, isActive } = await request.json()
     
     // Check if user is a coach or admin
     if (user.role !== 'coach' && user.role !== 'admin') {
@@ -88,9 +88,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         birthDay: parsedBirthDay,
         birthMonth: parsedBirthMonth,
         birthYear: parsedBirthYear,
+        gender: gender && gender.trim() !== '' ? gender.trim() : null,
         nscaClass: nscaClass && nscaClass.trim() !== '' ? nscaClass.trim() : null,
         ataClass: ataClass && ataClass.trim() !== '' ? ataClass.trim() : null,
         nssaClass: nssaClass && nssaClass.trim() !== '' ? nssaClass.trim() : null,
+        ataNumber: ataNumber && ataNumber.trim() !== '' ? ataNumber.trim() : null,
+        nscaNumber: nscaNumber && nscaNumber.trim() !== '' ? nscaNumber.trim() : null,
+        nssaNumber: nssaNumber && nssaNumber.trim() !== '' ? nssaNumber.trim() : null,
         grade: grade && grade.trim() !== '' ? grade.trim() : null,
         division,
         divisionOverride: divisionOverride && divisionOverride.trim() !== '' ? divisionOverride.trim() : null,

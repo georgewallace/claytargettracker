@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { gradeOptions, monthOptions, getYearOptions, getDayOptions, calculateDivision, divisionOptions } from '@/lib/divisions'
+import { gradeOptions, calculateDivision, divisionOptions } from '@/lib/divisions'
 
 interface Athlete {
   id: string
@@ -13,66 +13,62 @@ interface Athlete {
   nscaClass: string | null
   ataClass: string | null
   nssaClass: string | null
+  ataNumber: string | null
+  nscaNumber: string | null
+  nssaNumber: string | null
   grade: string | null
   division: string | null
   divisionOverride: string | null
   isActive: boolean
   profilePictureUrl: string | null
-  user: {
-    name: string
-  }
-  team: {
-    name: string
-  } | null
+  user: { name: string }
+  team: { name: string } | null
 }
 
 interface EditAthleteFormProps {
   athlete: Athlete
 }
 
-// Helper function to convert gender code to display value
-const getGenderDisplay = (gender: string | null): string => {
-  if (!gender) return ''
-  return gender === 'M' ? 'Male' : gender === 'F' ? 'Female' : gender
-}
+const NSCA_CLASSES = ['D', 'C', 'B', 'A', 'AA', 'Master']
+const ATA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA']
+const NSSA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA']
 
 export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
   const router = useRouter()
-  const yearOptions = getYearOptions()
-  
-  // Convert birth fields to date string (YYYY-MM-DD) for date input
+
   const getBirthDateString = () => {
     if (athlete.birthYear && athlete.birthMonth && athlete.birthDay) {
-      const year = athlete.birthYear
-      const month = String(athlete.birthMonth).padStart(2, '0')
-      const day = String(athlete.birthDay).padStart(2, '0')
-      return `${year}-${month}-${day}`
+      return `${athlete.birthYear}-${String(athlete.birthMonth).padStart(2, '0')}-${String(athlete.birthDay).padStart(2, '0')}`
     }
     return ''
   }
 
   const [formData, setFormData] = useState({
     birthDate: getBirthDateString(),
+    gender: athlete.gender || '',
+    grade: athlete.grade || '',
+    divisionOverride: athlete.divisionOverride || '',
+    isActive: athlete.isActive,
     nscaClass: athlete.nscaClass || '',
     ataClass: athlete.ataClass || '',
     nssaClass: athlete.nssaClass || '',
-    grade: athlete.grade || '',
-    divisionOverride: athlete.divisionOverride || '',
-    isActive: athlete.isActive
+    ataNumber: athlete.ataNumber || '',
+    nscaNumber: athlete.nscaNumber || '',
+    nssaNumber: athlete.nssaNumber || '',
   })
-  
-  const [calculatedDivision, setCalculatedDivision] = useState<string | null>(athlete.division)
+
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [profilePicture, setProfilePicture] = useState<File | null>(null)
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(athlete.profilePictureUrl)
   const [uploadingPicture, setUploadingPicture] = useState(false)
 
-  // Recalculate division when grade changes
-  useEffect(() => {
-    const division = calculateDivision(formData.grade)
-    setCalculatedDivision(division)
-  }, [formData.grade])
+  const calculatedDivision = calculateDivision(formData.grade)
+  const effectiveDivision = formData.divisionOverride || calculatedDivision
+
+  const handleChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -80,7 +76,6 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
     setLoading(true)
 
     try {
-      // Parse birth date into day, month, year
       let birthDay = null, birthMonth = null, birthYear = null
       if (formData.birthDate) {
         const [year, month, day] = formData.birthDate.split('-')
@@ -89,17 +84,10 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
         birthDay = parseInt(day)
       }
 
-      const submitData = {
-        ...formData,
-        birthDay,
-        birthMonth,
-        birthYear
-      }
-
       const response = await fetch(`/api/athletes/${athlete.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData)
+        body: JSON.stringify({ ...formData, birthDay, birthMonth, birthYear })
       })
 
       const data = await response.json()
@@ -111,75 +99,47 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
 
       router.push('/teams/my-team')
       router.refresh()
-    } catch (error) {
+    } catch {
       setError('An error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
-  }
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-      if (!allowedTypes.includes(file.type)) {
-        setError('Invalid file type. Please upload an image (JPEG, PNG, GIF, or WebP)')
-        return
-      }
+    if (!file) return
 
-      // Validate file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024
-      if (file.size > maxSize) {
-        setError('File too large. Maximum size is 5MB')
-        return
-      }
-
-      setProfilePicture(file)
-      
-      // Create preview
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setProfilePicturePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-      setError('')
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      setError('Invalid file type. Please upload an image (JPEG, PNG, GIF, or WebP)')
+      return
     }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File too large. Maximum size is 5MB')
+      return
+    }
+
+    setProfilePicture(file)
+    const reader = new FileReader()
+    reader.onloadend = () => setProfilePicturePreview(reader.result as string)
+    reader.readAsDataURL(file)
+    setError('')
   }
 
   const handleUploadPicture = async () => {
     if (!profilePicture) return
-
     setUploadingPicture(true)
     setError('')
-
     try {
-      const formData = new FormData()
-      formData.append('file', profilePicture)
-
-      const response = await fetch(`/api/athletes/${athlete.id}/profile-picture`, {
-        method: 'POST',
-        body: formData
-      })
-
+      const fd = new FormData()
+      fd.append('file', profilePicture)
+      const response = await fetch(`/api/athletes/${athlete.id}/profile-picture`, { method: 'POST', body: fd })
       const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to upload profile picture')
-        return
-      }
-
-      // Success - refresh the page
+      if (!response.ok) { setError(data.error || 'Failed to upload profile picture'); return }
       router.refresh()
       setProfilePicture(null)
-    } catch (error) {
+    } catch {
       setError('An error occurred while uploading. Please try again.')
     } finally {
       setUploadingPicture(false)
@@ -187,28 +147,17 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
   }
 
   const handleRemovePicture = async () => {
-    if (!confirm('Are you sure you want to remove your profile picture?')) return
-
+    if (!confirm('Remove this profile picture?')) return
     setUploadingPicture(true)
     setError('')
-
     try {
-      const response = await fetch(`/api/athletes/${athlete.id}/profile-picture`, {
-        method: 'DELETE'
-      })
-
+      const response = await fetch(`/api/athletes/${athlete.id}/profile-picture`, { method: 'DELETE' })
       const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || 'Failed to remove profile picture')
-        return
-      }
-
-      // Success - clear preview and refresh
+      if (!response.ok) { setError(data.error || 'Failed to remove profile picture'); return }
       setProfilePicturePreview(null)
       setProfilePicture(null)
       router.refresh()
-    } catch (error) {
+    } catch {
       setError('An error occurred while removing the picture. Please try again.')
     } finally {
       setUploadingPicture(false)
@@ -216,302 +165,175 @@ export default function EditAthleteForm({ athlete }: EditAthleteFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
           {error}
         </div>
       )}
 
       {/* Profile Picture */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <label className="block text-sm font-medium text-gray-900 mb-4">
-          Profile Picture
-        </label>
-        
-        <div className="flex items-start gap-6">
-          {/* Preview */}
-          <div className="flex-shrink-0">
-            {profilePicturePreview ? (
-              <div className="relative">
-                <img
-                  src={profilePicturePreview}
-                  alt="Profile preview"
-                  className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
-                />
-                {profilePicturePreview === athlete.profilePictureUrl && (
-                  <button
-                    type="button"
-                    onClick={handleRemovePicture}
-                    disabled={uploadingPicture}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition disabled:opacity-50"
-                    title="Remove picture"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
-                <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-            )}
-          </div>
-
-          {/* Upload controls */}
-          <div className="flex-1">
-            <div className="space-y-3">
-              <div>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                  onChange={handleFileChange}
-                  className="block w-full text-sm text-gray-600
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:text-sm file:font-medium
-                    file:bg-indigo-50 file:text-indigo-700
-                    hover:file:bg-indigo-100
-                    file:cursor-pointer cursor-pointer"
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  JPEG, PNG, GIF, or WebP. Max 5MB.
-                </p>
-              </div>
-
-              {profilePicture && (
-                <button
-                  type="button"
-                  onClick={handleUploadPicture}
-                  disabled={uploadingPicture}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                >
-                  {uploadingPicture ? 'Uploading...' : 'Upload Picture'}
+      <div className="flex items-center gap-4">
+        <div className="shrink-0">
+          {profilePicturePreview ? (
+            <div className="relative">
+              <img src={profilePicturePreview} alt="Profile" className="w-16 h-16 rounded-full object-cover border-2 border-gray-200" />
+              {profilePicturePreview === athlete.profilePictureUrl && (
+                <button type="button" onClick={handleRemovePicture} disabled={uploadingPicture}
+                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 transition disabled:opacity-50" title="Remove">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Gender (Read-only for coaches) */}
-      {athlete.gender && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium text-gray-900">Gender</div>
-              <div className="text-xs text-gray-600 mt-1">Only the athlete can change this</div>
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
             </div>
-            <div className="text-lg font-semibold text-gray-700">{getGenderDisplay(athlete.gender)}</div>
-          </div>
+          )}
         </div>
-      )}
-
-      {/* Birth Date */}
-      <div>
-        <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-2">
-          Date of Birth
-        </label>
-        <input
-          id="birthDate"
-          name="birthDate"
-          type="date"
-          value={formData.birthDate}
-          onChange={handleChange}
-          max={new Date().toISOString().split('T')[0]}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          Used for age calculation and division assignment
-        </p>
+        <div className="flex items-center gap-3">
+          <label className="cursor-pointer">
+            <span className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+              {profilePicturePreview ? 'Change photo' : 'Upload photo'}
+            </span>
+            <input type="file" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" onChange={handleFileChange} className="sr-only" />
+          </label>
+          {profilePicture && (
+            <button type="button" onClick={handleUploadPicture} disabled={uploadingPicture}
+              className="text-sm px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 transition">
+              {uploadingPicture ? 'Uploading…' : 'Save photo'}
+            </button>
+          )}
+          <p className="text-xs text-gray-400">JPEG, PNG, GIF or WebP · 5MB max</p>
+        </div>
       </div>
 
-      {/* Grade */}
-      <div>
-        <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-2">
-          Grade in School
-        </label>
-        <select
-          id="grade"
-          name="grade"
-          value={formData.grade}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          <option value="">Select Grade</option>
-          {gradeOptions.map(grade => (
-            <option key={grade.value} value={grade.value}>
-              {grade.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Core fields */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+          <select id="gender" value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+            <option value="">Select gender</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+          </select>
+        </div>
 
-      {/* Division (Auto-calculated, shown but not editable) */}
-      {calculatedDivision && (
-        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium text-indigo-900">Division (Auto-calculated)</div>
-              <div className="text-xs text-indigo-700 mt-1">Based on grade in school</div>
-            </div>
-            <div className="text-lg font-bold text-indigo-600">{calculatedDivision}</div>
+        <div>
+          <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+          <input id="birthDate" type="date" value={formData.birthDate} onChange={(e) => handleChange('birthDate', e.target.value)}
+            max={new Date().toISOString().split('T')[0]}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
+        </div>
+
+        <div>
+          <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-1">Grade / Level</label>
+          <select id="grade" value={formData.grade} onChange={(e) => handleChange('grade', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+            <option value="">Select grade</option>
+            {gradeOptions.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <div className="block text-sm font-medium text-gray-700 mb-1">Division</div>
+          <div className="flex items-center h-[38px] px-3 border border-gray-200 bg-gray-50 rounded-md">
+            <span className="text-sm font-semibold text-indigo-700">
+              {effectiveDivision || <span className="text-gray-400 font-normal">Set by grade</span>}
+            </span>
+            {formData.divisionOverride && <span className="ml-2 text-xs text-orange-500">(override)</span>}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Division Override */}
       <div>
-        <label htmlFor="divisionOverride" className="block text-sm font-medium text-gray-700 mb-2">
-          Division Override (Optional)
+        <label htmlFor="divisionOverride" className="block text-sm font-medium text-gray-700 mb-1">
+          Division Override
+          <span className="ml-1 text-xs font-normal text-gray-500">(optional)</span>
         </label>
-        <select
-          id="divisionOverride"
-          name="divisionOverride"
-          value={formData.divisionOverride}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          <option value="">Use Auto-calculated Division</option>
-          {divisionOptions.map(division => (
-            <option key={division.value} value={division.value}>
-              {division.label}
-            </option>
-          ))}
+        <select id="divisionOverride" value={formData.divisionOverride} onChange={(e) => handleChange('divisionOverride', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+          <option value="">Use auto-calculated division</option>
+          {divisionOptions.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
         </select>
-        <p className="text-xs text-gray-500 mt-1">
-          Manually override the auto-calculated division. Leave empty to use the auto-calculated value.
-          {formData.divisionOverride && (
-            <span className="text-orange-600 font-medium ml-1">
-              (Using override: {formData.divisionOverride})
-            </span>
-          )}
-        </p>
       </div>
 
-      {/* Active Status */}
-      <div className={`border rounded-lg p-4 ${formData.isActive ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-300'}`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <label htmlFor="isActive" className="text-sm font-medium text-gray-900">
-              Athlete Status
-            </label>
-            <p className="text-xs text-gray-600 mt-1">
-              {formData.isActive
-                ? 'Active athletes can compete and be assigned to squads'
-                : 'Inactive athletes are hidden from squad assignments and new registrations'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isActive ? 'bg-green-600' : 'bg-gray-400'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                formData.isActive ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
+      {/* Active status */}
+      <div className="flex items-center justify-between py-3 border-t border-b border-gray-200">
+        <div>
+          <span className="text-sm font-medium text-gray-700">Active</span>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {formData.isActive ? 'Can compete and be assigned to squads' : 'Hidden from squad assignments and registrations'}
+          </p>
         </div>
-        <div className="mt-2">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            formData.isActive
-              ? 'bg-green-100 text-green-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}>
-            {formData.isActive ? '● Active' : '○ Inactive'}
-          </span>
-        </div>
-      </div>
-
-      {/* NSCA Class */}
-      <div>
-        <label htmlFor="nscaClass" className="block text-sm font-medium text-gray-700 mb-2">
-          NSCA Class
-        </label>
-        <input
-          id="nscaClass"
-          name="nscaClass"
-          type="text"
-          value={formData.nscaClass}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="e.g., A, B, C, D, E"
-        />
-        <p className="text-xs text-gray-500 mt-1">NSCA (National Sporting Clays Association) classification</p>
-      </div>
-
-      {/* ATA Class */}
-      <div>
-        <label htmlFor="ataClass" className="block text-sm font-medium text-gray-700 mb-2">
-          ATA Class
-        </label>
-        <input
-          id="ataClass"
-          name="ataClass"
-          type="text"
-          value={formData.ataClass}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="e.g., AA, A, B, C, D"
-        />
-        <p className="text-xs text-gray-500 mt-1">ATA (Amateur Trapshooting Association) classification</p>
-      </div>
-
-      {/* NSSA Class */}
-      <div>
-        <label htmlFor="nssaClass" className="block text-sm font-medium text-gray-700 mb-2">
-          NSSA Class
-        </label>
-        <input
-          id="nssaClass"
-          name="nssaClass"
-          type="text"
-          value={formData.nssaClass}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="e.g., AA, A, B, C, D, E"
-        />
-        <p className="text-xs text-gray-500 mt-1">NSSA (National Skeet Shooting Association) classification</p>
-      </div>
-
-      {/* Division Explanation */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <div className="text-sm font-medium text-gray-900 mb-2">Division Categories:</div>
-        <ul className="text-xs text-gray-600 space-y-1">
-          <li>• <span className="font-medium">Novice:</span> 6th grade and below</li>
-          <li>• <span className="font-medium">Intermediate:</span> 7th – 8th grade</li>
-          <li>• <span className="font-medium">Junior Varsity:</span> 9th grade</li>
-          <li>• <span className="font-medium">Varsity:</span> 10th – 12th grade</li>
-          <li>• <span className="font-medium">Collegiate:</span> Post-high school</li>
-          <li className="text-xs text-gray-500 italic mt-2">• <span className="font-medium">Open/Unassigned:</span> For squadding purposes only</li>
-        </ul>
-      </div>
-
-      <div className="flex gap-4 pt-4">
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
-        >
-          {loading ? 'Saving...' : 'Save Changes'}
+        <button type="button" onClick={() => handleChange('isActive', !formData.isActive)}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-600' : 'bg-gray-300'}`}>
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition"
-        >
+      </div>
+
+      {/* Classifications */}
+      <div className="pt-1">
+        <p className="text-sm font-medium text-gray-700 mb-3">Shooting Classifications</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="nscaClass" className="block text-xs font-medium text-gray-600 mb-1">NSCA Class</label>
+            <select id="nscaClass" value={formData.nscaClass} onChange={(e) => handleChange('nscaClass', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+              <option value="">Select</option>
+              {NSCA_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="nscaNumber" className="block text-xs font-medium text-gray-600 mb-1">NSCA Number</label>
+            <input id="nscaNumber" type="text" value={formData.nscaNumber} onChange={(e) => handleChange('nscaNumber', e.target.value)}
+              placeholder="e.g., 123456" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+          <div>
+            <label htmlFor="ataClass" className="block text-xs font-medium text-gray-600 mb-1">ATA Class</label>
+            <select id="ataClass" value={formData.ataClass} onChange={(e) => handleChange('ataClass', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+              <option value="">Select</option>
+              {ATA_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="ataNumber" className="block text-xs font-medium text-gray-600 mb-1">ATA Number</label>
+            <input id="ataNumber" type="text" value={formData.ataNumber} onChange={(e) => handleChange('ataNumber', e.target.value)}
+              placeholder="e.g., 123456" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+          <div>
+            <label htmlFor="nssaClass" className="block text-xs font-medium text-gray-600 mb-1">NSSA Class</label>
+            <select id="nssaClass" value={formData.nssaClass} onChange={(e) => handleChange('nssaClass', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+              <option value="">Select</option>
+              {NSSA_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="nssaNumber" className="block text-xs font-medium text-gray-600 mb-1">NSSA Number</label>
+            <input id="nssaNumber" type="text" value={formData.nssaNumber} onChange={(e) => handleChange('nssaNumber', e.target.value)}
+              placeholder="e.g., 123456" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button type="submit" disabled={loading}
+          className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium">
+          {loading ? 'Saving…' : 'Save Changes'}
+        </button>
+        <button type="button" onClick={() => router.back()}
+          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition text-sm">
           Cancel
         </button>
       </div>
     </form>
   )
 }
-

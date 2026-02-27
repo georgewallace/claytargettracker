@@ -135,9 +135,7 @@ export default function AccountSettings({ user }: AccountSettingsProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Account Settings</h2>
-
+    <div>
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
           {error}
@@ -330,4 +328,5 @@ export default function AccountSettings({ user }: AccountSettingsProps) {
     </div>
   )
 }
+
 

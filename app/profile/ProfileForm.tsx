@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { gradeOptions } from '@/lib/divisions'
+import { gradeOptions, divisionOptions, calculateDivision } from '@/lib/divisions'
 
 interface athlete {
   id: string
@@ -12,6 +12,7 @@ interface athlete {
   birthYear: number | null
   grade: string | null
   division: string | null
+  divisionOverride: string | null
   nscaClass: string | null
   ataClass: string | null
   nssaClass: string | null
@@ -37,7 +38,6 @@ const NSSA_CLASSES = ['E', 'D', 'C', 'B', 'A', 'AA', 'AAA']
 export default function ProfileForm({ athlete }: ProfileFormProps) {
   const router = useRouter()
 
-  // Convert birth fields to date string (YYYY-MM-DD) for date input
   const getBirthDateString = () => {
     if (athlete.birthYear && athlete.birthMonth && athlete.birthDay) {
       const year = athlete.birthYear
@@ -52,6 +52,7 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
     gender: athlete.gender || '',
     birthDate: getBirthDateString(),
     grade: athlete.grade || '',
+    divisionOverride: athlete.divisionOverride || '',
     nscaClass: athlete.nscaClass || '',
     ataClass: athlete.ataClass || '',
     nssaClass: athlete.nssaClass || '',
@@ -65,6 +66,9 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const calculatedDivision = calculateDivision(formData.grade)
+  const effectiveDivision = formData.divisionOverride || calculatedDivision
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -72,7 +76,6 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
     setLoading(true)
 
     try {
-      // Parse birth date into day, month, year
       let birthDay = null, birthMonth = null, birthYear = null
       if (formData.birthDate) {
         const [year, month, day] = formData.birthDate.split('-')
@@ -81,18 +84,10 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
         birthDay = parseInt(day)
       }
 
-      const submitData = {
-        ...formData,
-        birthDay,
-        birthMonth,
-        birthYear,
-        firstYearCompetition
-      }
-
       const response = await fetch(`/api/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData)
+        body: JSON.stringify({ ...formData, birthDay, birthMonth, birthYear, firstYearCompetition })
       })
 
       const data = await response.json()
@@ -103,289 +98,188 @@ export default function ProfileForm({ athlete }: ProfileFormProps) {
       }
 
       setSuccess('Profile updated successfully!')
-      setTimeout(() => {
-        router.refresh()
-      }, 500)
-    } catch (error) {
+      setTimeout(() => router.refresh(), 500)
+    } catch {
       setError('An error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const currentYear = new Date().getFullYear()
-  const yearOptions = Array.from({ length: 30 }, (_, i) => currentYear - i - 10)
-
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Athlete profile information</h2>
-      
+    <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
           {error}
         </div>
       )}
-      
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-6">
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md text-sm">
           {success}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Basic Information */}
-        <div className="md:col-span-2">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
-        </div>
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Gender */}
         <div>
-          <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-2">
-            Gender *
+          <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+            Gender <span className="text-red-500">*</span>
           </label>
           <select
             id="gender"
             value={formData.gender}
             onChange={(e) => handleChange('gender', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
             required
           >
-            <option value="">Select Gender</option>
+            <option value="">Select gender</option>
             <option value="M">Male</option>
             <option value="F">Female</option>
           </select>
-          <p className="text-xs text-gray-500 mt-1">
-            Required for tournament HOA calculations
-          </p>
         </div>
-
-        {/* Grade */}
-        <div>
-          <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-2">
-            Grade/Level
-          </label>
-          <select
-            id="grade"
-            value={formData.grade}
-            onChange={(e) => {
-              handleChange('grade', e.target.value)
-              // Reset first year competition when grade changes
-              setFirstYearCompetition(null)
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">Select Grade</option>
-            {gradeOptions.map(grade => (
-              <option key={grade.value} value={grade.value}>{grade.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* First Year Competition - Only show for 10th-12th grade */}
-        {['10', '11', '12'].includes(formData.grade) && (
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Is this your first year competing in high school? *
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="firstYear"
-                  required
-                  checked={firstYearCompetition === true}
-                  onChange={() => setFirstYearCompetition(true)}
-                  className="mr-2 h-4 w-4"
-                />
-                <span className="text-gray-900 font-medium">Yes</span>
-              </label>
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="firstYear"
-                  required
-                  checked={firstYearCompetition === false}
-                  onChange={() => setFirstYearCompetition(false)}
-                  className="mr-2 h-4 w-4"
-                />
-                <span className="text-gray-900 font-medium">No</span>
-              </label>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              This determines your division (Junior Varsity for first year, Varsity otherwise)
-            </p>
-          </div>
-        )}
 
         {/* Birth Date */}
-        <div className="md:col-span-2">
-          <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-2">
+        <div>
+          <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700 mb-1">
             Date of Birth
           </label>
           <input
             id="birthDate"
             type="date"
             value={formData.birthDate}
-            disabled
-            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+            onChange={(e) => handleChange('birthDate', e.target.value)}
+            max={new Date().toISOString().split('T')[0]}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           />
-          <p className="text-xs text-gray-500 mt-1">
-            Date of birth cannot be changed after account creation
-          </p>
         </div>
 
-        {/* Organization Classifications */}
-        <div className="md:col-span-2 pt-6 border-t border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Shooting Classifications</h3>
-        </div>
-
-        {/* NSCA Class */}
+        {/* Grade */}
         <div>
-          <label htmlFor="nscaClass" className="block text-sm font-medium text-gray-700 mb-2">
-            NSCA Classification
+          <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-1">
+            Grade / Level
           </label>
           <select
-            id="nscaClass"
-            value={formData.nscaClass}
-            onChange={(e) => handleChange('nscaClass', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            id="grade"
+            value={formData.grade}
+            onChange={(e) => {
+              handleChange('grade', e.target.value)
+              setFirstYearCompetition(null)
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           >
-            <option value="">Select Class</option>
-            {NSCA_CLASSES.map(cls => (
-              <option key={cls} value={cls}>{cls}</option>
+            <option value="">Select grade</option>
+            {gradeOptions.map(g => (
+              <option key={g.value} value={g.value}>{g.label}</option>
             ))}
           </select>
         </div>
 
-        {/* NSCA Number */}
+        {/* Division display */}
         <div>
-          <label htmlFor="nscaNumber" className="block text-sm font-medium text-gray-700 mb-2">
-            NSCA Membership Number
-          </label>
-          <input
-            type="text"
-            id="nscaNumber"
-            value={formData.nscaNumber}
-            onChange={(e) => handleChange('nscaNumber', e.target.value)}
-            placeholder="e.g., 123456"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-
-        {/* ATA Class */}
-        <div>
-          <label htmlFor="ataClass" className="block text-sm font-medium text-gray-700 mb-2">
-            ATA Classification
-          </label>
-          <select
-            id="ataClass"
-            value={formData.ataClass}
-            onChange={(e) => handleChange('ataClass', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">Select Class</option>
-            {ATA_CLASSES.map(cls => (
-              <option key={cls} value={cls}>{cls}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* ATA Number */}
-        <div>
-          <label htmlFor="ataNumber" className="block text-sm font-medium text-gray-700 mb-2">
-            ATA Membership Number
-          </label>
-          <input
-            type="text"
-            id="ataNumber"
-            value={formData.ataNumber}
-            onChange={(e) => handleChange('ataNumber', e.target.value)}
-            placeholder="e.g., 123456"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-
-        {/* NSSA Class */}
-        <div>
-          <label htmlFor="nssaClass" className="block text-sm font-medium text-gray-700 mb-2">
-            NSSA Classification
-          </label>
-          <select
-            id="nssaClass"
-            value={formData.nssaClass}
-            onChange={(e) => handleChange('nssaClass', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">Select Class</option>
-            {NSSA_CLASSES.map(cls => (
-              <option key={cls} value={cls}>{cls}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* NSSA Number */}
-        <div>
-          <label htmlFor="nssaNumber" className="block text-sm font-medium text-gray-700 mb-2">
-            NSSA Membership Number
-          </label>
-          <input
-            type="text"
-            id="nssaNumber"
-            value={formData.nssaNumber}
-            onChange={(e) => handleChange('nssaNumber', e.target.value)}
-            placeholder="e.g., 123456"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+          <div className="block text-sm font-medium text-gray-700 mb-1">Division</div>
+          <div className="flex items-center h-[38px] px-3 border border-gray-200 bg-gray-50 rounded-md">
+            <span className="text-sm font-semibold text-indigo-700">
+              {effectiveDivision || <span className="text-gray-400 font-normal">Set by grade</span>}
+            </span>
+            {formData.divisionOverride && (
+              <span className="ml-2 text-xs text-orange-600">(override)</span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Division Display */}
-      {athlete.division && (
-        <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-sm font-medium text-indigo-900">Current Division</h4>
-              <p className="text-lg font-bold text-indigo-700 mt-1">{athlete.division}</p>
-            </div>
-            <div className="text-xs text-indigo-600">
-              Auto-calculated based on grade
-            </div>
+      {/* First year competition */}
+      {['10', '11', '12'].includes(formData.grade) && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Is this your first year competing in high school? <span className="text-red-500">*</span>
+          </label>
+          <div className="flex gap-4">
+            <label className="flex items-center cursor-pointer">
+              <input type="radio" name="firstYear" required checked={firstYearCompetition === true} onChange={() => setFirstYearCompetition(true)} className="mr-2 h-4 w-4" />
+              <span className="text-sm text-gray-900 font-medium">Yes</span>
+            </label>
+            <label className="flex items-center cursor-pointer">
+              <input type="radio" name="firstYear" required checked={firstYearCompetition === false} onChange={() => setFirstYearCompetition(false)} className="mr-2 h-4 w-4" />
+              <span className="text-sm text-gray-900 font-medium">No</span>
+            </label>
           </div>
+          <p className="text-xs text-gray-500 mt-1">First year = Junior Varsity, otherwise Varsity</p>
         </div>
       )}
 
-      {/* Team Display */}
-      {athlete.team && (
-        <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-sm font-medium text-gray-700">Team</h4>
-              <p className="text-lg font-semibold text-gray-900 mt-1">{athlete.team.name}</p>
-            </div>
+      {/* Division Override */}
+      <div>
+        <label htmlFor="divisionOverride" className="block text-sm font-medium text-gray-700 mb-1">
+          Division Override
+          <span className="ml-1 text-xs font-normal text-gray-500">(optional — contact your coach before changing)</span>
+        </label>
+        <select
+          id="divisionOverride"
+          value={formData.divisionOverride}
+          onChange={(e) => handleChange('divisionOverride', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+        >
+          <option value="">Use auto-calculated division</option>
+          {divisionOptions.map(d => (
+            <option key={d.value} value={d.value}>{d.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Classifications */}
+      <div className="pt-4 border-t border-gray-200">
+        <p className="text-sm font-medium text-gray-700 mb-3">Shooting Classifications</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="nscaClass" className="block text-xs font-medium text-gray-600 mb-1">NSCA Class</label>
+            <select id="nscaClass" value={formData.nscaClass} onChange={(e) => handleChange('nscaClass', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+              <option value="">Select</option>
+              {NSCA_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="nscaNumber" className="block text-xs font-medium text-gray-600 mb-1">NSCA Number</label>
+            <input id="nscaNumber" type="text" value={formData.nscaNumber} onChange={(e) => handleChange('nscaNumber', e.target.value)} placeholder="e.g., 123456" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+          <div>
+            <label htmlFor="ataClass" className="block text-xs font-medium text-gray-600 mb-1">ATA Class</label>
+            <select id="ataClass" value={formData.ataClass} onChange={(e) => handleChange('ataClass', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+              <option value="">Select</option>
+              {ATA_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="ataNumber" className="block text-xs font-medium text-gray-600 mb-1">ATA Number</label>
+            <input id="ataNumber" type="text" value={formData.ataNumber} onChange={(e) => handleChange('ataNumber', e.target.value)} placeholder="e.g., 123456" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+          <div>
+            <label htmlFor="nssaClass" className="block text-xs font-medium text-gray-600 mb-1">NSSA Class</label>
+            <select id="nssaClass" value={formData.nssaClass} onChange={(e) => handleChange('nssaClass', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+              <option value="">Select</option>
+              {NSSA_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="nssaNumber" className="block text-xs font-medium text-gray-600 mb-1">NSSA Number</label>
+            <input id="nssaNumber" type="text" value={formData.nssaNumber} onChange={(e) => handleChange('nssaNumber', e.target.value)} placeholder="e.g., 123456" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
           </div>
         </div>
-      )}
+      </div>
 
-      <div className="flex gap-4 pt-6 mt-6 border-t border-gray-200">
+      <div className="pt-2">
         <button
           type="submit"
           disabled={loading || !formData.gender}
-          className="flex-1 bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+          className="w-full sm:w-auto px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
         >
-          {loading ? 'Saving...' : 'Save Profile'}
+          {loading ? 'Saving…' : 'Save Shooting Profile'}
         </button>
       </div>
-
-      <p className="text-xs text-gray-500 mt-4 text-center">
-        * Required fields must be completed
-      </p>
     </form>
   )
 }

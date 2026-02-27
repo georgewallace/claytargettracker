@@ -39,7 +39,8 @@ export async function PUT(request: NextRequest) {
       nssaClass,
       ataNumber,
       nscaNumber,
-      nssaNumber
+      nssaNumber,
+      divisionOverride
     } = body
 
     // Validate required fields
@@ -81,6 +82,7 @@ export async function PUT(request: NextRequest) {
         birthYear: birthYear ? parseInt(birthYear) : null,
         grade: grade || null,
         division,
+        divisionOverride: divisionOverride && divisionOverride.trim() !== '' ? divisionOverride.trim() : null,
         nscaClass: nscaClass || null,
         ataClass: ataClass || null,
         nssaClass: nssaClass || null,
