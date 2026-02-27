@@ -588,7 +588,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             ) : (
               <div className="space-y-4">
                 {recentScores.map((shoot) => {
-                  const totalHit = shoot.scores.reduce((sum, score) => sum + score.targets, 0)
+                  const totalHit = shoot.scores.reduce((sum, score) => sum + Math.floor(score.targets), 0)
                   const totalTargets = shoot.scores.reduce((sum, score) => sum + score.maxTargets, 0)
                   const percentage = totalTargets > 0 ? Math.round((totalHit / totalTargets) * 100) : 0
                   

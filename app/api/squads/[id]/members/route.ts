@@ -185,6 +185,24 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
     })
 
+    // Resequence remaining members so positions are always 1, 2, 3, ... with no gaps
+    const remaining = await prisma.squadMember.findMany({
+      where: { squadId },
+      orderBy: { position: 'asc' },
+      select: { athleteId: true }
+    })
+
+    if (remaining.length > 0) {
+      await prisma.$transaction(
+        remaining.map((m, idx) =>
+          prisma.squadMember.update({
+            where: { squadId_athleteId: { squadId, athleteId: m.athleteId } },
+            data: { position: idx + 1 }
+          })
+        )
+      )
+    }
+
     // Revalidate the squad manager page
     if (squad) {
       revalidatePath(`/tournaments/${squad.timeSlot.tournamentId}/squads`)

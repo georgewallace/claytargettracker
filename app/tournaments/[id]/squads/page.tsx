@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import SquadManager from './SquadManager'
+import SquadViewer from './SquadViewer'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 
 // Force dynamic rendering (required for getCurrentUser)
@@ -37,10 +38,7 @@ export default async function TournamentSquadsPage({ params }: PageProps) {
     redirect('/login')
   }
 
-  // Only coaches and admins can manage squads
-  if (user.role !== 'coach' && user.role !== 'admin') {
-    redirect(`/tournaments/${id}`)
-  }
+  const isAthleteRole = user.role !== 'coach' && user.role !== 'admin'
 
   const tournament = await prisma.tournament.findUnique({
     where: { id },
@@ -118,6 +116,16 @@ export default async function TournamentSquadsPage({ params }: PageProps) {
       select: { teamId: true }
     })
     coachedTeamId = teamCoach?.teamId || null
+  }
+
+  if (isAthleteRole) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-4">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SquadViewer tournament={tournament} />
+        </div>
+      </div>
+    )
   }
 
   return (

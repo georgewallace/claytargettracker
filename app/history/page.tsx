@@ -57,7 +57,7 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
 
   // Calculate totals for each shoot
   const shootsWithTotals = shoots.map((shoot: any) => {
-    const totalTargets = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
+    const totalTargets = shoot.scores.reduce((sum: number, score: any) => sum + Math.floor(score.targets), 0)
     const totalPossible = shoot.scores.reduce((sum: number, score: any) => sum + score.maxTargets, 0)
     const percentage = totalPossible > 0 ? ((totalTargets / totalPossible) * 100).toFixed(1) : '0'
     
@@ -81,7 +81,7 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
       }
     }
     
-    const targets = shoot.scores.reduce((sum: number, score: any) => sum + score.targets, 0)
+    const targets = shoot.scores.reduce((sum: number, score: any) => sum + Math.floor(score.targets), 0)
     const possible = shoot.scores.reduce((sum: number, score: any) => sum + score.maxTargets, 0)
     
     acc[disciplineId].totalShoots++
@@ -122,7 +122,7 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Total Score:</span>
-                    <span className="font-medium">{stat.totalTargets} / {stat.totalPossible}</span>
+                    <span className="font-medium text-gray-900">{stat.totalTargets} / {stat.totalPossible}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Average:</span>
@@ -207,12 +207,12 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex gap-2">
                           {shoot.scores.map((score: any) => (
-                            <span 
+                            <span
                               key={score.id}
-                              className="text-xs text-gray-600"
-                              title={`Station ${score.stationNumber}: ${score.targets}/${score.maxTargets}`}
+                              className="text-xs text-gray-900"
+                              title={`Station ${score.stationNumber}: ${Math.floor(score.targets)}/${score.maxTargets}`}
                             >
-                              {score.targets}
+                              {Math.floor(score.targets)}
                             </span>
                           ))}
                         </div>

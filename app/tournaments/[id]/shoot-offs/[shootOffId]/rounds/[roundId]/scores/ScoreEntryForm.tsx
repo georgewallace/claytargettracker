@@ -133,7 +133,7 @@ export default function ScoreEntryForm({ round, tournament, participants }: Scor
                   {participant.athlete.team?.name || 'Independent'}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  Tied Score: {participant.tiedScore} pts
+                  Tied Score: {Math.floor(participant.tiedScore)} pts
                 </div>
               </div>
 

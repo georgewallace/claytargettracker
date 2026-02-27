@@ -260,7 +260,7 @@ export default function ShootOffManager({ shootOff, tournament, isAdmin }: Shoot
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Original Score:</span>
-                    <span className="font-semibold text-gray-900">{participant.tiedScore}</span>
+                    <span className="font-semibold text-gray-900">{Math.floor(participant.tiedScore)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Shoot-Off Score:</span>

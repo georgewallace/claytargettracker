@@ -245,6 +245,19 @@ export default async function TournamentDetailPage({ params }: PageProps) {
       })
     : []
 
+  // Check if any squads with members exist for this tournament (for "View Squads" button visibility)
+  const squaddingHasBegun = user
+    ? (await prisma.squadMember.count({
+        where: {
+          squad: {
+            timeSlot: {
+              tournamentId: tournament.id
+            }
+          }
+        }
+      })) > 0
+    : false
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -294,6 +307,16 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                   className="bg-yellow-500 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition font-medium text-sm sm:text-base whitespace-nowrap"
                 >
                   🏆 Leaderboard
+                </Link>
+              )}
+
+              {/* View Squads button for athletes */}
+              {user && user.role === 'athlete' && squaddingHasBegun && (
+                <Link
+                  href={`/tournaments/${tournament.id}/squads`}
+                  className="bg-green-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
+                >
+                  View Squads
                 </Link>
               )}
 
@@ -489,7 +512,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                           </div>
                           <div className="text-xs text-gray-600 mt-0.5">
                             {squadMember.squad.timeSlot.fieldNumber || squadMember.squad.timeSlot.stationNumber} • Squad {squadMember.squad.name}
-                            {squadMember.position && ` • Pos ${squadMember.position}`}
+                            {squadMember.position && ` • Pos ${Math.floor(squadMember.position)}`}
                           </div>
                         </div>
                         <span className="bg-green-600 text-white px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0">

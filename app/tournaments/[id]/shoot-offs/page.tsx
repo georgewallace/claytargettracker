@@ -484,7 +484,7 @@ export default async function ShootOffsPage({ params }: PageProps) {
                                 {participant.athlete.team?.name || 'Independent'}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
-                                Tied at: {participant.tiedScore} pts
+                                Tied at: {Math.floor(participant.tiedScore)} pts
                               </div>
                             </div>
                             {participant.finalPlace && (

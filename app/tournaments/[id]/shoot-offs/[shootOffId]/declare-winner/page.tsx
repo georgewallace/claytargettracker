@@ -199,7 +199,7 @@ export default async function DeclareWinnerPage({ params }: PageProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">Original Score</div>
-              <div className="text-2xl font-bold text-gray-900">{winner.tiedScore} pts</div>
+              <div className="text-2xl font-bold text-gray-900">{Math.floor(winner.tiedScore)} pts</div>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">Shoot-Off Score</div>

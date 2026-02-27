@@ -253,7 +253,7 @@ export default function RegistrationList({
                           </div>
                           <div className="text-green-600">
                             {sm.squad.timeSlot.fieldNumber || sm.squad.timeSlot.stationNumber} • Squad {sm.squad.name}
-                            {sm.position && ` • Pos ${sm.position}`}
+                            {sm.position && ` • Pos ${Math.floor(sm.position)}`}
                           </div>
                         </div>
                       ))}
