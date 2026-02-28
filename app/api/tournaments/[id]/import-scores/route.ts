@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAuthWithApiKey } from '@/lib/auth'
 import * as XLSX from 'xlsx'
 
+export const maxDuration = 60 // seconds — score import can be slow on Neon cold start
+
 // createMany can fail with PostgreSQL 22P03 (binary protocol corruption) on warm Lambda
 // connections. Retry with a fresh connection (via $disconnect) when this occurs.
 async function createManyWithRetry(data: NonNullable<Parameters<typeof prisma.score.createMany>[0]>['data']) {
