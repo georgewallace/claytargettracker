@@ -26,6 +26,7 @@ export default function UserRoleManagement() {
   } | null>(null)
   const [copied, setCopied] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(20)
 
@@ -137,11 +138,17 @@ export default function UserRoleManagement() {
     }
   }
 
-  // Calculate pagination
-  const totalPages = Math.ceil(users.length / itemsPerPage)
+  // Filter then paginate
+  const filteredUsers = searchQuery.trim()
+    ? users.filter(u =>
+        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : users
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const paginatedUsers = users.slice(startIndex, endIndex)
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex)
 
   if (loading) {
     return <div className="text-center py-8">Loading users...</div>
@@ -159,6 +166,33 @@ export default function UserRoleManagement() {
           {message.text}
         </div>
       )}
+
+      {/* Search */}
+      <div className="mb-4 flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search by name or email…"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              setCurrentPage(1)
+            }}
+            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+        {searchQuery && (
+          <button onClick={() => { setSearchQuery(''); setCurrentPage(1) }} className="text-sm text-gray-500 hover:text-gray-700">
+            Clear
+          </button>
+        )}
+        <span className="text-sm text-gray-500">
+          {filteredUsers.length} {searchQuery ? `of ${users.length}` : ''} user{filteredUsers.length !== 1 ? 's' : ''}
+        </span>
+      </div>
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
@@ -224,9 +258,9 @@ export default function UserRoleManagement() {
         </table>
       </div>
 
-      {users.length === 0 && (
+      {filteredUsers.length === 0 && (
         <div className="text-center py-8 text-gray-500">
-          No users found
+          {searchQuery ? `No users match "${searchQuery}"` : 'No users found'}
         </div>
       )}
 
@@ -235,8 +269,9 @@ export default function UserRoleManagement() {
         <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
           <div className="text-sm text-gray-700">
             Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
-            <span className="font-medium">{Math.min(endIndex, users.length)}</span> of{' '}
-            <span className="font-medium">{users.length}</span> users
+            <span className="font-medium">{Math.min(endIndex, filteredUsers.length)}</span> of{' '}
+            <span className="font-medium">{filteredUsers.length}</span> user{filteredUsers.length !== 1 ? 's' : ''}
+            {searchQuery && <span className="text-gray-500"> (filtered)</span>}
           </div>
           <div className="flex gap-2">
             <button
