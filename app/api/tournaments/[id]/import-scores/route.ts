@@ -783,7 +783,6 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
       return {
         shootId,
         roundNumber: 1,
-        stationNumber: null,
         targets: shootData.totalScore,
         maxTargets: shootData.maxScore
       }
@@ -1000,7 +999,6 @@ async function importSingleScore({
     data: {
       shootId: shoot.id,
       roundNumber: 1,
-      stationNumber: null,
       targets: totalScore,
       maxTargets: maxScore
     }
@@ -1099,7 +1097,6 @@ async function importDisciplineScores({
       data: roundScores.map((targets, idx) => ({
         shootId: shoot.id,
         roundNumber: idx + 1,
-        stationNumber: null,
         targets,
         maxTargets: 25
       }))
@@ -1110,7 +1107,6 @@ async function importDisciplineScores({
     await prisma.score.createMany({
       data: stationScores.map((targets, idx) => ({
         shootId: shoot.id,
-        roundNumber: null,
         stationNumber: idx + 1,
         targets,
         maxTargets: 10 // Varies by station, but 10 is common

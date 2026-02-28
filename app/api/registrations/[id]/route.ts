@@ -141,6 +141,18 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       })
     }
 
+    // Remove athlete from any squads in this tournament
+    await prisma.squadMember.deleteMany({
+      where: {
+        athleteId: registration.athleteId,
+        squad: {
+          timeSlot: {
+            tournamentId: registration.tournamentId
+          }
+        }
+      }
+    })
+
     // Delete the registration (cascade will delete RegistrationDiscipline records)
     await prisma.registration.delete({
       where: { id }
