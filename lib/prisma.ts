@@ -79,6 +79,12 @@ async function retryOperation<T>(
         `Retrying in ${delay}ms... Error: ${errorMessage}`
       )
 
+      // For binary protocol corruption, force a full connection reset so the
+      // retry gets a fresh connection rather than reusing the corrupted one
+      if (errorMessage.includes('incorrect binary data format') || errorMessage.includes('22P03')) {
+        try { await basePrisma.$disconnect() } catch (_) {}
+      }
+
       await new Promise(resolve => setTimeout(resolve, delay))
     }
   }
