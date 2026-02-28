@@ -789,9 +789,7 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
     })
 
     if (scoresToCreate.length > 0) {
-      await prisma.$transaction(
-        scoresToCreate.map(score => prisma.score.create({ data: score }))
-      )
+      await prisma.score.createMany({ data: scoresToCreate })
     }
   }
 
@@ -1095,28 +1093,24 @@ async function importDisciplineScores({
 
   // Create new Score records
   if (roundScores && roundScores.length > 0) {
-    await prisma.$transaction(
-      roundScores.map((targets, idx) => prisma.score.create({
-        data: {
-          shootId: shoot.id,
-          roundNumber: idx + 1,
-          targets,
-          maxTargets: 25
-        }
+    await prisma.score.createMany({
+      data: roundScores.map((targets, idx) => ({
+        shootId: shoot.id,
+        roundNumber: idx + 1,
+        targets,
+        maxTargets: 25
       }))
-    )
+    })
   }
 
   if (stationScores && stationScores.length > 0) {
-    await prisma.$transaction(
-      stationScores.map((targets, idx) => prisma.score.create({
-        data: {
-          shootId: shoot.id,
-          stationNumber: idx + 1,
-          targets,
-          maxTargets: 10 // Varies by station, but 10 is common
-        }
+    await prisma.score.createMany({
+      data: stationScores.map((targets, idx) => ({
+        shootId: shoot.id,
+        stationNumber: idx + 1,
+        targets,
+        maxTargets: 10 // Varies by station, but 10 is common
       }))
-    )
+    })
   }
 }
