@@ -43,6 +43,8 @@ function isConnectionError(error: any): boolean {
     errorMessage.includes('ECONNREFUSED') ||
     errorMessage.includes('ETIMEDOUT') ||
     errorMessage.includes('ENOTFOUND') ||
+    errorMessage.includes('incorrect binary data format') || // PostgreSQL binary protocol state corruption (22P03)
+    errorMessage.includes('22P03') ||
     errorCode === 'P1001' || // Can't reach database server
     errorCode === 'P1008' || // Operations timed out
     errorCode === 'P1017' || // Server has closed the connection
