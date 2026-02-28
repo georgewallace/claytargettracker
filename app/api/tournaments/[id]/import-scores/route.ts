@@ -3,6 +3,26 @@ import { prisma } from '@/lib/prisma'
 import { requireAuthWithApiKey } from '@/lib/auth'
 import * as XLSX from 'xlsx'
 
+// createMany can fail with PostgreSQL 22P03 (binary protocol corruption) on warm Lambda
+// connections. Retry with a fresh connection (via $disconnect) when this occurs.
+async function createManyWithRetry(data: NonNullable<Parameters<typeof prisma.score.createMany>[0]>['data']) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await prisma.score.createMany({ data })
+      return
+    } catch (err: any) {
+      const msg: string = err?.message ?? ''
+      if ((msg.includes('22P03') || msg.includes('incorrect binary data format')) && attempt < 2) {
+        console.log(`Score createMany: binary protocol error, resetting connection (attempt ${attempt + 1})`)
+        try { await prisma.$disconnect() } catch (_) {}
+        await new Promise(r => setTimeout(r, 500 * (attempt + 1)))
+      } else {
+        throw err
+      }
+    }
+  }
+}
+
 // Helper function to parse placement text like "Varsity Men's Skeet Runner Up" or "HAA Lady's Skeet Champion"
 // Parses per-discipline placements from Excel "Skeet/Trap/Sporting Concurrent Place" columns
 function parsePlacementText(text: string, athleteGender: string | null, athleteDivision: string | null): {
@@ -789,7 +809,7 @@ export async function processShooterHistoryImport(tournamentId: string, data: an
     })
 
     if (scoresToCreate.length > 0) {
-      await prisma.score.createMany({ data: scoresToCreate })
+      await createManyWithRetry(scoresToCreate)
     }
   }
 
@@ -1093,24 +1113,20 @@ async function importDisciplineScores({
 
   // Create new Score records
   if (roundScores && roundScores.length > 0) {
-    await prisma.score.createMany({
-      data: roundScores.map((targets, idx) => ({
-        shootId: shoot.id,
-        roundNumber: idx + 1,
-        targets,
-        maxTargets: 25
-      }))
-    })
+    await createManyWithRetry(roundScores.map((targets, idx) => ({
+      shootId: shoot.id,
+      roundNumber: idx + 1,
+      targets,
+      maxTargets: 25
+    })))
   }
 
   if (stationScores && stationScores.length > 0) {
-    await prisma.score.createMany({
-      data: stationScores.map((targets, idx) => ({
-        shootId: shoot.id,
-        stationNumber: idx + 1,
-        targets,
-        maxTargets: 10 // Varies by station, but 10 is common
-      }))
-    })
+    await createManyWithRetry(stationScores.map((targets, idx) => ({
+      shootId: shoot.id,
+      stationNumber: idx + 1,
+      targets,
+      maxTargets: 10 // Varies by station, but 10 is common
+    })))
   }
 }
