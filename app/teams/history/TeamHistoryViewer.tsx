@@ -52,6 +52,7 @@ interface athlete {
 interface TeamHistoryViewerProps {
   teamName: string
   athletes: athlete[]
+  allAthletes: { id: string; name: string }[]
   currentPage: number
   totalPages: number
   totalAthletes: number
@@ -61,6 +62,7 @@ interface TeamHistoryViewerProps {
 export default function TeamHistoryViewer({
   teamName,
   athletes,
+  allAthletes,
   currentPage,
   totalPages,
   totalAthletes,
@@ -277,7 +279,7 @@ export default function TeamHistoryViewer({
           {/* Athlete Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              athlete
+              Athlete
             </label>
             <select
               value={selectedathleteId}
@@ -285,9 +287,9 @@ export default function TeamHistoryViewer({
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="all">All athletes</option>
-              {athletes.map(athlete => (
+              {allAthletes.map(athlete => (
                 <option key={athlete.id} value={athlete.id}>
-                  {athlete.name} {athlete.shoots.length > 0 ? `(${athlete.shoots.length} shoots)` : '(no history)'}
+                  {athlete.name}
                 </option>
               ))}
             </select>
@@ -389,7 +391,7 @@ export default function TeamHistoryViewer({
                                 <span style={{ color: entry.color }} className="font-medium">
                                   {athleteName}:
                                 </span>
-                                <span className="ml-2 font-bold">{entry.value.toFixed(1)}%</span>
+                                <span className="ml-2 font-bold text-gray-900">{entry.value.toFixed(1)}%</span>
                                 <span className="ml-1 text-xs text-gray-500">({score})</span>
                               </div>
                             )

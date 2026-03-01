@@ -88,6 +88,13 @@ export default async function TeamHistoryPage({ searchParams }: PageProps) {
   const totalPages = Math.ceil(totalAthletes / itemsPerPage)
   const skip = (currentPage - 1) * itemsPerPage
 
+  // Fetch all athletes for the dropdown filter (lightweight — no shoots)
+  const allAthletes = await prisma.athlete.findMany({
+    where: { teamId: team.id },
+    select: { id: true, user: { select: { name: true } } },
+    orderBy: { user: { name: 'asc' } }
+  })
+
   // PERFORMANCE OPTIMIZATION: Get paginated athletes with date-filtered shoots
   // Previously: Loaded ALL athletes with ALL shoots (could be 500+ shoot records)
   // Now: Loads 10 athletes per page with shoots from last 6 months only
@@ -213,6 +220,7 @@ export default async function TeamHistoryPage({ searchParams }: PageProps) {
         <TeamHistoryViewer
           teamName={team.name}
           athletes={athletesWithHistory}
+          allAthletes={allAthletes.map(a => ({ id: a.id, name: a.user.name }))}
           currentPage={currentPage}
           totalPages={totalPages}
           totalAthletes={totalAthletes}

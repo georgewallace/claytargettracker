@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import Leaderboard from './Leaderboard'
+import { LocalTime } from './LocalTime'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 import { getCurrentUser } from '@/lib/auth'
 
@@ -122,7 +123,7 @@ export default async function LeaderboardPage({ params }: PageProps) {
               </Link>
             </h1>
             <p className="text-xs md:text-sm text-indigo-300 whitespace-nowrap">
-              Last updated: {new Date(tournament.updatedAt).toLocaleString()}
+              Last updated: <LocalTime isoString={tournament.updatedAt.toISOString()} />
             </p>
           </div>
           <p className="text-xl md:text-2xl text-indigo-200">{tournament.name}</p>
