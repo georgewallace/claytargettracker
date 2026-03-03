@@ -9,6 +9,7 @@ import ExportComprehensiveButton from './ExportComprehensiveButton'
 import DemoModePlaceholder from '@/components/DemoModePlaceholder'
 import RegistrationList from './RegistrationList'
 import ImportScoresButton from './ImportScoresButton'
+import UploadAwardsPdf from './UploadAwardsPdf'
 
 // Force dynamic rendering (required for getCurrentUser and dynamic params)
 export const dynamic = 'force-dynamic'
@@ -310,6 +311,30 @@ export default async function TournamentDetailPage({ params }: PageProps) {
                 </Link>
               )}
 
+              {/* View Photos - visible to everyone when photosUrl is set */}
+              {tournament.photosUrl && (
+                <a
+                  href={tournament.photosUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-blue-500 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition font-medium text-sm sm:text-base whitespace-nowrap"
+                >
+                  View Photos
+                </a>
+              )}
+
+              {/* View Awards PDF - visible to everyone when awardsUrl is set */}
+              {tournament.awardsUrl && (
+                <a
+                  href={tournament.awardsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-purple-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition font-medium text-sm sm:text-base whitespace-nowrap"
+                >
+                  View Awards PDF
+                </a>
+              )}
+
               {/* View Squads button for athletes */}
               {user && user.role === 'athlete' && squaddingHasBegun && (
                 <Link
@@ -375,6 +400,16 @@ export default async function TournamentDetailPage({ params }: PageProps) {
               )}
             </div>
           </div>
+
+          {/* Upload Awards PDF - admin only, completed tournaments */}
+          {isAdmin && tournament.status === 'completed' && (
+            <div className="mt-4">
+              <UploadAwardsPdf
+                tournamentId={tournament.id}
+                currentUrl={tournament.awardsUrl}
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <div className="space-y-3">

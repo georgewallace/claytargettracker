@@ -19,6 +19,7 @@ interface Tournament {
   description: string | null
   status: string
   leaderboardTabInterval: number | null
+  photosUrl: string | null
   disciplines: Array<{
     id: string
     disciplineId: string
@@ -48,7 +49,8 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
     startDate: formatDateForInput(tournament.startDate),
     endDate: formatDateForInput(tournament.endDate),
     description: tournament.description || '',
-    status: tournament.status
+    status: tournament.status,
+    photosUrl: tournament.photosUrl || ''
   })
   
   const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>(
@@ -287,6 +289,22 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           placeholder="Add tournament details, rules, and any other information..."
         />
+      </div>
+
+      <div>
+        <label htmlFor="photosUrl" className="block text-sm font-medium text-gray-700 mb-2">
+          Photos URL
+        </label>
+        <input
+          id="photosUrl"
+          name="photosUrl"
+          type="url"
+          value={formData.photosUrl}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="https://photos.google.com/share/..."
+        />
+        <p className="text-xs text-gray-500 mt-1">Paste a Google Photos share link or similar album URL</p>
       </div>
 
       {/* Leaderboard Tab Interval */}

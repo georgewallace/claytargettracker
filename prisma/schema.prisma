@@ -197,6 +197,10 @@ model Tournament {
   enableLeaderboard       Boolean @default(false)  // Enable leaderboard
   leaderboardTabInterval  Int?    @default(15000)  // Leaderboard tab switching interval in milliseconds
 
+  // Media
+  photosUrl  String?  // Link to photo album (e.g. Google Photos share link)
+  awardsUrl  String?  // S3 URL of uploaded awards PDF
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   

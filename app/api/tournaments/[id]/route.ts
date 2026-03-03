@@ -117,7 +117,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       shootOffRequiresPerfect,
       // Feature toggles
       enableScores,
-      enableLeaderboard
+      enableLeaderboard,
+      // Media
+      photosUrl,
+      awardsUrl
     } = await request.json()
     
     // Support both old (disciplineIds) and new (disciplineConfigurations) format
@@ -236,6 +239,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         // Feature toggles
         ...(enableScores !== undefined && { enableScores }),
         ...(enableLeaderboard !== undefined && { enableLeaderboard }),
+        // Media
+        ...(photosUrl !== undefined && { photosUrl: photosUrl || null }),
+        ...(awardsUrl !== undefined && { awardsUrl: awardsUrl || null }),
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,

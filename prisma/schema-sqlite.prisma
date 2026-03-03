@@ -150,6 +150,8 @@ model Tournament {
   enableScores            Boolean                      @default(false)
   enableLeaderboard       Boolean                      @default(false)
   leaderboardTabInterval  Int?                         @default(15000)
+  photosUrl               String?
+  awardsUrl               String?
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt
   registrations           Registration[]
