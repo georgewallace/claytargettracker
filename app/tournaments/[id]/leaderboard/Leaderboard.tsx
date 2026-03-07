@@ -81,6 +81,7 @@ interface LeaderboardProps {
 
 export default function Leaderboard({ tournament: initialTournament, isAdmin = false }: LeaderboardProps) {
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const [isCycling, setIsCycling] = useState(false)
   const [expandedathlete, setExpandedathlete] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [zoom, setZoom] = useState(100)
@@ -137,7 +138,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
 
   // Coordinated auto-cycle through views and disciplines
   useEffect(() => {
-    if (!autoRefresh) return
+    if (!isCycling) return
 
     const disciplineIds = tournament.disciplines.map((d: any) => d.disciplineId)
     if (disciplineIds.length === 0) return
@@ -205,7 +206,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
     }, intervalMs)
 
     return () => clearInterval(interval)
-  }, [autoRefresh, tournament.disciplines, tournament.leaderboardTabInterval])
+  }, [isCycling, tournament.disciplines, tournament.leaderboardTabInterval])
 
   // Fullscreen toggle
   const toggleFullscreen = () => {
@@ -650,16 +651,14 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         <div className="flex items-center gap-2 flex-wrap">
           {/* Auto-refresh indicator */}
           <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 rounded border border-gray-200">
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${autoRefresh ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
-            <span className="text-gray-700 text-xs font-medium whitespace-nowrap">
-              {autoRefresh ? '30s' : 'Off'}
-            </span>
+            <div className="w-2 h-2 rounded-full flex-shrink-0 bg-green-400 animate-pulse" />
+            <span className="text-gray-700 text-xs font-medium whitespace-nowrap">30s</span>
           </div>
           <button
-            onClick={() => setAutoRefresh(!autoRefresh)}
+            onClick={() => setIsCycling(!isCycling)}
             className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition font-medium border border-gray-300"
           >
-            {autoRefresh ? 'Pause' : 'Resume'}
+            {isCycling ? 'Pause Cycling' : 'Auto-Cycle'}
           </button>
         </div>
 
@@ -1584,7 +1583,7 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       {activeView === 'haa-all' && tournament.enableHAA && (() => {
         const ITEMS_PER_PAGE = 20
         const totalPages = Math.ceil(allHAAathletes.length / ITEMS_PER_PAGE)
-        const currentPage = totalPages > 0 ? haaAllPage % totalPages : 0
+        const currentPage = totalPages > 0 ? Math.min(haaAllPage, totalPages - 1) : 0
         const startIdx = currentPage * ITEMS_PER_PAGE
         const endIdx = startIdx + ITEMS_PER_PAGE
         const paginatedAthletes = allHAAathletes.slice(startIdx, endIdx)
@@ -1608,8 +1607,24 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
                   </p>
                 </div>
                 {totalPages > 1 && (
-                  <div className="text-sm font-medium text-gray-600">
-                    Page {currentPage + 1} of {totalPages}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setHaaAllPage(Math.max(0, currentPage - 1))}
+                      disabled={currentPage === 0}
+                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 rounded text-sm font-medium border border-gray-300 transition"
+                    >
+                      ← Prev
+                    </button>
+                    <span className="text-sm font-medium text-gray-600">
+                      Page {currentPage + 1} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setHaaAllPage(Math.min(totalPages - 1, currentPage + 1))}
+                      disabled={currentPage === totalPages - 1}
+                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed text-gray-700 rounded text-sm font-medium border border-gray-300 transition"
+                    >
+                      Next →
+                    </button>
                   </div>
                 )}
               </div>
