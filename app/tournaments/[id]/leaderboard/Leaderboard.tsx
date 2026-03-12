@@ -407,13 +407,13 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       } catch (e) {
         // Fallback to default if parsing fails
         return tournament.disciplines
-          .filter((d: any) => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
+          .filter((d: any) => ['trap', 'skeet', 'sporting_clays', 'super_sport'].includes(d.discipline.name))
           .map((d: any) => d.disciplineId)
       }
     } else {
       // Default core disciplines
       return tournament.disciplines
-        .filter((d: any) => ['trap', 'skeet', 'sporting_clays'].includes(d.discipline.name))
+        .filter((d: any) => ['trap', 'skeet', 'sporting_clays', 'super_sport'].includes(d.discipline.name))
         .map((d: any) => d.disciplineId)
     }
   }, [tournament.haaCoreDisciplines, tournament.disciplines])

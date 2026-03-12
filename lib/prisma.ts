@@ -32,7 +32,7 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 // Helper function to check if error is a connection error (including Neon DB suspend/wake)
-function isConnectionError(error: any): boolean {
+export function isConnectionError(error: any): boolean {
   const errorMessage = error?.message || ''
   const errorCode = error?.code || ''
 
@@ -53,7 +53,7 @@ function isConnectionError(error: any): boolean {
 }
 
 // Helper function to retry an operation with exponential backoff
-async function retryOperation<T>(
+export async function retryOperation<T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
   baseDelay: number = 1000

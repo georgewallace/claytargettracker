@@ -34,6 +34,7 @@ const getDefaultSquadCapacity = (disciplineName: string): number => {
       return 5
     case 'skeet':
     case 'sporting_clays':
+    case 'super_sport':
       return 3
     default:
       return 5
@@ -66,7 +67,7 @@ export default function AddTimeSlotModal({ tournament, date, onClose, onSuccess 
 
   // Get selected discipline
   const selectedDiscipline = tournament.disciplines.find(d => d.disciplineId === formData.disciplineId)
-  const isSportingClays = selectedDiscipline?.discipline.name === 'sporting_clays'
+  const isSportingClays = selectedDiscipline?.discipline.name === 'sporting_clays' || selectedDiscipline?.discipline.name === 'super_sport'
   const isSkeetOrTrap = selectedDiscipline?.discipline.name === 'skeet' || selectedDiscipline?.discipline.name === 'trap'
 
   // Update squad capacity when discipline changes

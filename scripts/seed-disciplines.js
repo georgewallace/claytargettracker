@@ -22,6 +22,11 @@ const disciplines = [
     name: 'trap',
     displayName: 'Trap',
     description: 'Targets thrown away from the shooter at various angles'
+  },
+  {
+    name: 'super_sport',
+    displayName: 'Super Sport',
+    description: 'NSCA discipline shot on a sporting clays course with specific target presentations'
   }
 ]
 

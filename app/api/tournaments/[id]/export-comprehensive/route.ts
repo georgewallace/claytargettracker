@@ -190,7 +190,8 @@ export async function GET(
       // Map discipline name to display format (only show Skeet for skeet discipline, empty otherwise)
       const disciplineDisplay = disciplineName === 'skeet' ? 'Skeet' :
                                 disciplineName === 'trap' ? 'Trap' :
-                                disciplineName === 'sporting_clays' ? 'Sporting Clays' : ''
+                                disciplineName === 'sporting_clays' ? 'Sporting Clays' :
+                                disciplineName === 'super_sport' ? 'Super Sport' : ''
 
       // Parse team name and concurrent squad from squad name
       // Format: "Team Name - Division N" or "Unaffiliated - Division N"

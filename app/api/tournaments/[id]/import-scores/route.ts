@@ -7,7 +7,7 @@ export const maxDuration = 60 // seconds — score import can be slow on Neon co
 
 // createMany can fail with PostgreSQL 22P03 (binary protocol corruption) on warm Lambda
 // connections. Retry with a fresh connection (via $disconnect) when this occurs.
-async function createManyWithRetry(data: NonNullable<Parameters<typeof prisma.score.createMany>[0]>['data']) {
+export async function createManyWithRetry(data: NonNullable<Parameters<typeof prisma.score.createMany>[0]>['data']) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       await prisma.score.createMany({ data })
@@ -27,7 +27,7 @@ async function createManyWithRetry(data: NonNullable<Parameters<typeof prisma.sc
 
 // Helper function to parse placement text like "Varsity Men's Skeet Runner Up" or "HAA Lady's Skeet Champion"
 // Parses per-discipline placements from Excel "Skeet/Trap/Sporting Concurrent Place" columns
-function parsePlacementText(text: string, athleteGender: string | null, athleteDivision: string | null): {
+export function parsePlacementText(text: string, athleteGender: string | null, athleteDivision: string | null): {
   concurrentPlace?: number
   haaPlace?: number
 } {

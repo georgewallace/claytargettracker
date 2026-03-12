@@ -167,7 +167,19 @@ fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "5. Running Build Test (Optional)"
+echo "5. Running Unit Tests"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+info "Running unit tests..."
+if npm test 2>&1; then
+    success "Unit tests passed"
+else
+    error "Unit tests failed — fix before deploying"
+fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "6. Running Build Test (Optional)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 if [ "$SKIP_BUILD_TEST" = "true" ]; then
