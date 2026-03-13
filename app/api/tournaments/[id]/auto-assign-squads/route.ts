@@ -128,6 +128,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     let assignmentsMade = 0
     const unassignedReasons: Record<string, { athleteName: string; teamName: string; reason: string }[]> = {}
 
+    // Counter for squad naming: "TeamName - Division N"
+    const squadNameCounter: Record<string, number> = {}
+
     // ── 4. Helpers ────────────────────────────────────────────────────────
 
     const hasTimeConflict = (athleteId: string, candidateSlot: any): boolean => {
@@ -145,13 +148,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get or create the single squad for a time slot
-    const getOrCreateSquad = async (ts: any): Promise<string> => {
+    const getOrCreateSquad = async (ts: any, squadName: string): Promise<string> => {
       if (slotSquad[ts.id]) return slotSquad[ts.id]!.id
       // Create squad
       const sq = await prisma.squad.create({
         data: {
           timeSlotId: ts.id,
-          name: 'Squad 1',
+          name: squadName,
           capacity: squadCapacityForDiscipline(ts.discipline.name),
           teamOnly: false
         }
@@ -160,7 +163,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return sq.id
     }
 
-    const assignAthletes = async (athletes: any[], disciplineId: string, disciplineName: string, disciplineDisplayName: string, disciplineTimeSlots: any[]) => {
+    // Build a squad name in the format "{TeamName} - {Division} {N}"
+    const buildSquadName = (teamName: string, division: string): string => {
+      const key = `${teamName}__${division}`
+      const n = (squadNameCounter[key] ?? 0) + 1
+      squadNameCounter[key] = n
+      return `${teamName} - ${division} ${n}`
+    }
+
+    const assignAthletes = async (athletes: any[], disciplineId: string, disciplineName: string, disciplineDisplayName: string, disciplineTimeSlots: any[], teamName: string, division: string) => {
       const capacity = squadCapacityForDiscipline(disciplineName)
       let remaining = [...athletes]
 
@@ -179,7 +190,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         // Take up to `available` athletes
         const batch = remaining.splice(0, available)
-        const squadId = await getOrCreateSquad(ts)
+        // Build a squad name only if a squad doesn't exist yet for this slot
+        const squadName = slotSquad[ts.id] ? '' : buildSquadName(teamName, division)
+        const squadId = await getOrCreateSquad(ts, squadName)
 
         for (const athlete of batch) {
           const pos = (slotSquad[ts.id]?.memberCount ?? 0) + 1
@@ -206,7 +219,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // ── 5. Group athletes by discipline → group key ───────────────────────
 
-    interface AthleteGroup { athletes: any[] }
+    interface AthleteGroup { athletes: any[]; teamName: string; division: string }
     const disciplineGroups: Record<string, Record<string, AthleteGroup>> = {}
 
     for (const reg of registrations) {
@@ -216,6 +229,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         if (alreadyAssigned.has(`${reg.athlete.id}:${disciplineId}`)) continue
 
         if (!disciplineGroups[disciplineId]) disciplineGroups[disciplineId] = {}
+
+        const teamName = reg.athlete.team?.name || 'Unaffiliated'
+        const division = reg.athlete.division || 'Unassigned'
 
         let groupKey = 'default'
         if (options.keepTeamsTogether && options.keepDivisionsTogether) {
@@ -227,7 +243,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
 
         if (!disciplineGroups[disciplineId][groupKey]) {
-          disciplineGroups[disciplineId][groupKey] = { athletes: [] }
+          disciplineGroups[disciplineId][groupKey] = { athletes: [], teamName, division }
         }
         disciplineGroups[disciplineId][groupKey].athletes.push(reg.athlete)
       }
@@ -250,7 +266,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         : disciplineTimeSlots
 
       for (const group of Object.values(groups)) {
-        await assignAthletes(group.athletes, disciplineId, disciplineName, disciplineDisplayName, sortedSlots)
+        await assignAthletes(group.athletes, disciplineId, disciplineName, disciplineDisplayName, sortedSlots, group.teamName, group.division)
       }
     }
 
