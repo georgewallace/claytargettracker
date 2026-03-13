@@ -91,7 +91,8 @@ export default async function ScoreEntryPage({ params }: { params: Promise<{ id:
   for (const td of tournament.disciplines) {
     const name = td.discipline.name.toLowerCase()
     const isStation = name.includes('sporting') || name.includes('five_stand') || name.includes('5_stand') || name.includes('super_sport')
-    expectedInputs[td.disciplineId] = isStation ? (td.stations ?? 10) : (td.rounds ?? 1)
+    const stationDefault = name.includes('five_stand') || name.includes('5_stand') ? 5 : 10
+    expectedInputs[td.disciplineId] = isStation ? (td.stations ?? stationDefault) : (td.rounds ?? 1)
   }
 
   const squadScoreStatus: Record<string, 'complete' | 'partial' | 'empty'> = {}

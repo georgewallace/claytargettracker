@@ -46,13 +46,19 @@ function isStationBased(config: DisciplineConfig | undefined): boolean {
 
 function getInputCount(config: DisciplineConfig | undefined): number {
   if (!config) return 1
-  if (isStationBased(config)) return config.stations || 10
+  if (isStationBased(config)) {
+    if (config.discipline.name === 'five_stand') return config.stations || 5
+    return config.stations || 10
+  }
   return config.rounds || 1
 }
 
 function getMaxPerInput(config: DisciplineConfig | undefined): number {
   if (!config) return 25
-  if (isStationBased(config)) return config.targets ? Math.ceil(config.targets / (config.stations || 10)) : 5
+  if (isStationBased(config)) {
+    const stationDefault = config.discipline.name === 'five_stand' ? 5 : 10
+    return config.targets ? Math.ceil(config.targets / (config.stations || stationDefault)) : 5
+  }
   return 25
 }
 
