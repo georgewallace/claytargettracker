@@ -56,15 +56,18 @@ function getMaxPerInput(config: DisciplineConfig | undefined): number {
   return 25
 }
 
+type ScoreStatus = 'complete' | 'partial' | 'empty'
+
 interface SquadScoreCardProps {
   tournamentId: string
   squad: Squad
   discipline: Discipline | undefined
   config: DisciplineConfig | undefined
   timeSlotDate: Date | string
+  onStatusChange?: (squadId: string, status: ScoreStatus) => void
 }
 
-export default function SquadScoreCard({ tournamentId, squad, discipline, config, timeSlotDate }: SquadScoreCardProps) {
+export default function SquadScoreCard({ tournamentId, squad, discipline, config, timeSlotDate, onStatusChange }: SquadScoreCardProps) {
   const [scores, setScores] = useState<AthleteScores>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -75,6 +78,17 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
   const maxPerInput = getMaxPerInput(config)
   const stationBased = isStationBased(config)
   const members = squad.members
+
+  const computeStatus = (s: AthleteScores): ScoreStatus => {
+    let filled = 0
+    const total = members.length * inputCount
+    for (const m of members) {
+      for (const v of (s[m.athleteId] || [])) { if (v > 0) filled++ }
+    }
+    if (filled === 0) return 'empty'
+    if (filled >= total) return 'complete'
+    return 'partial'
+  }
 
   // 2D grid of input refs: [athleteIdx][colIdx]
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([])
@@ -116,10 +130,12 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
           }
         }
         setScores(initial)
+        onStatusChange?.(squad.id, computeStatus(initial))
       } catch {
         const empty: AthleteScores = {}
         for (const m of members) empty[m.athleteId] = Array(inputCount).fill(0)
         setScores(empty)
+        onStatusChange?.(squad.id, 'empty')
       } finally {
         setLoading(false)
       }
@@ -235,6 +251,7 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
       }
 
       setSaved(true)
+      onStatusChange?.(squad.id, computeStatus(scores))
     } catch {
       setError('Failed to save scores')
     } finally {

@@ -293,21 +293,28 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                       <div className="mt-3 pt-3 border-t border-indigo-200" onClick={e => e.preventDefault()}>
                         {showRounds && (
                           <div className="flex items-center gap-3">
-                            <label className="text-sm text-gray-600 w-28">Rounds per event</label>
+                            <label className="text-sm text-gray-600 w-28">Rounds</label>
                             <input type="number" min={1} max={10}
                               value={cfg.rounds}
                               onChange={e => updateDisciplineConfig(discipline.id, 'rounds', parseInt(e.target.value) || 1)}
                               className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                            <span className="text-xs text-gray-500">× 25 targets each</span>
+                            <span className="text-xs text-gray-500">× 25 targets per round</span>
                           </div>
                         )}
                         {showStations && (
                           <div className="flex items-center gap-3">
                             <label className="text-sm text-gray-600 w-28">Stations</label>
-                            <input type="number" min={1} max={50}
-                              value={cfg.stations}
-                              onChange={e => updateDisciplineConfig(discipline.id, 'stations', parseInt(e.target.value) || 1)}
-                              className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                            {discipline.name === 'five_stand' ? (
+                              <span className="text-sm font-medium text-gray-700">5 <span className="text-xs text-gray-400 font-normal">(fixed)</span></span>
+                            ) : (
+                              <>
+                                <input type="number" min={1} max={50}
+                                  value={cfg.stations}
+                                  onChange={e => updateDisciplineConfig(discipline.id, 'stations', parseInt(e.target.value) || 1)}
+                                  className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                                <span className="text-xs text-gray-500">stations on course</span>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>

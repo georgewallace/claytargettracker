@@ -74,6 +74,40 @@ export default async function ScoreEntryPage({ params }: { params: Promise<{ id:
     return notFound()
   }
 
+  // Pre-compute score completion status per squad
+  const shoots = await prisma.shoot.findMany({
+    where: { tournamentId: id },
+    select: { athleteId: true, disciplineId: true, scores: { select: { id: true } } }
+  })
+
+  // athleteId:disciplineId → score count
+  const shootScoreCount: Record<string, number> = {}
+  for (const s of shoots) {
+    shootScoreCount[`${s.athleteId}:${s.disciplineId}`] = s.scores.length
+  }
+
+  // disciplineId → expected inputs (rounds or stations)
+  const expectedInputs: Record<string, number> = {}
+  for (const td of tournament.disciplines) {
+    const name = td.discipline.name.toLowerCase()
+    const isStation = name.includes('sporting') || name.includes('five_stand') || name.includes('5_stand') || name.includes('super_sport')
+    expectedInputs[td.disciplineId] = isStation ? (td.stations ?? 10) : (td.rounds ?? 1)
+  }
+
+  const squadScoreStatus: Record<string, 'complete' | 'partial' | 'empty'> = {}
+  for (const ts of tournament.timeSlots) {
+    for (const squad of ts.squads) {
+      if (squad.members.length === 0) { squadScoreStatus[squad.id] = 'empty'; continue }
+      const exp = expectedInputs[ts.disciplineId] ?? 1
+      let filled = 0
+      const total = squad.members.length * exp
+      for (const m of squad.members) {
+        filled += Math.min(shootScoreCount[`${m.athleteId}:${ts.disciplineId}`] ?? 0, exp)
+      }
+      squadScoreStatus[squad.id] = filled === 0 ? 'empty' : filled >= total ? 'complete' : 'partial'
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
@@ -92,7 +126,7 @@ export default async function ScoreEntryPage({ params }: { params: Promise<{ id:
           <h1 className="text-2xl font-bold text-gray-900">Score Entry</h1>
           <p className="text-gray-600 mt-1">{tournament.name}</p>
         </div>
-        <ScoreEntryClient tournament={tournament} />
+        <ScoreEntryClient tournament={tournament} initialSquadStatus={squadScoreStatus} />
       </div>
     </div>
   )
