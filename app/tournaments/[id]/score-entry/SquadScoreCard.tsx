@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 interface Athlete {
   id: string
@@ -36,7 +36,6 @@ interface DisciplineConfig {
   discipline: Discipline
 }
 
-// Per-athlete score state: array of score values per round/station
 type AthleteScores = Record<string, number[]>
 
 function isStationBased(config: DisciplineConfig | undefined): boolean {
@@ -75,6 +74,18 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
   const inputCount = getInputCount(config)
   const maxPerInput = getMaxPerInput(config)
   const stationBased = isStationBased(config)
+  const members = squad.members
+
+  // 2D grid of input refs: [athleteIdx][colIdx]
+  const inputRefs = useRef<(HTMLInputElement | null)[][]>([])
+
+  const focusCell = useCallback((row: number, col: number) => {
+    const el = inputRefs.current[row]?.[col]
+    if (el) {
+      el.focus()
+      el.select()
+    }
+  }, [])
 
   // Load existing scores
   useEffect(() => {
@@ -88,12 +99,10 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         if (!res.ok) { setLoading(false); return }
         const shoots = await res.json()
 
-        // Build initial scores from existing data
         const initial: AthleteScores = {}
-        for (const member of squad.members) {
+        for (const member of members) {
           const shoot = shoots.find((s: any) => s.athleteId === member.athleteId)
           if (shoot && shoot.scores && shoot.scores.length > 0) {
-            // Map scores back to input array
             const arr = Array(inputCount).fill(0)
             for (const score of shoot.scores) {
               const idx = stationBased
@@ -108,9 +117,8 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         }
         setScores(initial)
       } catch {
-        // Initialize empty
         const empty: AthleteScores = {}
-        for (const m of squad.members) empty[m.athleteId] = Array(inputCount).fill(0)
+        for (const m of members) empty[m.athleteId] = Array(inputCount).fill(0)
         setScores(empty)
       } finally {
         setLoading(false)
@@ -118,19 +126,81 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
     }
 
     fetchScores()
-  }, [squad.id, discipline?.id, tournamentId, inputCount, stationBased])
+  }, [squad.id, discipline?.id, tournamentId, inputCount, stationBased, members])
+
+  // Initialise refs array dimensions whenever members/inputCount change
+  useEffect(() => {
+    inputRefs.current = members.map((_, ri) =>
+      inputRefs.current[ri] ? inputRefs.current[ri] : Array(inputCount).fill(null)
+    )
+  }, [members, inputCount])
 
   const setScore = (athleteId: string, index: number, value: number) => {
     setSaved(false)
     setScores(prev => {
       const arr = prev[athleteId] ? [...prev[athleteId]] : Array(inputCount).fill(0)
-      arr[index] = value
+      arr[index] = isNaN(value) ? 0 : value
       return { ...prev, [athleteId]: arr }
     })
   }
 
-  const getTotal = (athleteId: string): number => {
-    return (scores[athleteId] || []).reduce((sum, v) => sum + (v || 0), 0)
+  const getTotal = (athleteId: string): number =>
+    (scores[athleteId] || []).reduce((sum, v) => sum + (v || 0), 0)
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, row: number, col: number) => {
+    const lastRow = members.length - 1
+    const lastCol = inputCount - 1
+
+    switch (e.key) {
+      case 'Tab': {
+        e.preventDefault()
+        if (e.shiftKey) {
+          // Shift+Tab: move left, wrap to previous row
+          if (col > 0) focusCell(row, col - 1)
+          else if (row > 0) focusCell(row - 1, lastCol)
+        } else {
+          // Tab: move right, wrap to next row
+          if (col < lastCol) focusCell(row, col + 1)
+          else if (row < lastRow) focusCell(row + 1, 0)
+        }
+        break
+      }
+      case 'Enter': {
+        e.preventDefault()
+        // Enter: move down (same column), wrap to top of next column
+        if (row < lastRow) focusCell(row + 1, col)
+        else if (col < lastCol) focusCell(0, col + 1)
+        break
+      }
+      case 'ArrowUp': {
+        e.preventDefault()
+        if (row > 0) focusCell(row - 1, col)
+        break
+      }
+      case 'ArrowDown': {
+        e.preventDefault()
+        if (row < lastRow) focusCell(row + 1, col)
+        break
+      }
+      case 'ArrowLeft': {
+        // Only navigate if cursor is at start of input
+        const input = e.currentTarget
+        if (input.selectionStart === 0 && input.selectionEnd === 0) {
+          e.preventDefault()
+          if (col > 0) focusCell(row, col - 1)
+        }
+        break
+      }
+      case 'ArrowRight': {
+        // Only navigate if cursor is at end of input
+        const input = e.currentTarget
+        if (input.selectionStart === input.value.length) {
+          e.preventDefault()
+          if (col < lastCol) focusCell(row, col + 1)
+        }
+        break
+      }
+    }
   }
 
   const handleSave = async () => {
@@ -139,7 +209,7 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
     setError('')
 
     try {
-      const payload = squad.members
+      const payload = members
         .filter(m => scores[m.athleteId])
         .map(m => ({
           athleteId: m.athleteId,
@@ -172,65 +242,81 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
     }
   }
 
-  if (!discipline) {
-    return <div className="py-2 text-sm text-gray-500">No discipline info available.</div>
-  }
-
-  if (loading) {
-    return <div className="py-4 text-center text-sm text-gray-500">Loading scores...</div>
-  }
-
-  if (squad.members.length === 0) {
-    return <div className="py-2 text-sm text-gray-500">No athletes in this squad.</div>
-  }
+  if (!discipline) return <div className="py-2 text-sm text-gray-500">No discipline info available.</div>
+  if (loading) return <div className="py-4 text-center text-sm text-gray-500">Loading scores...</div>
+  if (members.length === 0) return <div className="py-2 text-sm text-gray-500">No athletes in this squad.</div>
 
   return (
     <div className="mt-2">
       {error && (
-        <div className="mb-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">{error}</div>
+        <div className="mb-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">{error}</div>
       )}
 
-      {/* Header row */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded border border-gray-200">
+        <table className="text-sm border-collapse w-full">
+          {/* Column headers */}
           <thead>
-            <tr className="text-left text-gray-500 border-b">
-              <th className="py-2 pr-4 font-medium min-w-[140px]">Athlete</th>
+            <tr className="bg-gray-100 text-gray-600">
+              <th className="text-left px-3 py-2 font-semibold border-b border-r border-gray-200 sticky left-0 bg-gray-100 z-10 min-w-[160px]">
+                Athlete
+              </th>
               {Array.from({ length: inputCount }, (_, i) => (
-                <th key={i} className="py-2 px-1 text-center font-medium min-w-[60px]">
+                <th key={i} className="px-2 py-2 font-semibold border-b border-r border-gray-200 text-center w-14">
                   {stationBased ? `S${i + 1}` : `R${i + 1}`}
                 </th>
               ))}
-              <th className="py-2 pl-2 text-center font-medium min-w-[60px]">Total</th>
+              <th className="px-3 py-2 font-semibold border-b border-gray-200 text-center w-16 bg-gray-50">
+                Total
+              </th>
             </tr>
           </thead>
+
           <tbody>
-            {squad.members.map(member => {
-              const total = getTotal(member.athleteId)
+            {members.map((member, rowIdx) => {
               const athleteScores = scores[member.athleteId] || Array(inputCount).fill(0)
+              const total = getTotal(member.athleteId)
+              // Initialise ref row
+              if (!inputRefs.current[rowIdx]) {
+                inputRefs.current[rowIdx] = Array(inputCount).fill(null)
+              }
+
               return (
-                <tr key={member.athleteId} className="border-b last:border-0">
-                  <td className="py-2 pr-4">
-                    <div className="font-medium text-gray-900">{member.athlete.user.name}</div>
-                    <div className="text-xs text-gray-500">
-                      {member.athlete.division || 'No division'}
-                      {member.athlete.team && ` • ${member.athlete.team.name}`}
+                <tr key={member.athleteId} className="group hover:bg-blue-50/30">
+                  {/* Frozen athlete name column */}
+                  <td className="px-3 py-1.5 border-b border-r border-gray-200 sticky left-0 bg-white group-hover:bg-blue-50/30 z-10">
+                    <div className="font-medium text-gray-900 leading-tight">{member.athlete.user.name}</div>
+                    <div className="text-xs text-gray-400 leading-tight">
+                      {member.athlete.division || '—'}
+                      {member.athlete.team && ` · ${member.athlete.team.name}`}
                     </div>
                   </td>
-                  {athleteScores.map((val, idx) => (
-                    <td key={idx} className="py-2 px-1">
+
+                  {/* Score input cells */}
+                  {athleteScores.map((val, colIdx) => (
+                    <td key={colIdx} className="p-0 border-b border-r border-gray-200">
                       <input
+                        ref={el => {
+                          if (!inputRefs.current[rowIdx]) inputRefs.current[rowIdx] = []
+                          inputRefs.current[rowIdx][colIdx] = el
+                        }}
                         type="number"
                         min={0}
                         max={maxPerInput}
                         step={0.5}
-                        value={val || 0}
-                        onChange={e => setScore(member.athleteId, idx, parseFloat(e.target.value) || 0)}
-                        className="w-14 text-center border border-gray-300 rounded px-1 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        value={val === 0 ? '' : val}
+                        placeholder="0"
+                        onChange={e => setScore(member.athleteId, colIdx, parseFloat(e.target.value))}
+                        onFocus={e => e.target.select()}
+                        onKeyDown={e => handleKeyDown(e, rowIdx, colIdx)}
+                        className="w-full h-9 text-center text-sm font-mono bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </td>
                   ))}
-                  <td className="py-2 pl-2 text-center font-semibold text-gray-800">{total}</td>
+
+                  {/* Running total */}
+                  <td className="px-3 py-1.5 border-b border-gray-200 text-center font-bold text-gray-800 bg-gray-50 tabular-nums">
+                    {total || '—'}
+                  </td>
                 </tr>
               )
             })}
@@ -238,7 +324,7 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         </table>
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-3 flex items-center gap-3">
         <button
           onClick={handleSave}
           disabled={saving}
@@ -246,9 +332,8 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         >
           {saving ? 'Saving...' : 'Save Squad'}
         </button>
-        {saved && (
-          <span className="text-green-600 text-sm font-medium">Saved</span>
-        )}
+        {saved && <span className="text-green-600 text-sm font-medium">✓ Saved</span>}
+        <span className="text-xs text-gray-400 ml-auto">Tab / Enter to navigate · Arrow keys to move</span>
       </div>
     </div>
   )
