@@ -201,9 +201,20 @@ model Tournament {
   photosUrl  String?  // Link to photo album (e.g. Google Photos share link)
   awardsUrl  String?  // S3 URL of uploaded awards PDF
 
+  // Award Structure v2
+  awardStructureVersion  String  @default("legacy")
+  hoaScope               String  @default("combined")
+  hoaIncludesDivisions   String  @default("[\"Novice\",\"Intermediate\",\"JV\",\"Varsity\"]")
+  hoaHighLadyCanWinBoth  Boolean @default(true)
+  collegiateHOAEnabled   Boolean @default(true)
+  individualEventPlaces  Int     @default(3)
+  teamEventPlaces        Int     @default(2)
+  teamSizeDefault        Int     @default(3)
+  trapTeamSize           Int     @default(5)
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   createdBy     User                      @relation(fields: [createdById], references: [id])
   disciplines   TournamentDiscipline[]
   registrations Registration[]

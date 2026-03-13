@@ -22,7 +22,8 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
     startDate: '',
     endDate: '',
     description: '',
-    status: 'upcoming'
+    status: 'upcoming',
+    awardStructureVersion: 'legacy'
   })
   const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>(
     disciplines.map(d => d.id) // Default: all disciplines selected
@@ -50,7 +51,8 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
         enableScores: true,
         enableLeaderboard: true,
         // Leaderboard configuration
-        leaderboardTabInterval
+        leaderboardTabInterval,
+        // awardStructureVersion is already in formData
       }
 
       const response = await fetch('/api/tournaments', {
@@ -269,6 +271,23 @@ export default function CreateTournamentForm({ disciplines }: CreateTournamentFo
         <p className="text-xs text-gray-500 mt-1">
           How often the leaderboard automatically switches between tabs when in auto-refresh mode
         </p>
+      </div>
+
+      <div>
+        <label htmlFor="awardStructureVersion" className="block text-sm font-medium text-gray-700 mb-2">
+          Award Structure
+        </label>
+        <select
+          id="awardStructureVersion"
+          name="awardStructureVersion"
+          value={formData.awardStructureVersion}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="legacy">Legacy (Excel import)</option>
+          <option value="v2">New (v2 Awards)</option>
+        </select>
+        <p className="text-xs text-gray-500 mt-1">Choose "New" to use web-based score entry and the new award leaderboard</p>
       </div>
 
       <div className="flex gap-4">

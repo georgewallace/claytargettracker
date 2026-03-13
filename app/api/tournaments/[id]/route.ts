@@ -120,7 +120,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       enableLeaderboard,
       // Media
       photosUrl,
-      awardsUrl
+      awardsUrl,
+      // Award structure v2
+      awardStructureVersion,
+      hoaScope,
+      hoaIncludesDivisions,
+      hoaHighLadyCanWinBoth,
+      collegiateHOAEnabled,
+      individualEventPlaces,
+      teamEventPlaces,
+      teamSizeDefault,
+      trapTeamSize,
     } = await request.json()
     
     // Support both old (disciplineIds) and new (disciplineConfigurations) format
@@ -242,6 +252,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         // Media
         ...(photosUrl !== undefined && { photosUrl: photosUrl || null }),
         ...(awardsUrl !== undefined && { awardsUrl: awardsUrl || null }),
+        ...(awardStructureVersion !== undefined && { awardStructureVersion }),
+        ...(hoaScope !== undefined && { hoaScope }),
+        ...(hoaIncludesDivisions !== undefined && { hoaIncludesDivisions }),
+        ...(hoaHighLadyCanWinBoth !== undefined && { hoaHighLadyCanWinBoth }),
+        ...(collegiateHOAEnabled !== undefined && { collegiateHOAEnabled }),
+        ...(individualEventPlaces !== undefined && { individualEventPlaces }),
+        ...(teamEventPlaces !== undefined && { teamEventPlaces }),
+        ...(teamSizeDefault !== undefined && { teamSizeDefault }),
+        ...(trapTeamSize !== undefined && { trapTeamSize }),
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,

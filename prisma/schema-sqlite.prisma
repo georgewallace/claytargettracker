@@ -152,6 +152,18 @@ model Tournament {
   leaderboardTabInterval  Int?                         @default(15000)
   photosUrl               String?
   awardsUrl               String?
+
+  // Award Structure v2
+  awardStructureVersion  String  @default("legacy")
+  hoaScope               String  @default("combined")
+  hoaIncludesDivisions   String  @default("[\"Novice\",\"Intermediate\",\"JV\",\"Varsity\"]")
+  hoaHighLadyCanWinBoth  Boolean @default(true)
+  collegiateHOAEnabled   Boolean @default(true)
+  individualEventPlaces  Int     @default(3)
+  teamEventPlaces        Int     @default(2)
+  teamSizeDefault        Int     @default(3)
+  trapTeamSize           Int     @default(5)
+
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt
   registrations           Registration[]

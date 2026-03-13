@@ -25,6 +25,15 @@ interface Tournament {
     disciplineId: string
     discipline: Discipline
   }>
+  awardStructureVersion: string
+  hoaScope: string
+  hoaIncludesDivisions: string
+  hoaHighLadyCanWinBoth: boolean
+  collegiateHOAEnabled: boolean
+  individualEventPlaces: number
+  teamEventPlaces: number
+  teamSizeDefault: number
+  trapTeamSize: number
 }
 
 interface EditTournamentFormProps {
@@ -61,6 +70,29 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
     tournament.leaderboardTabInterval || 15000
   )
 
+  const [awardStructureVersion, setAwardStructureVersion] = useState(
+    tournament.awardStructureVersion || 'legacy'
+  )
+  const [hoaScope, setHoaScope] = useState(tournament.hoaScope || 'combined')
+  const [hoaHighLadyCanWinBoth, setHoaHighLadyCanWinBoth] = useState(
+    tournament.hoaHighLadyCanWinBoth ?? false
+  )
+  const [collegiateHOAEnabled, setCollegiateHOAEnabled] = useState(
+    tournament.collegiateHOAEnabled ?? false
+  )
+  const [individualEventPlaces, setIndividualEventPlaces] = useState(
+    tournament.individualEventPlaces ?? 5
+  )
+  const [teamEventPlaces, setTeamEventPlaces] = useState(
+    tournament.teamEventPlaces ?? 3
+  )
+  const [teamSizeDefault, setTeamSizeDefault] = useState(
+    tournament.teamSizeDefault ?? 5
+  )
+  const [trapTeamSize, setTrapTeamSize] = useState(
+    tournament.trapTeamSize ?? 5
+  )
+
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -86,7 +118,17 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           enableScores: true,
           enableLeaderboard: true,
           // Leaderboard configuration
-          leaderboardTabInterval
+          leaderboardTabInterval,
+          // Award structure v2
+          awardStructureVersion,
+          hoaScope,
+          hoaIncludesDivisions: JSON.stringify(['Novice','Intermediate','JV','Varsity']),
+          hoaHighLadyCanWinBoth,
+          collegiateHOAEnabled,
+          individualEventPlaces,
+          teamEventPlaces,
+          teamSizeDefault,
+          trapTeamSize,
         })
       })
 
@@ -327,6 +369,63 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
         <p className="text-xs text-gray-500 mt-1">
           How often the leaderboard automatically switches between tabs when in auto-refresh mode
         </p>
+      </div>
+
+      {/* Award Structure v2 */}
+      <div className="border border-gray-200 rounded-lg p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-gray-700">Award Structure</h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Version</label>
+          <select
+            value={awardStructureVersion}
+            onChange={e => setAwardStructureVersion(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="legacy">Legacy (Excel import)</option>
+            <option value="v2">New (v2 Awards)</option>
+          </select>
+        </div>
+        {awardStructureVersion === 'v2' && (
+          <div className="space-y-4 border-t pt-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">HOA Scope</label>
+              <select
+                value={hoaScope}
+                onChange={e => setHoaScope(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="combined">Combined (total across all disciplines)</option>
+                <option value="per_discipline">Per Discipline</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-3">
+              <input type="checkbox" id="hoaHighLadyCanWinBoth" checked={hoaHighLadyCanWinBoth} onChange={e => setHoaHighLadyCanWinBoth(e.target.checked)} className="w-4 h-4" />
+              <label htmlFor="hoaHighLadyCanWinBoth" className="text-sm text-gray-700">HOA Lady can also win HOA/RU/3rd</label>
+            </div>
+            <div className="flex items-center gap-3">
+              <input type="checkbox" id="collegiateHOAEnabled" checked={collegiateHOAEnabled} onChange={e => setCollegiateHOAEnabled(e.target.checked)} className="w-4 h-4" />
+              <label htmlFor="collegiateHOAEnabled" className="text-sm text-gray-700">Enable Collegiate HOA</label>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Individual Event Places</label>
+                <input type="number" min={1} max={10} value={individualEventPlaces} onChange={e => setIndividualEventPlaces(parseInt(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Team Award Places</label>
+                <input type="number" min={1} max={5} value={teamEventPlaces} onChange={e => setTeamEventPlaces(parseInt(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Default Team Size</label>
+                <input type="number" min={1} max={10} value={teamSizeDefault} onChange={e => setTeamSizeDefault(parseInt(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Trap Team Size</label>
+                <input type="number" min={1} max={10} value={trapTeamSize} onChange={e => setTrapTeamSize(parseInt(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-4">

@@ -112,7 +112,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       athleteId: string;
       disciplineId: string;
       date: string;
-      rounds: Array<{ station: number; targets: number; totalTargets: number }>;
+      rounds: Array<{ roundNumber?: number; stationNumber?: number; targets: number; maxTargets: number }>;
     }>) {
       const { athleteId, disciplineId, date, rounds } = athleteScore
 
@@ -154,11 +154,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       // Create new scores
       if (rounds.length > 0) {
         await prisma.score.createMany({
-          data: rounds.map((round: { station: number; targets: number; totalTargets: number }) => ({
+          data: rounds.map((round: { roundNumber?: number; stationNumber?: number; targets: number; maxTargets: number }) => ({
             shootId: shoot.id,
-            station: round.station,
+            ...(round.roundNumber !== undefined && { roundNumber: round.roundNumber }),
+            ...(round.stationNumber !== undefined && { stationNumber: round.stationNumber }),
             targets: round.targets,
-            totalTargets: round.totalTargets
+            maxTargets: round.maxTargets
           }))
         })
       }

@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import ShootOffResults from '@/components/ShootOffResults'
+import AwardLeaderboard from './AwardLeaderboard'
 
 interface Tournament {
   id: string
@@ -29,6 +30,16 @@ interface Tournament {
   shootOffRequiresPerfect: boolean
   // Leaderboard Configuration
   leaderboardTabInterval: number | null
+  // Award Structure v2
+  awardStructureVersion?: string
+  hoaScope?: string
+  hoaIncludesDivisions?: string
+  hoaHighLadyCanWinBoth?: boolean
+  collegiateHOAEnabled?: boolean
+  individualEventPlaces?: number
+  teamEventPlaces?: number
+  teamSizeDefault?: number
+  trapTeamSize?: number
 }
 
 interface athletescore {
@@ -643,6 +654,10 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
       }
     })
   })
+
+  if (tournament.awardStructureVersion === 'v2') {
+    return <AwardLeaderboard tournament={tournament as any} />
+  }
 
   return (
     <div className="space-y-6" style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}>

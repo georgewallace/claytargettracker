@@ -33,7 +33,17 @@ export async function POST(request: NextRequest) {
       shootOffRequiresPerfect,
       // Feature toggles
       enableScores,
-      enableLeaderboard
+      enableLeaderboard,
+      // Award structure v2
+      awardStructureVersion,
+      hoaScope,
+      hoaIncludesDivisions,
+      hoaHighLadyCanWinBoth,
+      collegiateHOAEnabled,
+      individualEventPlaces,
+      teamEventPlaces,
+      teamSizeDefault,
+      trapTeamSize,
     } = await request.json()
 
     // Validate input
@@ -91,6 +101,16 @@ export async function POST(request: NextRequest) {
         // Feature toggles
         enableScores: enableScores !== undefined ? enableScores : false,
         enableLeaderboard: enableLeaderboard !== undefined ? enableLeaderboard : false,
+        // Award structure v2
+        awardStructureVersion: awardStructureVersion || 'legacy',
+        ...(hoaScope !== undefined && { hoaScope }),
+        ...(hoaIncludesDivisions !== undefined && { hoaIncludesDivisions }),
+        ...(hoaHighLadyCanWinBoth !== undefined && { hoaHighLadyCanWinBoth }),
+        ...(collegiateHOAEnabled !== undefined && { collegiateHOAEnabled }),
+        ...(individualEventPlaces !== undefined && { individualEventPlaces }),
+        ...(teamEventPlaces !== undefined && { teamEventPlaces }),
+        ...(teamSizeDefault !== undefined && { teamSizeDefault }),
+        ...(trapTeamSize !== undefined && { trapTeamSize }),
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,

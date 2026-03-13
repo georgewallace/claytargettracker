@@ -41,6 +41,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         hoaMenPlaces: true,
         hoaLadyPlaces: true,
         leaderboardTabInterval: true,
+        awardStructureVersion: true,
+        hoaScope: true,
+        hoaIncludesDivisions: true,
+        hoaHighLadyCanWinBoth: true,
+        collegiateHOAEnabled: true,
+        individualEventPlaces: true,
+        teamEventPlaces: true,
+        teamSizeDefault: true,
+        trapTeamSize: true,
         enableShootOffs: true,
         shootOffTriggers: true,
         shootOffFormat: true,
@@ -91,6 +100,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 },
                 team: {
                   select: {
+                    id: true,
                     name: true,
                     logoUrl: true
                   }
