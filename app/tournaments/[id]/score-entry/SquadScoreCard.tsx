@@ -42,7 +42,7 @@ type AthleteScores = Record<string, number[]>
 function isStationBased(config: DisciplineConfig | undefined): boolean {
   if (!config) return false
   const name = config.discipline.name.toLowerCase()
-  return name.includes('sporting') || name.includes('5_stand') || name.includes('five_stand')
+  return name.includes('sporting') || name.includes('5_stand') || name.includes('five_stand') || name.includes('super_sport')
 }
 
 function getInputCount(config: DisciplineConfig | undefined): number {
