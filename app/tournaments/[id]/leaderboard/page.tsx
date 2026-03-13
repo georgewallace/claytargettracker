@@ -117,16 +117,16 @@ export default async function LeaderboardPage({ params }: PageProps) {
               <span>🏆 Live Leaderboard</span>
               <Link
                 href={user ? `/tournaments/${tournament.id}` : '/'}
-                className="text-sm md:text-base font-normal text-white hover:text-indigo-200 transition"
+                className="text-sm md:text-base font-normal text-gray-300 hover:text-white transition"
               >
                 {user ? '← Back to Tournament' : '← Back to Tournaments'}
               </Link>
             </h1>
-            <p className="text-xs md:text-sm text-indigo-300 whitespace-nowrap">
+            <p className="text-xs md:text-sm text-gray-300 whitespace-nowrap">
               Last updated: <LocalTime isoString={tournament.updatedAt.toISOString()} />
             </p>
           </div>
-          <p className="text-xl md:text-2xl text-indigo-200">{tournament.name}</p>
+          <p className="text-xl md:text-2xl text-white font-semibold">{tournament.name}</p>
         </div>
 
         <Leaderboard 
