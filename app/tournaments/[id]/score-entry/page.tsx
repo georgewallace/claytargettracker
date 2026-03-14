@@ -90,9 +90,10 @@ export default async function ScoreEntryPage({ params }: { params: Promise<{ id:
   const expectedInputs: Record<string, number> = {}
   for (const td of tournament.disciplines) {
     const name = td.discipline.name.toLowerCase()
-    const isStation = name.includes('sporting') || name.includes('five_stand') || name.includes('5_stand') || name.includes('super_sport')
-    const stationDefault = name.includes('five_stand') || name.includes('5_stand') ? 5 : 10
-    expectedInputs[td.disciplineId] = isStation ? (td.stations ?? stationDefault) : (td.rounds ?? 1)
+    // five_stand uses rounds of 25 like trap, not per-station entry
+    const isStation = name.includes('sporting') || name.includes('super_sport')
+    const defaultRounds = name.includes('five_stand') || name.includes('5_stand') ? 2 : 1
+    expectedInputs[td.disciplineId] = isStation ? (td.stations ?? 10) : (td.rounds ?? defaultRounds)
   }
 
   const squadScoreStatus: Record<string, 'complete' | 'partial' | 'empty'> = {}

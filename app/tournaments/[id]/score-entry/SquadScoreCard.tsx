@@ -42,23 +42,25 @@ type AthleteScores = Record<string, (number | null)[]>
 function isStationBased(config: DisciplineConfig | undefined): boolean {
   if (!config) return false
   const name = config.discipline.name.toLowerCase()
-  return name.includes('sporting') || name.includes('5_stand') || name.includes('five_stand') || name.includes('super_sport')
+  // five_stand uses rounds of 25 like trap, not per-station entry
+  return name.includes('sporting') || name.includes('super_sport')
 }
 
 function getInputCount(config: DisciplineConfig | undefined): number {
   if (!config) return 1
   if (isStationBased(config)) {
-    if (config.discipline.name === 'five_stand') return config.stations || 5
     return config.stations || 10
   }
-  return config.rounds || 1
+  const name = config.discipline.name.toLowerCase()
+  const defaultRounds = name.includes('five_stand') || name.includes('5_stand') ? 2 : 1
+  return config.rounds || defaultRounds
 }
 
 function getMaxPerInput(config: DisciplineConfig | undefined): number {
   if (!config) return 25
   if (isStationBased(config)) {
     // targets = total targets for the event; divide by stations to get per-station max
-    const stationCount = config.stations || (config.discipline.name === 'five_stand' ? 5 : 10)
+    const stationCount = config.stations || 10
     return config.targets ? Math.ceil(config.targets / stationCount) : 5
   }
   return 25
@@ -77,8 +79,6 @@ interface SquadScoreCardProps {
 
 export default function SquadScoreCard({ tournamentId, squad, discipline, config, timeSlotDate, onStatusChange }: SquadScoreCardProps) {
   const [scores, setScores] = useState<AthleteScores>({})
-  const [tiebreakScores, setTiebreakScores] = useState<Record<string, string>>({}) // athleteId → raw input string
-  const [savingTiebreak, setSavingTiebreak] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -122,7 +122,6 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         const shoots = await res.json()
 
         const initial: AthleteScores = {}
-        const initialTiebreaks: Record<string, string> = {}
         for (const member of members) {
           const shoot = shoots.find((s: any) => s.athleteId === member.athleteId)
           if (shoot && shoot.scores && shoot.scores.length > 0) {
@@ -137,12 +136,8 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
           } else {
             initial[member.athleteId] = Array(inputCount).fill(null)
           }
-          if (shoot?.tiebreakScore != null) {
-            initialTiebreaks[member.athleteId] = String(shoot.tiebreakScore)
-          }
         }
         setScores(initial)
-        setTiebreakScores(initialTiebreaks)
         onStatusChange?.(squad.id, computeStatus(initial))
       } catch {
         const empty: AthleteScores = {}
@@ -216,20 +211,6 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         }
         break
       }
-    }
-  }
-
-  const saveTiebreak = async (athleteId: string) => {
-    if (!discipline) return
-    setSavingTiebreak(prev => ({ ...prev, [athleteId]: true }))
-    try {
-      await fetch(`/api/tournaments/${tournamentId}/scores`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ athleteId, disciplineId: discipline.id, tiebreakScore: tiebreakScores[athleteId] ?? null })
-      })
-    } finally {
-      setSavingTiebreak(prev => ({ ...prev, [athleteId]: false }))
     }
   }
 
@@ -327,29 +308,13 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
               }
 
               return (
-                <tr key={member.athleteId} className={`group hover:bg-blue-50/30 ${isTied ? 'bg-amber-50' : ''}`}>
-                  <td className={`px-3 py-1.5 border-b border-r border-gray-200 sticky left-0 z-10 ${isTied ? 'bg-amber-50 group-hover:bg-amber-100/60' : 'bg-white group-hover:bg-blue-50/30'}`}>
+                <tr key={member.athleteId} className={`group hover:bg-blue-50/30 ${isTied ? 'bg-red-50' : ''}`}>
+                  <td className={`px-3 py-1.5 border-b border-r border-gray-200 sticky left-0 z-10 ${isTied ? 'bg-red-50 group-hover:bg-red-100/60' : 'bg-white group-hover:bg-blue-50/30'}`}>
                     <div className="font-medium text-gray-900 leading-tight">{member.athlete.user.name}</div>
                     <div className="text-xs text-gray-400 leading-tight">
                       {member.athlete.division || '—'}
                       {member.athlete.team && ` · ${member.athlete.team.name}`}
                     </div>
-                    {isTied && (
-                      <div className="mt-1 flex items-center gap-1">
-                        <span className="text-[10px] text-amber-700 font-semibold whitespace-nowrap">Shoot-off:</span>
-                        <input
-                          type="number"
-                          min={0}
-                          step={1}
-                          value={tiebreakScores[member.athleteId] ?? ''}
-                          placeholder="—"
-                          onChange={e => setTiebreakScores(prev => ({ ...prev, [member.athleteId]: e.target.value }))}
-                          onBlur={() => saveTiebreak(member.athleteId)}
-                          className="w-14 h-6 text-center text-xs font-mono border border-amber-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        {savingTiebreak[member.athleteId] && <span className="text-[10px] text-amber-600">saving…</span>}
-                      </div>
-                    )}
                   </td>
 
                   {athleteScores.map((val, colIdx) => (
@@ -376,11 +341,11 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
                     </td>
                   ))}
 
-                  <td className={`px-3 py-1.5 border-b border-gray-200 text-center font-bold tabular-nums ${isTied ? 'bg-amber-100 text-amber-800' : 'bg-gray-50 text-gray-800'}`}>
+                  <td className={`px-3 py-1.5 border-b border-gray-200 text-center font-bold tabular-nums ${isTied ? 'bg-red-100 text-red-800' : 'bg-gray-50 text-gray-800'}`}>
                     {(scores[member.athleteId] || []).some(v => v !== null) ? (
                       <span className="flex items-center justify-center gap-1">
                         {total}
-                        {isTied && <span className="text-[10px] font-bold text-amber-600 leading-none">TIE</span>}
+                        {isTied && <span className="text-[10px] font-bold text-red-600 leading-none">TIE</span>}
                       </span>
                     ) : '—'}
                   </td>

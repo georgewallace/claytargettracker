@@ -4,6 +4,261 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import SquadScoreCard from './SquadScoreCard'
 import { format } from 'date-fns'
 
+// ── Ties Panel ────────────────────────────────────────────────────────────────
+
+interface TieGroup {
+  disciplineId: string
+  disciplineName: string
+  score: number
+  broken: boolean  // true if all athletes have distinct tiebreak scores
+  athletes: { athleteId: string; name: string; division: string | null; teamName: string | null; tiebreakScore: number | null }[]
+}
+
+function TiesPanel({ tournamentId }: { tournamentId: string }) {
+  const [open, setOpen] = useState(false)
+  const [showAll, setShowAll] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [allTieGroups, setAllTieGroups] = useState<TieGroup[]>([])
+  const [lastFetched, setLastFetched] = useState<Date | null>(null)
+  const [inputs, setInputs] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState<Record<string, boolean>>({})
+  const [saved, setSaved] = useState<Record<string, boolean>>({})
+
+  const tieGroups = showAll ? allTieGroups : allTieGroups.filter(g => !g.broken)
+
+  const fetchTies = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/leaderboard`)
+      if (!res.ok) return
+      const data = await res.json()
+
+      const discNames: Record<string, string> = {}
+      for (const td of data.disciplines ?? []) {
+        discNames[td.disciplineId] = td.discipline.displayName
+      }
+
+      const byDisc: Record<string, Record<string, { total: number; tiebreak: number | null; name: string; division: string | null; teamName: string | null }>> = {}
+      for (const shoot of data.shoots ?? []) {
+        const total = (shoot.scores ?? []).reduce((s: number, sc: { targets: number }) => s + sc.targets, 0)
+        if (total === 0) continue
+        if (!byDisc[shoot.disciplineId]) byDisc[shoot.disciplineId] = {}
+        byDisc[shoot.disciplineId][shoot.athleteId] = {
+          total,
+          tiebreak: shoot.tiebreakScore ?? null,
+          name: shoot.athlete.user.name,
+          division: shoot.athlete.division,
+          teamName: shoot.athlete.team?.name ?? null,
+        }
+      }
+
+      // Bucket by total score only — captures all ties, broken or not
+      const groups: TieGroup[] = []
+      for (const [discId, athletes] of Object.entries(byDisc)) {
+        const buckets: Record<number, { athleteId: string; name: string; division: string | null; teamName: string | null; tiebreakScore: number | null }[]> = {}
+        for (const [athleteId, info] of Object.entries(athletes)) {
+          if (!buckets[info.total]) buckets[info.total] = []
+          buckets[info.total].push({ athleteId, name: info.name, division: info.division, teamName: info.teamName, tiebreakScore: info.tiebreak })
+        }
+        for (const [scoreStr, aths] of Object.entries(buckets)) {
+          if (aths.length < 2) continue
+          // Broken = all athletes have a tiebreak score AND they are all distinct
+          const tiebreaks = aths.map(a => a.tiebreakScore)
+          const allHaveTiebreak = tiebreaks.every(t => t != null)
+          const allDistinct = new Set(tiebreaks).size === tiebreaks.length
+          const broken = allHaveTiebreak && allDistinct
+          groups.push({ disciplineId: discId, disciplineName: discNames[discId] ?? discId, score: Number(scoreStr), broken, athletes: aths })
+        }
+      }
+      groups.sort((a, b) => a.disciplineName.localeCompare(b.disciplineName) || b.score - a.score)
+      setAllTieGroups(groups)
+      setLastFetched(new Date())
+
+      // Pre-populate inputs
+      const newInputs: Record<string, string> = {}
+      for (const [discId, athletes] of Object.entries(byDisc)) {
+        for (const [athleteId, info] of Object.entries(athletes)) {
+          if (info.tiebreak != null) newInputs[`${athleteId}:${discId}`] = String(info.tiebreak)
+        }
+      }
+      setInputs(prev => ({ ...newInputs, ...prev }))
+    } finally {
+      setLoading(false)
+    }
+  }, [tournamentId])
+
+  const saveTiebreak = async (athleteId: string, disciplineId: string) => {
+    const key = `${athleteId}:${disciplineId}`
+    const val = inputs[key]
+    setSaving(prev => ({ ...prev, [key]: true }))
+    setSaved(prev => ({ ...prev, [key]: false }))
+    try {
+      await fetch(`/api/tournaments/${tournamentId}/scores`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ athleteId, disciplineId, tiebreakScore: val === '' ? null : parseFloat(val) }),
+      })
+      setSaved(prev => ({ ...prev, [key]: true }))
+      // Refresh ties after a short delay so user sees the saved state first
+      setTimeout(() => fetchTies(), 800)
+    } finally {
+      setSaving(prev => ({ ...prev, [key]: false }))
+    }
+  }
+
+  const handleOpen = () => {
+    setOpen(o => !o)
+    if (!open) fetchTies()
+  }
+
+  return (
+    <div className="mb-4">
+      <button
+        onClick={handleOpen}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition ${
+          allTieGroups.filter(g => !g.broken).length > 0
+            ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
+            : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+        }`}
+      >
+        <span className={`w-2 h-2 rounded-full ${allTieGroups.filter(g => !g.broken).length > 0 ? 'bg-red-500' : 'bg-gray-300'}`} />
+        {open ? 'Hide Ties' : 'View Ties'}
+        {allTieGroups.filter(g => !g.broken).length > 0 && (
+          <span className="ml-1 bg-red-100 text-red-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
+            {allTieGroups.filter(g => !g.broken).length} unbroken
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+          <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <span className="text-sm font-semibold text-gray-700">{showAll ? 'All Ties' : 'Unbroken Ties'}</span>
+              <span className="ml-2 text-xs text-gray-400">Enter shoot-off scores to break ties</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showAll}
+                  onChange={e => setShowAll(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded accent-indigo-600"
+                />
+                <span className="text-xs text-gray-600 font-medium">Show broken ties</span>
+              </label>
+              {lastFetched && <span className="text-xs text-gray-400">Updated {lastFetched.toLocaleTimeString()}</span>}
+              <button onClick={fetchTies} disabled={loading} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium disabled:opacity-40">
+                {loading ? 'Loading…' : 'Refresh'}
+              </button>
+            </div>
+          </div>
+
+          {loading && allTieGroups.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-gray-400">Loading…</div>
+          ) : tieGroups.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-green-700 font-medium">
+              {showAll ? 'No ties found.' : '✓ No unbroken ties'}
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {tieGroups.map((group, gi) => {
+                // Find duplicate entered values within this group
+                const enteredVals = group.athletes.map(a => inputs[`${a.athleteId}:${group.disciplineId}`] ?? '')
+                const valCounts: Record<string, number> = {}
+                for (const v of enteredVals) { if (v !== '') valCounts[v] = (valCounts[v] || 0) + 1 }
+                const hasDuplicates = Object.values(valCounts).some(c => c > 1)
+
+                return (
+                <div key={gi} className={`px-4 py-3 ${group.broken ? 'bg-green-50/40' : ''}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{group.disciplineName}</span>
+                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${group.broken ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                      {group.score} pts
+                    </span>
+                    {group.broken
+                      ? <span className="text-xs text-green-600 font-medium">✓ Broken</span>
+                      : <span className="text-xs text-red-600 font-medium">Needs shoot-off</span>
+                    }
+                    {hasDuplicates && (
+                      <span className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded">
+                        ⚠ Duplicate scores — still a tie
+                      </span>
+                    )}
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="text-sm border-collapse w-full">
+                      <thead>
+                        <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+                          <th className="px-3 py-1.5 text-left font-semibold">Athlete</th>
+                          <th className="px-3 py-1.5 text-left font-semibold hidden sm:table-cell">Concurrent</th>
+                          <th className="px-3 py-1.5 text-left font-semibold hidden sm:table-cell">Team</th>
+                          <th className="px-3 py-1.5 text-left font-semibold w-40">Shoot-off Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.athletes.map(a => {
+                          const key = `${a.athleteId}:${group.disciplineId}`
+                          const isSaving = saving[key]
+                          const isSaved = saved[key]
+                          const val = inputs[key] ?? ''
+                          const isDuplicate = val !== '' && (valCounts[val] ?? 0) > 1
+
+                          return (
+                            <tr key={a.athleteId} className={`border-t border-gray-100 ${group.broken && !isDuplicate ? 'bg-green-50/60' : isDuplicate ? 'bg-orange-50' : 'bg-red-50'}`}>
+                              <td className="px-3 py-2 font-medium text-gray-900">{a.name}</td>
+                              <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{a.division || '—'}</td>
+                              <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{a.teamName || '—'}</td>
+                              <td className="px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    step={1}
+                                    value={val}
+                                    placeholder="—"
+                                    onChange={e => {
+                                      setInputs(prev => ({ ...prev, [key]: e.target.value }))
+                                      setSaved(prev => ({ ...prev, [key]: false }))
+                                    }}
+                                    onBlur={() => { if (val !== '' && !isDuplicate) saveTiebreak(a.athleteId, group.disciplineId) }}
+                                    className={`w-20 h-8 text-center text-sm font-mono border rounded bg-white focus:outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                      isDuplicate
+                                        ? 'border-orange-400 focus:ring-orange-400 text-orange-700'
+                                        : group.broken
+                                          ? 'border-green-300 focus:ring-green-400'
+                                          : 'border-red-300 focus:ring-red-400'
+                                    }`}
+                                  />
+                                  <button
+                                    onClick={() => saveTiebreak(a.athleteId, group.disciplineId)}
+                                    disabled={isSaving || val === '' || isDuplicate}
+                                    title={isDuplicate ? 'Duplicate score — would still be a tie' : undefined}
+                                    className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium"
+                                  >
+                                    {isSaving ? '…' : 'Save'}
+                                  </button>
+                                  {isDuplicate && <span className="text-xs text-orange-600 font-medium">Duplicate</span>}
+                                  {!isDuplicate && isSaved && <span className="text-xs text-green-600 font-medium">✓</span>}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type ScoreStatus = 'complete' | 'partial' | 'empty'
@@ -275,6 +530,9 @@ export default function ScoreEntryClient({ tournament, initialSquadStatus }: Sco
 
   return (
     <div>
+      {/* ── Ties panel ──────────────────────────────────────────────── */}
+      <TiesPanel tournamentId={tournament.id} />
+
       {/* ── Discipline tabs ─────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-1 border-b border-gray-200 mb-6">
         {disciplinesWithSlots.map(td => (
