@@ -300,6 +300,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
 
   const tabs = [
     { id: 'hoa', label: '👑 HOA' },
+    { id: 'all', label: '📋 All Athletes' },
     ...disciplinesWithScores.map(d => ({ id: d.disciplineId, label: d.discipline.displayName })),
   ]
 
@@ -412,17 +413,19 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
             </Section>
           )}
 
-          {allAthletesHOA.length > 0 && (
-            <Section title={`All Athletes — Combined (${allAthletesHOA.length})`}>
-              <RankedTable
-                rows={allAthletesHOA}
-                teamNames={teamNames}
-                showDivision
-                disciplineCols={disciplinesWithScores.map(d => ({ id: d.disciplineId, label: d.discipline.displayName }))}
-              />
-            </Section>
-          )}
         </div>
+      )}
+
+      {/* All Athletes Tab */}
+      {activeTab === 'all' && allAthletesHOA.length > 0 && (
+        <Section title={`All Athletes — Combined (${allAthletesHOA.length})`}>
+          <RankedTable
+            rows={allAthletesHOA}
+            teamNames={teamNames}
+            showDivision
+            disciplineCols={disciplinesWithScores.map(d => ({ id: d.disciplineId, label: d.discipline.displayName }))}
+          />
+        </Section>
       )}
 
       {/* Discipline Tabs */}
