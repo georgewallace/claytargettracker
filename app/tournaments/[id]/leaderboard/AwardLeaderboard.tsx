@@ -268,6 +268,9 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
   const activeTabRef = useRef(activeTab)
   useEffect(() => { activeTabRef.current = activeTab }, [activeTab])
 
+  const allAthletesPageRef = useRef(allAthletesPage)
+  useEffect(() => { allAthletesPageRef.current = allAthletesPage }, [allAthletesPage])
+
   // Fullscreen support
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -373,22 +376,33 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
   const divisionLabel: Record<string, string> = { JV: 'Junior Varsity' }
   const placeLabels = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th']
 
-  // Auto-cycling: cycle through tabs in order
+  // Auto-cycling: cycle through tabs; on the "all" tab, page through before advancing
   useEffect(() => {
     if (!isCycling) return
     const intervalMs = tournament.leaderboardTabInterval || 15000
     const tabIds = tabs.map(t => t.id)
+    const totalAllPages = Math.ceil(allAthletesHOA.length / ALL_ATHLETES_PAGE_SIZE)
 
     const timer = setInterval(() => {
       const current = activeTabRef.current
+      if (current === 'all' && totalAllPages > 1) {
+        const nextPage = allAthletesPageRef.current + 1
+        if (nextPage < totalAllPages) {
+          setAllAthletesPage(nextPage)
+          return
+        }
+        // Last page reached — fall through to next tab, reset page
+        setAllAthletesPage(0)
+      }
       const idx = tabIds.indexOf(current)
       const next = tabIds[(idx + 1) % tabIds.length]
       setActiveTab(next)
+      if (next === 'all') setAllAthletesPage(0)
     }, intervalMs)
 
     return () => clearInterval(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCycling, tournament.leaderboardTabInterval, tabs.length])
+  }, [isCycling, tournament.leaderboardTabInterval, tabs.length, allAthletesHOA.length])
 
   const handleTabChange = (id: string) => {
     setActiveTab(id)
