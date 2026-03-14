@@ -102,10 +102,14 @@ function RankedTable({
   rows,
   teamNames,
   showDivision = false,
+  disciplineCols,
 }: {
   rows: AthleteScoreEntry[]
   teamNames: Record<string, string>
   showDivision?: boolean
+  // Optional: per-discipline score lookup for combined HOA view
+  disciplineCols?: { id: string; label: string }[]
+  // athleteId → disciplineId → score
 }) {
   if (rows.length === 0) return null
   return (
@@ -117,7 +121,10 @@ function RankedTable({
             <th className="px-2 py-1.5 text-left font-semibold">Athlete</th>
             {showDivision && <th className="px-2 py-1.5 text-left font-semibold hidden sm:table-cell">Div</th>}
             <th className="px-2 py-1.5 text-left font-semibold hidden sm:table-cell">Team</th>
-            <th className="px-2 py-1.5 text-right font-semibold">Score</th>
+            {disciplineCols?.map(d => (
+              <th key={d.id} className="px-2 py-1.5 text-right font-semibold hidden md:table-cell whitespace-nowrap">{d.label}</th>
+            ))}
+            <th className="px-2 py-1.5 text-right font-semibold">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -150,10 +157,18 @@ function RankedTable({
                 <td className="px-2 py-1.5 text-xs text-gray-500 hidden sm:table-cell truncate max-w-[120px]">
                   {teamName || '—'}
                 </td>
-                <td className="px-2 py-1.5 text-right">
+                {disciplineCols?.map(d => {
+                  const score = (entry as any)[`disc_${d.id}`]
+                  return (
+                    <td key={d.id} className="px-2 py-1.5 text-right text-xs text-gray-500 hidden md:table-cell tabular-nums">
+                      {score != null ? score : '—'}
+                    </td>
+                  )
+                })}
+                <td className="px-2 py-1.5 text-right whitespace-nowrap">
                   <span className="font-bold text-gray-800 text-sm tabular-nums">{entry.totalScore}</span>
                   {entry.tiebreakScore != null && (
-                    <span className="text-[10px] text-amber-600 ml-1">+{entry.tiebreakScore}</span>
+                    <span className="text-[10px] text-amber-500 ml-0.5 font-bold">*</span>
                   )}
                 </td>
               </tr>
@@ -256,13 +271,14 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
 
   // Combined scores for full HOA rankings (all athletes, sorted by total across disciplines)
   const allAthletesHOA = useMemo((): AthleteScoreEntry[] => {
-    const combined: Record<string, { entry: AthleteScoreEntry; total: number; tiebreak: number }> = {}
-    for (const entries of Object.values(entriesByDiscipline)) {
+    const combined: Record<string, { entry: AthleteScoreEntry; total: number; tiebreak: number; byDisc: Record<string, number> }> = {}
+    for (const [discId, entries] of Object.entries(entriesByDiscipline)) {
       for (const e of entries) {
         if (!combined[e.athleteId]) {
-          combined[e.athleteId] = { entry: e, total: 0, tiebreak: e.tiebreakScore ?? 0 }
+          combined[e.athleteId] = { entry: e, total: 0, tiebreak: 0, byDisc: {} }
         }
         combined[e.athleteId].total += e.totalScore
+        combined[e.athleteId].byDisc[discId] = e.totalScore
         if ((e.tiebreakScore ?? 0) > combined[e.athleteId].tiebreak) {
           combined[e.athleteId].tiebreak = e.tiebreakScore ?? 0
         }
@@ -270,7 +286,11 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
     }
     return Object.values(combined)
       .sort((a, b) => b.total - a.total || b.tiebreak - a.tiebreak || a.entry.athlete.name.localeCompare(b.entry.athlete.name))
-      .map(({ entry, total, tiebreak }) => ({ ...entry, totalScore: total, tiebreakScore: tiebreak || null }))
+      .map(({ entry, total, tiebreak, byDisc }) => {
+        const extras: Record<string, number> = {}
+        for (const [discId, score] of Object.entries(byDisc)) extras[`disc_${discId}`] = score
+        return { ...entry, ...extras, totalScore: total, tiebreakScore: tiebreak || null }
+      })
   }, [entriesByDiscipline])
 
   // Only show discipline tabs that have actual score data
@@ -394,7 +414,12 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
 
           {allAthletesHOA.length > 0 && (
             <Section title={`All Athletes — Combined (${allAthletesHOA.length})`}>
-              <RankedTable rows={allAthletesHOA} teamNames={teamNames} showDivision />
+              <RankedTable
+                rows={allAthletesHOA}
+                teamNames={teamNames}
+                showDivision
+                disciplineCols={disciplinesWithScores.map(d => ({ id: d.disciplineId, label: d.discipline.displayName }))}
+              />
             </Section>
           )}
         </div>
