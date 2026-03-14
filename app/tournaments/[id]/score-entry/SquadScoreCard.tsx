@@ -77,6 +77,8 @@ interface SquadScoreCardProps {
 
 export default function SquadScoreCard({ tournamentId, squad, discipline, config, timeSlotDate, onStatusChange }: SquadScoreCardProps) {
   const [scores, setScores] = useState<AthleteScores>({})
+  const [tiebreakScores, setTiebreakScores] = useState<Record<string, string>>({}) // athleteId → raw input string
+  const [savingTiebreak, setSavingTiebreak] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -120,6 +122,7 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         const shoots = await res.json()
 
         const initial: AthleteScores = {}
+        const initialTiebreaks: Record<string, string> = {}
         for (const member of members) {
           const shoot = shoots.find((s: any) => s.athleteId === member.athleteId)
           if (shoot && shoot.scores && shoot.scores.length > 0) {
@@ -134,8 +137,12 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
           } else {
             initial[member.athleteId] = Array(inputCount).fill(null)
           }
+          if (shoot?.tiebreakScore != null) {
+            initialTiebreaks[member.athleteId] = String(shoot.tiebreakScore)
+          }
         }
         setScores(initial)
+        setTiebreakScores(initialTiebreaks)
         onStatusChange?.(squad.id, computeStatus(initial))
       } catch {
         const empty: AthleteScores = {}
@@ -209,6 +216,20 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         }
         break
       }
+    }
+  }
+
+  const saveTiebreak = async (athleteId: string) => {
+    if (!discipline) return
+    setSavingTiebreak(prev => ({ ...prev, [athleteId]: true }))
+    try {
+      await fetch(`/api/tournaments/${tournamentId}/scores`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ athleteId, disciplineId: discipline.id, tiebreakScore: tiebreakScores[athleteId] ?? null })
+      })
+    } finally {
+      setSavingTiebreak(prev => ({ ...prev, [athleteId]: false }))
     }
   }
 
@@ -313,6 +334,22 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
                       {member.athlete.division || '—'}
                       {member.athlete.team && ` · ${member.athlete.team.name}`}
                     </div>
+                    {isTied && (
+                      <div className="mt-1 flex items-center gap-1">
+                        <span className="text-[10px] text-amber-700 font-semibold whitespace-nowrap">Shoot-off:</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={tiebreakScores[member.athleteId] ?? ''}
+                          placeholder="—"
+                          onChange={e => setTiebreakScores(prev => ({ ...prev, [member.athleteId]: e.target.value }))}
+                          onBlur={() => saveTiebreak(member.athleteId)}
+                          className="w-14 h-6 text-center text-xs font-mono border border-amber-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        {savingTiebreak[member.athleteId] && <span className="text-[10px] text-amber-600">saving…</span>}
+                      </div>
+                    )}
                   </td>
 
                   {athleteScores.map((val, colIdx) => (

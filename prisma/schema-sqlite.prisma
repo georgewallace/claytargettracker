@@ -312,14 +312,15 @@ model Shoot {
   tournamentId String
   athleteId    String
   disciplineId String
-  date         DateTime   @default(now())
-  notes        String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  scores       Score[]
-  discipline   Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
-  athlete      Athlete    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  date          DateTime   @default(now())
+  notes         String?
+  tiebreakScore Float?     // Optional shoot-off score used only to break ties
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  scores        Score[]
+  discipline    Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+  athlete       Athlete    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 
   @@unique([tournamentId, athleteId, disciplineId])
 }

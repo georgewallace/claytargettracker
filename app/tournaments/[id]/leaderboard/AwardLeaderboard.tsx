@@ -23,6 +23,7 @@ interface AwardLeaderboardProps {
       id: string
       athleteId: string
       disciplineId: string
+      tiebreakScore?: number | null
       scores: Array<{ roundNumber?: number | null; stationNumber?: number | null; targets: number; maxTargets: number }>
       athlete: {
         id: string
@@ -161,6 +162,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
         athleteId: shoot.athleteId,
         disciplineId: shoot.disciplineId,
         totalScore: total,
+        tiebreakScore: shoot.tiebreakScore,
         scores: shoot.scores,
         athlete: {
           division: shoot.athlete.division,

@@ -388,6 +388,7 @@ model Shoot {
   teamScore           Int?
   haaIndividualPlace  Int?
   haaConcurrent       String?
+  tiebreakScore       Float?   // Optional shoot-off score used only to break ties
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

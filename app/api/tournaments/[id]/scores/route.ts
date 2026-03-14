@@ -63,7 +63,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         disciplineId,
         athleteId: { in: athleteIds }
       },
-      include: {
+      select: {
+        id: true,
+        athleteId: true,
+        disciplineId: true,
+        date: true,
+        tiebreakScore: true,
         scores: {
           orderBy: [
             { roundNumber: 'asc' },
@@ -168,6 +173,42 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: 'Scores saved successfully' }, { status: 200 })
   } catch (error) {
     console.error('Error saving scores:', error)
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// PATCH: Save tiebreak score for a specific athlete+discipline
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const user = await requireAuth()
+    const { id: tournamentId } = await params
+
+    if (user.role !== 'coach' && user.role !== 'admin') {
+      return NextResponse.json({ error: 'Only coaches and admins can update tiebreak scores' }, { status: 403 })
+    }
+
+    const { athleteId, disciplineId, tiebreakScore } = await request.json()
+
+    if (!athleteId || !disciplineId) {
+      return NextResponse.json({ error: 'Missing athleteId or disciplineId' }, { status: 400 })
+    }
+
+    const shoot = await prisma.shoot.findFirst({ where: { tournamentId, athleteId, disciplineId } })
+    if (!shoot) {
+      return NextResponse.json({ error: 'Shoot record not found' }, { status: 404 })
+    }
+
+    await prisma.shoot.update({
+      where: { id: shoot.id },
+      data: { tiebreakScore: tiebreakScore === '' || tiebreakScore === null ? null : parseFloat(tiebreakScore) }
+    })
+
+    return NextResponse.json({ message: 'Tiebreak score saved' }, { status: 200 })
+  } catch (error) {
+    console.error('Error saving tiebreak score:', error)
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

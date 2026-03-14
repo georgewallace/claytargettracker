@@ -85,6 +85,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             teamScore: true,
             haaIndividualPlace: true,
             haaConcurrent: true,
+            tiebreakScore: true,
             athlete: {
               select: {
                 id: true,

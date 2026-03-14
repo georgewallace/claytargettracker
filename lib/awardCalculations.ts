@@ -3,6 +3,7 @@ export interface AthleteScoreEntry {
   athleteId: string
   disciplineId: string
   totalScore: number
+  tiebreakScore?: number | null  // Optional shoot-off score for tie-breaking
   scores: Array<{ roundNumber?: number | null; stationNumber?: number | null; targets: number; maxTargets: number }>
   athlete: {
     division: string | null
@@ -56,6 +57,24 @@ export interface AwardConfig {
   trapTeamSize: number
 }
 
+// Sort descending by totalScore, then by tiebreakScore (higher = better), then alphabetically by name
+function sortByScore(a: { total: number; tiebreak?: number | null; entry: AthleteScoreEntry }, b: { total: number; tiebreak?: number | null; entry: AthleteScoreEntry }): number {
+  if (b.total !== a.total) return b.total - a.total
+  // Tiebreak: higher tiebreakScore wins; null/undefined tiebreak treated as 0
+  const at = a.tiebreak ?? 0
+  const bt = b.tiebreak ?? 0
+  if (bt !== at) return bt - at
+  return a.entry.athlete.name.localeCompare(b.entry.athlete.name)
+}
+
+function sortEntriesByScore(a: AthleteScoreEntry, b: AthleteScoreEntry): number {
+  if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
+  const at = a.tiebreakScore ?? 0
+  const bt = b.tiebreakScore ?? 0
+  if (bt !== at) return bt - at
+  return a.athlete.name.localeCompare(b.athlete.name)
+}
+
 const TRAP_DISCIPLINE_NAMES = ['trap', 'super_sport', 'doubles_trap']
 
 function isTrapDiscipline(disciplineId: string): boolean {
@@ -75,7 +94,7 @@ export function calculateHOAAwards(
   const { hoaScope, hoaIncludesDivisions, hoaHighLadyCanWinBoth } = config
 
   // Collect all unique athletes from included divisions (excluding Collegiate)
-  const athleteScores: Record<string, { entry: AthleteScoreEntry; total: number }> = {}
+  const athleteScores: Record<string, { entry: AthleteScoreEntry; total: number; tiebreak?: number | null }> = {}
 
   const allEntries = Object.values(entriesByDiscipline).flat()
 
@@ -87,21 +106,26 @@ export function calculateHOAAwards(
     if (hoaScope === 'combined') {
       // Aggregate total across all disciplines
       if (!athleteScores[entry.athleteId]) {
-        athleteScores[entry.athleteId] = { entry, total: 0 }
+        athleteScores[entry.athleteId] = { entry, total: 0, tiebreak: entry.tiebreakScore }
       }
       athleteScores[entry.athleteId].total += entry.totalScore
+      // Use highest tiebreakScore across disciplines
+      if ((entry.tiebreakScore ?? 0) > (athleteScores[entry.athleteId].tiebreak ?? 0)) {
+        athleteScores[entry.athleteId].tiebreak = entry.tiebreakScore
+      }
     } else {
       // per_discipline: use the single discipline score
       if (!athleteScores[entry.athleteId]) {
-        athleteScores[entry.athleteId] = { entry, total: entry.totalScore }
+        athleteScores[entry.athleteId] = { entry, total: entry.totalScore, tiebreak: entry.tiebreakScore }
       } else if (entry.totalScore > athleteScores[entry.athleteId].total) {
         athleteScores[entry.athleteId].total = entry.totalScore
+        athleteScores[entry.athleteId].tiebreak = entry.tiebreakScore
       }
     }
   }
 
-  // Sort descending by total score
-  const sorted = Object.values(athleteScores).sort((a, b) => b.total - a.total)
+  // Sort descending by total score, then tiebreakScore
+  const sorted = Object.values(athleteScores).sort(sortByScore)
 
   if (sorted.length === 0) {
     return { hoa: null, ru: null, third: null, hoaLady: null }
@@ -139,19 +163,22 @@ export function calculateCollegiateHOA(
   config: AwardConfig
 ): CollegiateHOAResult {
   const allEntries = Object.values(entriesByDiscipline).flat()
-  const athleteScores: Record<string, { entry: AthleteScoreEntry; total: number }> = {}
+  const athleteScores: Record<string, { entry: AthleteScoreEntry; total: number; tiebreak?: number | null }> = {}
 
   for (const entry of allEntries) {
     const div = entry.athlete.division || ''
     if (div !== 'Collegiate') continue
 
     if (!athleteScores[entry.athleteId]) {
-      athleteScores[entry.athleteId] = { entry, total: 0 }
+      athleteScores[entry.athleteId] = { entry, total: 0, tiebreak: entry.tiebreakScore }
     }
     athleteScores[entry.athleteId].total += entry.totalScore
+    if ((entry.tiebreakScore ?? 0) > (athleteScores[entry.athleteId].tiebreak ?? 0)) {
+      athleteScores[entry.athleteId].tiebreak = entry.tiebreakScore
+    }
   }
 
-  const sorted = Object.values(athleteScores).sort((a, b) => b.total - a.total)
+  const sorted = Object.values(athleteScores).sort(sortByScore)
 
   return {
     first: sorted[0] ? { ...sorted[0].entry, totalScore: sorted[0].total } : null,
@@ -172,8 +199,8 @@ export function calculateEventAwards(
   const { individualEventPlaces } = config
 
   // Event champions: top male and top female in this discipline
-  const males = [...entries].filter(e => e.athlete.gender === 'male').sort((a, b) => b.totalScore - a.totalScore)
-  const females = [...entries].filter(e => e.athlete.gender === 'female').sort((a, b) => b.totalScore - a.totalScore)
+  const males = [...entries].filter(e => e.athlete.gender === 'male').sort(sortEntriesByScore)
+  const females = [...entries].filter(e => e.athlete.gender === 'female').sort(sortEntriesByScore)
 
   const championMen = males[0] || null
   const championLady = females[0] || null
@@ -186,7 +213,7 @@ export function calculateEventAwards(
     const divEntries = entries.filter(e => e.athlete.division === div)
     if (divEntries.length === 0) continue
 
-    const sorted = [...divEntries].sort((a, b) => b.totalScore - a.totalScore)
+    const sorted = [...divEntries].sort(sortEntriesByScore)
     divisionPlacements[div] = sorted.slice(0, individualEventPlaces)
   }
 
@@ -226,7 +253,7 @@ export function calculateTeamAwards(
     const divTeams: TeamScore[] = []
 
     for (const [teamId, teamAthletes] of Object.entries(byTeam)) {
-      const sorted = [...teamAthletes].sort((a, b) => b.totalScore - a.totalScore)
+      const sorted = [...teamAthletes].sort(sortEntriesByScore)
 
       // Form complete teams of size teamSize, remainder goes to open pool
       let i = 0
@@ -257,7 +284,7 @@ export function calculateTeamAwards(
   // Open pool: form teams from remainder athletes across all divisions
   const openTeams: TeamScore[] = []
   for (const [teamId, poolAthletes] of Object.entries(openPoolByTeam)) {
-    const sorted = [...poolAthletes].sort((a, b) => b.totalScore - a.totalScore)
+    const sorted = [...poolAthletes].sort(sortEntriesByScore)
     let i = 0
     while (i + teamSize <= sorted.length) {
       const teamSlice = sorted.slice(i, i + teamSize)
