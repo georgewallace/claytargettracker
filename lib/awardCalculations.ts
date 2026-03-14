@@ -131,8 +131,8 @@ export function calculateHOAAwards(
     return { hoa: null, ru: null, third: null, hoaLady: null }
   }
 
-  // Find HOA Lady (highest-scoring female)
-  const ladyEntry = sorted.find(s => s.entry.athlete.gender === 'female')
+  // Find HOA Lady (highest-scoring female) — gender stored as 'F' or 'female'
+  const ladyEntry = sorted.find(s => s.entry.athlete.gender === 'F' || s.entry.athlete.gender === 'female')
   const hoaLady = ladyEntry ? { ...ladyEntry.entry, totalScore: ladyEntry.total } : null
 
   if (hoaHighLadyCanWinBoth) {
@@ -198,9 +198,11 @@ export function calculateEventAwards(
 ): EventAwardResult {
   const { individualEventPlaces } = config
 
-  // Event champions: top male and top female in this discipline
-  const males = [...entries].filter(e => e.athlete.gender === 'male').sort(sortEntriesByScore)
-  const females = [...entries].filter(e => e.athlete.gender === 'female').sort(sortEntriesByScore)
+  // Event champions: top male and top female in this discipline — gender stored as 'M'/'F' or 'male'/'female'
+  const isMale = (g: string | null) => g === 'M' || g === 'male'
+  const isFemale = (g: string | null) => g === 'F' || g === 'female'
+  const males = [...entries].filter(e => isMale(e.athlete.gender)).sort(sortEntriesByScore)
+  const females = [...entries].filter(e => isFemale(e.athlete.gender)).sort(sortEntriesByScore)
 
   const championMen = males[0] || null
   const championLady = females[0] || null

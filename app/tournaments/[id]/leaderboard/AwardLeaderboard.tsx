@@ -63,14 +63,14 @@ function PlaceCard({
   if (!entry) return null
   const teamName = entry.athlete.teamId ? teamNames[entry.athlete.teamId] : null
   return (
-    <div className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
-      <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1">{place}</div>
-      <div className="font-semibold text-gray-900 text-sm leading-tight truncate">{entry.athlete.name}</div>
-      {teamName && <div className="text-xs text-gray-500 leading-tight truncate mt-0.5">{teamName}</div>}
-      <div className="text-base font-bold text-gray-800 mt-1">
-        {entry.totalScore} <span className="text-xs font-normal text-gray-400">pts</span>
+    <div className="bg-white border border-gray-200 rounded p-1.5 shadow-sm hover:shadow-md transition-shadow">
+      <div className="text-[9px] font-bold text-indigo-600 uppercase tracking-wider leading-none mb-0.5">{place}</div>
+      <div className="font-semibold text-gray-900 text-xs leading-tight truncate">{entry.athlete.name}</div>
+      {teamName && <div className="text-[10px] text-gray-500 leading-tight truncate">{teamName}</div>}
+      <div className="text-sm font-bold text-gray-800 leading-tight">
+        {entry.totalScore} <span className="text-[10px] font-normal text-gray-400">pts</span>
       </div>
-      {label && <div className="text-[10px] text-gray-400 mt-0.5">{label}</div>}
+      {label && <div className="text-[9px] text-gray-400">{label}</div>}
     </div>
   )
 }
@@ -295,7 +295,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
       {activeTab === 'hoa' && (
         <div className="space-y-4">
           <Section title="High Over All">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <PlaceCard place="HOA" entry={hoaResult.hoa} teamNames={teamNames} />
               <PlaceCard place="Runner Up" entry={hoaResult.ru} teamNames={teamNames} />
               <PlaceCard place="3rd Place" entry={hoaResult.third} teamNames={teamNames} />
@@ -305,7 +305,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
 
           {config.collegiateHOAEnabled && (collegiateResult.first || collegiateResult.second || collegiateResult.third) && (
             <Section title="Collegiate HOA">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <PlaceCard place="1st" entry={collegiateResult.first} teamNames={teamNames} />
                 <PlaceCard place="2nd" entry={collegiateResult.second} teamNames={teamNames} />
                 <PlaceCard place="3rd" entry={collegiateResult.third} teamNames={teamNames} />
@@ -371,7 +371,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
                       <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" />
                       {div}
                     </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {placements.map((entry, i) => (
                         <PlaceCard key={entry.athleteId} place={placeLabels[i] || `${i + 1}th`} entry={entry} teamNames={teamNames} />
                       ))}
