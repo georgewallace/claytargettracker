@@ -48,18 +48,20 @@ interface EditTournamentFormProps {
   disciplineScoreCounts: Record<string, number>
 }
 
-// Disciplines that use rounds (trap, skeet)
+// Disciplines that use rounds (trap, skeet, five_stand)
 function isRoundBased(name: string) {
-  return name === 'trap' || name === 'skeet'
+  return name === 'trap' || name === 'skeet' || name === 'five_stand'
 }
 
-// Disciplines that use stations (sporting clays, 5-stand, super sport)
+// Disciplines that use stations (sporting clays, super sport)
 function isStationBased(name: string) {
-  return name === 'sporting_clays' || name === 'five_stand' || name === 'super_sport'
+  return name === 'sporting_clays' || name === 'super_sport'
 }
 
 function defaultRounds(name: string) {
-  return name === 'trap' || name === 'skeet' ? 4 : 1
+  if (name === 'trap' || name === 'skeet') return 4
+  if (name === 'five_stand') return 2
+  return 1
 }
 
 function defaultStations(name: string) {
@@ -306,7 +308,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                               value={cfg.rounds}
                               onChange={e => updateDisciplineConfig(discipline.id, 'rounds', parseInt(e.target.value) || 1)}
                               className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                            <span className="text-xs text-gray-500">× 25 targets per round</span>
+                            <span className="text-xs text-gray-500">× 25 targets per round{discipline.name === 'five_stand' ? ' (5-Stand)' : ''}</span>
                           </div>
                         )}
                         {showStations && (
