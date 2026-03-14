@@ -125,6 +125,7 @@ function RankedTable({
               <th key={d.id} className="px-2 py-1.5 text-right font-semibold hidden md:table-cell whitespace-nowrap">{d.label}</th>
             ))}
             <th className="px-2 py-1.5 text-right font-semibold">Total</th>
+            <th className="w-3 pr-1"></th>
           </tr>
         </thead>
         <tbody>
@@ -165,10 +166,12 @@ function RankedTable({
                     </td>
                   )
                 })}
-                <td className="px-2 py-1.5 text-right whitespace-nowrap">
+                <td className="px-2 py-1.5 text-right">
                   <span className="font-bold text-gray-800 text-sm tabular-nums">{entry.totalScore}</span>
+                </td>
+                <td className="w-3 pr-1 text-left align-middle">
                   {entry.tiebreakScore != null && (
-                    <span className="text-[10px] text-amber-500 ml-0.5 font-bold">*</span>
+                    <span className="text-[10px] text-amber-500 font-bold leading-none">*</span>
                   )}
                 </td>
               </tr>
