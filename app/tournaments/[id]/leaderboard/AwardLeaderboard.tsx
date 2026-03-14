@@ -97,6 +97,74 @@ function TeamCard({
   )
 }
 
+// Compact ranked table of athletes
+function RankedTable({
+  rows,
+  teamNames,
+  showDivision = false,
+}: {
+  rows: AthleteScoreEntry[]
+  teamNames: Record<string, string>
+  showDivision?: boolean
+}) {
+  if (rows.length === 0) return null
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+            <th className="px-2 py-1.5 text-left font-semibold w-8">#</th>
+            <th className="px-2 py-1.5 text-left font-semibold">Athlete</th>
+            {showDivision && <th className="px-2 py-1.5 text-left font-semibold hidden sm:table-cell">Div</th>}
+            <th className="px-2 py-1.5 text-left font-semibold hidden sm:table-cell">Team</th>
+            <th className="px-2 py-1.5 text-right font-semibold">Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((entry, i) => {
+            const teamName = entry.athlete.teamId ? teamNames[entry.athlete.teamId] : null
+            const isTop3 = i < 3
+            return (
+              <tr
+                key={entry.athleteId}
+                className={`border-t border-gray-100 ${isTop3 ? 'bg-indigo-50/40' : 'hover:bg-gray-50'}`}
+              >
+                <td className="px-2 py-1.5">
+                  <span className={`text-xs font-bold tabular-nums ${isTop3 ? 'text-indigo-600' : 'text-gray-400'}`}>
+                    {i + 1}
+                  </span>
+                </td>
+                <td className="px-2 py-1.5">
+                  <div className="font-medium text-gray-900 text-xs leading-tight">{entry.athlete.name}</div>
+                  {showDivision && (
+                    <div className="text-[10px] text-gray-400 sm:hidden leading-tight">
+                      {entry.athlete.division}{teamName ? ` · ${teamName}` : ''}
+                    </div>
+                  )}
+                </td>
+                {showDivision && (
+                  <td className="px-2 py-1.5 text-xs text-gray-500 hidden sm:table-cell whitespace-nowrap">
+                    {entry.athlete.division || '—'}
+                  </td>
+                )}
+                <td className="px-2 py-1.5 text-xs text-gray-500 hidden sm:table-cell truncate max-w-[120px]">
+                  {teamName || '—'}
+                </td>
+                <td className="px-2 py-1.5 text-right">
+                  <span className="font-bold text-gray-800 text-sm tabular-nums">{entry.totalScore}</span>
+                  {entry.tiebreakScore != null && (
+                    <span className="text-[10px] text-amber-600 ml-1">+{entry.tiebreakScore}</span>
+                  )}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 // Section wrapper — white card matching old leaderboard style
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -116,9 +184,6 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
   const [isCycling, setIsCycling] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [zoom, setZoom] = useState(100)
-  // Per-discipline pagination: divisionPage & teamPage
-  const [divisionPage, setDivisionPage] = useState(0)
-  const [teamPage, setTeamPage] = useState(0)
 
   const activeTabRef = useRef(activeTab)
   useEffect(() => { activeTabRef.current = activeTab }, [activeTab])
@@ -189,6 +254,25 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
   const hoaResult = useMemo(() => calculateHOAAwards(entriesByDiscipline, config), [entriesByDiscipline, config])
   const collegiateResult = useMemo(() => calculateCollegiateHOA(entriesByDiscipline, config), [entriesByDiscipline, config])
 
+  // Combined scores for full HOA rankings (all athletes, sorted by total across disciplines)
+  const allAthletesHOA = useMemo((): AthleteScoreEntry[] => {
+    const combined: Record<string, { entry: AthleteScoreEntry; total: number; tiebreak: number }> = {}
+    for (const entries of Object.values(entriesByDiscipline)) {
+      for (const e of entries) {
+        if (!combined[e.athleteId]) {
+          combined[e.athleteId] = { entry: e, total: 0, tiebreak: e.tiebreakScore ?? 0 }
+        }
+        combined[e.athleteId].total += e.totalScore
+        if ((e.tiebreakScore ?? 0) > combined[e.athleteId].tiebreak) {
+          combined[e.athleteId].tiebreak = e.tiebreakScore ?? 0
+        }
+      }
+    }
+    return Object.values(combined)
+      .sort((a, b) => b.total - a.total || b.tiebreak - a.tiebreak || a.entry.athlete.name.localeCompare(b.entry.athlete.name))
+      .map(({ entry, total, tiebreak }) => ({ ...entry, totalScore: total, tiebreakScore: tiebreak || null }))
+  }, [entriesByDiscipline])
+
   // Only show discipline tabs that have actual score data
   const disciplinesWithScores = tournament.disciplines.filter(
     d => (entriesByDiscipline[d.disciplineId]?.length ?? 0) > 0
@@ -213,19 +297,14 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
       const idx = tabIds.indexOf(current)
       const next = tabIds[(idx + 1) % tabIds.length]
       setActiveTab(next)
-      setDivisionPage(0)
-      setTeamPage(0)
     }, intervalMs)
 
     return () => clearInterval(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCycling, tournament.leaderboardTabInterval, tabs.length])
 
-  // Reset pagination when tab changes
   const handleTabChange = (id: string) => {
     setActiveTab(id)
-    setDivisionPage(0)
-    setTeamPage(0)
   }
 
   return (
@@ -312,6 +391,12 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
               </div>
             </Section>
           )}
+
+          {allAthletesHOA.length > 0 && (
+            <Section title={`All Athletes — Combined (${allAthletesHOA.length})`}>
+              <RankedTable rows={allAthletesHOA} teamNames={teamNames} showDivision />
+            </Section>
+          )}
         </div>
       )}
 
@@ -323,32 +408,32 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
         const teamResult = calculateTeamAwards(disciplineEntries, d.disciplineId, teamNames, config)
         const hasTeamAwards = Object.values(teamResult.divisionTeams).some(t => t.length > 0) || teamResult.openTeams.length > 0
 
-        // Build flat list of division sections for pagination
-        const divisionSections = divisionList.flatMap(div => {
+        // All athletes by division (uncapped — show everyone)
+        const allDivisionSections = divisionList.flatMap(div => {
+          const all = [...disciplineEntries]
+            .filter(e => e.athlete.division === div)
+            .sort((a, b) => b.totalScore - a.totalScore || (b.tiebreakScore ?? 0) - (a.tiebreakScore ?? 0) || a.athlete.name.localeCompare(b.athlete.name))
+          if (all.length === 0) return []
+          return [{ div, athletes: all }]
+        })
+
+        // Award callout sections (capped to individualEventPlaces)
+        const awardDivisionSections = divisionList.flatMap(div => {
           const placements = eventResult.divisionPlacements[div]
           if (!placements || placements.length === 0) return []
           return [{ div, placements }]
         })
-        const totalDivPages = Math.ceil(divisionSections.length / DIVISION_PLACES_PER_PAGE)
-        const pagedDivSections = divisionSections.slice(
-          divisionPage * DIVISION_PLACES_PER_PAGE,
-          (divisionPage + 1) * DIVISION_PLACES_PER_PAGE
-        )
 
-        // Flatten team sections for pagination
-        const teamSections = [
+        // All teams (uncapped) — recalculate without teamEventPlaces cap
+        const uncappedTeamResult = calculateTeamAwards(disciplineEntries, d.disciplineId, teamNames, { ...config, teamEventPlaces: 999 })
+        const allTeamSections = [
           ...divisionList.flatMap(div => {
-            const teams = teamResult.divisionTeams[div]
+            const teams = uncappedTeamResult.divisionTeams[div]
             if (!teams || teams.length === 0) return []
             return [{ label: `${div} Teams`, teams }]
           }),
-          ...(teamResult.openTeams.length > 0 ? [{ label: 'Open Teams', teams: teamResult.openTeams }] : [])
+          ...(uncappedTeamResult.openTeams.length > 0 ? [{ label: 'Open Teams', teams: uncappedTeamResult.openTeams }] : [])
         ]
-        const totalTeamPages = Math.ceil(teamSections.length / DIVISION_PLACES_PER_PAGE)
-        const pagedTeamSections = teamSections.slice(
-          teamPage * DIVISION_PLACES_PER_PAGE,
-          (teamPage + 1) * DIVISION_PLACES_PER_PAGE
-        )
 
         return (
           <div key={d.disciplineId} className="space-y-4">
@@ -362,62 +447,46 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
               </Section>
             )}
 
-            {/* Division Placements */}
-            {divisionSections.length > 0 && (
-              <Section title="Division Awards">
-                {pagedDivSections.map(({ div, placements }) => (
-                  <div key={div} className="mb-4 last:mb-0">
-                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" />
-                      {div}
-                    </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {placements.map((entry, i) => (
-                        <PlaceCard key={entry.athleteId} place={placeLabels[i] || `${i + 1}th`} entry={entry} teamNames={teamNames} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {totalDivPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                    <button
-                      onClick={() => setDivisionPage(p => Math.max(0, p - 1))}
-                      disabled={divisionPage === 0}
-                      className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded disabled:opacity-40 disabled:cursor-not-allowed transition font-medium text-gray-700"
-                    >
-                      ← Prev
-                    </button>
-                    {Array.from({ length: totalDivPages }, (_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setDivisionPage(i)}
-                        className={`px-3 py-1 text-sm rounded border transition font-medium ${
-                          divisionPage === i
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                            : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
+            {/* Division Results — all athletes */}
+            {allDivisionSections.length > 0 && (
+              <Section title="Division Results">
+                {/* Award callout boxes for top N */}
+                {awardDivisionSections.length > 0 && (
+                  <div className="mb-4 space-y-3">
+                    {awardDivisionSections.map(({ div, placements }) => (
+                      <div key={div}>
+                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" />
+                          {div} — Awards
+                        </h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                          {placements.map((entry, i) => (
+                            <PlaceCard key={entry.athleteId} place={placeLabels[i] || `${i + 1}th`} entry={entry} teamNames={teamNames} />
+                          ))}
+                        </div>
+                      </div>
                     ))}
-                    <button
-                      onClick={() => setDivisionPage(p => Math.min(totalDivPages - 1, p + 1))}
-                      disabled={divisionPage === totalDivPages - 1}
-                      className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded disabled:opacity-40 disabled:cursor-not-allowed transition font-medium text-gray-700"
-                    >
-                      Next →
-                    </button>
                   </div>
                 )}
+                {/* Full ranked table per division */}
+                {allDivisionSections.map(({ div, athletes }) => (
+                  <div key={div} className="mb-4 last:mb-0">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 inline-block" />
+                      {div} — All ({athletes.length})
+                    </h4>
+                    <RankedTable rows={athletes} teamNames={teamNames} />
+                  </div>
+                ))}
               </Section>
             )}
 
-            {/* Team Awards */}
-            {hasTeamAwards && (
-              <Section title="Team Awards">
-                {pagedTeamSections.map(({ label, teams }) => (
+            {/* Team Results — all teams */}
+            {allTeamSections.length > 0 && (
+              <Section title="Team Results">
+                {allTeamSections.map(({ label, teams }) => (
                   <div key={label} className="mb-4 last:mb-0">
-                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" />
                       {label}
                     </h4>
@@ -428,39 +497,9 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
                     </div>
                   </div>
                 ))}
-                {totalTeamPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                    <button
-                      onClick={() => setTeamPage(p => Math.max(0, p - 1))}
-                      disabled={teamPage === 0}
-                      className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded disabled:opacity-40 disabled:cursor-not-allowed transition font-medium text-gray-700"
-                    >
-                      ← Prev
-                    </button>
-                    {Array.from({ length: totalTeamPages }, (_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setTeamPage(i)}
-                        className={`px-3 py-1 text-sm rounded border transition font-medium ${
-                          teamPage === i
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                            : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setTeamPage(p => Math.min(totalTeamPages - 1, p + 1))}
-                      disabled={teamPage === totalTeamPages - 1}
-                      className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded disabled:opacity-40 disabled:cursor-not-allowed transition font-medium text-gray-700"
-                    >
-                      Next →
-                    </button>
-                  </div>
-                )}
               </Section>
             )}
+
           </div>
         )
       })}
