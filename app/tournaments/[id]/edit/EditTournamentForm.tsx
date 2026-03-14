@@ -67,6 +67,13 @@ function defaultStations(name: string) {
   return 10
 }
 
+function defaultTargets(name: string) {
+  if (name === 'five_stand') return 25
+  if (name === 'super_sport') return 50
+  if (name === 'sporting_clays') return 100
+  return 0
+}
+
 export default function EditTournamentForm({ tournament, allDisciplines, disciplineRegistrationCounts, disciplineScoreCounts }: EditTournamentFormProps) {
   const router = useRouter()
 
@@ -87,12 +94,13 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
   )
 
   // Per-discipline round/station config, keyed by disciplineId
-  const [disciplineConfigs, setDisciplineConfigs] = useState<Record<string, { rounds: number; stations: number }>>(() => {
-    const map: Record<string, { rounds: number; stations: number }> = {}
+  const [disciplineConfigs, setDisciplineConfigs] = useState<Record<string, { rounds: number; stations: number; targets: number }>>(() => {
+    const map: Record<string, { rounds: number; stations: number; targets: number }> = {}
     for (const td of tournament.disciplines) {
       map[td.disciplineId] = {
         rounds: td.rounds ?? defaultRounds(td.discipline.name),
         stations: td.stations ?? defaultStations(td.discipline.name),
+        targets: td.targets ?? defaultTargets(td.discipline.name),
       }
     }
     return map
@@ -131,7 +139,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
         disciplineId,
         rounds: isRoundBased(disc.name) ? (cfg.rounds ?? defaultRounds(disc.name)) : null,
         stations: isStationBased(disc.name) ? (cfg.stations ?? defaultStations(disc.name)) : null,
-        targets: null,
+        targets: isStationBased(disc.name) ? (cfg.targets || null) : null,
       }
     })
 
@@ -185,14 +193,14 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
       if (!prev.includes(disciplineId) && !disciplineConfigs[disciplineId]) {
         setDisciplineConfigs(c => ({
           ...c,
-          [disciplineId]: { rounds: defaultRounds(disciplineName), stations: defaultStations(disciplineName) }
+          [disciplineId]: { rounds: defaultRounds(disciplineName), stations: defaultStations(disciplineName), targets: defaultTargets(disciplineName) }
         }))
       }
       return next
     })
   }
 
-  const updateDisciplineConfig = (disciplineId: string, field: 'rounds' | 'stations', value: number) => {
+  const updateDisciplineConfig = (disciplineId: string, field: 'rounds' | 'stations' | 'targets', value: number) => {
     setDisciplineConfigs(prev => ({
       ...prev,
       [disciplineId]: { ...(prev[disciplineId] || {}), [field]: value }
@@ -302,19 +310,32 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                           </div>
                         )}
                         {showStations && (
-                          <div className="flex items-center gap-3">
-                            <label className="text-sm text-gray-600 w-28">Stations</label>
-                            {discipline.name === 'five_stand' ? (
-                              <span className="text-sm font-medium text-gray-700">5 <span className="text-xs text-gray-400 font-normal">(fixed)</span></span>
-                            ) : (
-                              <>
-                                <input type="number" min={1} max={50}
-                                  value={cfg.stations}
-                                  onChange={e => updateDisciplineConfig(discipline.id, 'stations', parseInt(e.target.value) || 1)}
-                                  className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                                <span className="text-xs text-gray-500">stations on course</span>
-                              </>
-                            )}
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                              <label className="text-sm text-gray-600 w-28">Stations</label>
+                              {discipline.name === 'five_stand' ? (
+                                <span className="text-sm font-medium text-gray-700">5 <span className="text-xs text-gray-400 font-normal">(fixed)</span></span>
+                              ) : (
+                                <>
+                                  <input type="number" min={1} max={50}
+                                    value={cfg.stations}
+                                    onChange={e => updateDisciplineConfig(discipline.id, 'stations', parseInt(e.target.value) || 1)}
+                                    className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                                  <span className="text-xs text-gray-500">stations on course</span>
+                                </>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <label className="text-sm text-gray-600 w-28">Total targets</label>
+                              <input type="number" min={1} max={500}
+                                value={cfg.targets || ''}
+                                placeholder={discipline.name === 'five_stand' ? '25' : '100'}
+                                onChange={e => updateDisciplineConfig(discipline.id, 'targets', parseInt(e.target.value) || 0)}
+                                className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                              <span className="text-xs text-gray-500">
+                                = {cfg.targets && cfg.stations ? Math.ceil(cfg.targets / (discipline.name === 'five_stand' ? 5 : cfg.stations)) : '?'} max per station
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>

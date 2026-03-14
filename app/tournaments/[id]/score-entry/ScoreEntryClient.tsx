@@ -189,9 +189,6 @@ export default function ScoreEntryClient({ tournament, initialSquadStatus }: Sco
 
   const handleTabChange = (id: string) => {
     setActiveDisciplineId(id)
-    setSquadFilter('')
-    setTeamFilter('')
-    setAthleteFilter('')
     setPage(1)
   }
 

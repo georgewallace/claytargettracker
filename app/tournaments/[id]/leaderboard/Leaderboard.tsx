@@ -482,22 +482,29 @@ export default function Leaderboard({ tournament: initialTournament, isAdmin = f
         .sort((a: any, b: any) => (a.hoaPlace || 999) - (b.hoaPlace || 999))
         .slice(0, tournament.haaMenPlaces || 2)
 
-      // HOA for females - athletes with hoaPlace and gender-specific designation
+      // HOA for females — use haaConcurrent text (legacy Excel) or gender field (v2/web entry)
       hoaFemaleathletes = [...allathletes]
         .filter(s => {
-          const hasHoaPlace = Object.values(s.disciplinePlacements).some((p: any) => p?.hoaPlace !== undefined)
-          if (!hasHoaPlace || overallHOAWinnerIds.has(s.athleteId)) return false
-
+          if (overallHOAWinnerIds.has(s.athleteId)) return false
           const concurrent = (s.haaConcurrent || '').toLowerCase()
-          return concurrent.includes("lady's") || concurrent.includes("ladies") ||
-                 concurrent.includes("female") || concurrent.includes("women")
+          const isLadyByConcurrent = concurrent.includes("lady's") || concurrent.includes("ladies") ||
+                                     concurrent.includes("female") || concurrent.includes("women")
+          const isLadyByGender = s.gender === 'F'
+          if (!isLadyByConcurrent && !isLadyByGender) return false
+          const hasHoaPlace = Object.values(s.disciplinePlacements).some((p: any) => p?.hoaPlace !== undefined)
+          // Legacy: require hoaPlace. v2/gender-based: any female with a score qualifies
+          return hasHoaPlace || (isLadyByGender && s.totalScore > 0)
         })
         .map(s => {
           const hoaPlace = Object.values(s.disciplinePlacements).find((p: any) => p?.hoaPlace !== undefined)?.hoaPlace
           return { ...s, hoaPlace }
         })
-        .sort((a: any, b: any) => (a.hoaPlace || 999) - (b.hoaPlace || 999))
-        .slice(0, tournament.haaLadyPlaces || 2)
+        .sort((a: any, b: any) => {
+          // Sort by explicit hoaPlace if available, otherwise by total score descending
+          if (a.hoaPlace !== undefined && b.hoaPlace !== undefined) return (a.hoaPlace || 999) - (b.hoaPlace || 999)
+          return b.totalScore - a.totalScore
+        })
+        .slice(0, tournament.haaLadyPlaces || 3)
     }
 
     const hoaWinnerIds = new Set([

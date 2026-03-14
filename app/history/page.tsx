@@ -4,11 +4,13 @@ import { getCurrentUser } from '@/lib/auth'
 import { format } from 'date-fns'
 import Link from 'next/link'
 
+type HistoryView = 'all' | 'legacy' | 'v2'
+
 // Force dynamic rendering (required for getCurrentUser)
 export const dynamic = 'force-dynamic'
 
 type PageProps = {
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{ page?: string; view?: string }>
 }
 
 export default async function athleteHistoryPage({ searchParams }: PageProps) {
@@ -18,28 +20,28 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
     redirect('/login')
   }
 
-  // Pagination setup
+  // Pagination + view setup
   const params = await searchParams
+  const view: HistoryView = (params.view === 'legacy' || params.view === 'v2') ? params.view : 'all'
   const currentPage = parseInt(params.page || '1')
   const itemsPerPage = 20
   const skip = (currentPage - 1) * itemsPerPage
 
+  // Build view filter: legacy = Excel-imported, v2 = web-entered
+  const viewWhere: any = { athleteId: user.athlete.id }
+  if (view === 'legacy') viewWhere.tournament = { awardStructureVersion: 'legacy' }
+  if (view === 'v2') viewWhere.tournament = { awardStructureVersion: 'v2' }
+
   // Get total count for pagination
-  const totalCount = await prisma.shoot.count({
-    where: {
-      athleteId: user.athlete.id
-    }
-  })
+  const totalCount = await prisma.shoot.count({ where: viewWhere })
 
   const totalPages = Math.ceil(totalCount / itemsPerPage)
 
   // Get paginated shoots for this athlete
   const shoots = await prisma.shoot.findMany({
-    where: {
-      athleteId: user.athlete.id
-    },
+    where: viewWhere,
     include: {
-      tournament: true,
+      tournament: { select: { id: true, name: true, awardStructureVersion: true } },
       discipline: true,
       scores: {
         orderBy: [
@@ -134,10 +136,29 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
           </div>
         )}
 
+        {/* View tabs */}
+        <div className="flex gap-1 border-b border-gray-200 mb-0 bg-white rounded-t-lg shadow-md px-6 pt-4">
+          {(['all', 'legacy', 'v2'] as HistoryView[]).map(v => (
+            <Link
+              key={v}
+              href={`/history?view=${v}`}
+              className={`px-4 py-2 text-sm font-medium rounded-t-md border-b-2 -mb-px transition ${
+                view === v
+                  ? 'border-indigo-600 text-indigo-700 bg-white'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              {v === 'all' ? 'All' : v === 'legacy' ? 'Legacy (Excel)' : 'Web Entry (v2)'}
+            </Link>
+          ))}
+        </div>
+
         {/* History Table */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="p-8 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">All Shoots</h2>
+        <div className="bg-white rounded-b-lg shadow-md overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900">
+              {view === 'all' ? 'All Shoots' : view === 'legacy' ? 'Legacy Shoots (Excel Import)' : 'Web-Entered Shoots'}
+            </h2>
           </div>
           
           {shootsWithTotals.length === 0 ? (
@@ -204,17 +225,24 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
                           {shoot.percentage}%
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex gap-2">
-                          {shoot.scores.map((score: any) => (
-                            <span
-                              key={score.id}
-                              className="text-xs text-gray-900"
-                              title={`Station ${score.stationNumber}: ${Math.floor(score.targets)}/${score.maxTargets}`}
-                            >
-                              {Math.floor(score.targets)}
-                            </span>
-                          ))}
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex flex-wrap gap-1.5">
+                          {shoot.scores.map((score: any, si: number) => {
+                            const isStation = score.stationNumber != null
+                            const label = isStation ? `S${score.stationNumber}` : `R${score.roundNumber ?? si + 1}`
+                            const hit = Math.floor(score.targets)
+                            const max = score.maxTargets
+                            return (
+                              <span
+                                key={score.id}
+                                className="inline-flex flex-col items-center bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 text-[11px]"
+                                title={`${label}: ${hit}/${max}`}
+                              >
+                                <span className="text-gray-400 leading-none">{label}</span>
+                                <span className="font-semibold text-gray-900 leading-none">{hit}<span className="text-gray-400 font-normal">/{max}</span></span>
+                              </span>
+                            )
+                          })}
                         </div>
                       </td>
                     </tr>
@@ -230,7 +258,7 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
           <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-6 rounded-lg shadow-md">
             <div className="flex flex-1 justify-between sm:hidden">
               <Link
-                href={`/history?page=${Math.max(currentPage - 1, 1)}`}
+                href={`/history?view=${view}&page=${Math.max(currentPage - 1, 1)}`}
                 className={`relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 ${
                   currentPage === 1 ? 'pointer-events-none opacity-50' : ''
                 }`}
@@ -238,7 +266,7 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
                 Previous
               </Link>
               <Link
-                href={`/history?page=${Math.min(currentPage + 1, totalPages)}`}
+                href={`/history?view=${view}&page=${Math.min(currentPage + 1, totalPages)}`}
                 className={`relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 ${
                   currentPage === totalPages ? 'pointer-events-none opacity-50' : ''
                 }`}
@@ -257,7 +285,7 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
               <div>
                 <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                   <Link
-                    href={`/history?page=${Math.max(currentPage - 1, 1)}`}
+                    href={`/history?view=${view}&page=${Math.max(currentPage - 1, 1)}`}
                     className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
                       currentPage === 1 ? 'pointer-events-none opacity-50' : ''
                     }`}
@@ -270,7 +298,7 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                     <Link
                       key={page}
-                      href={`/history?page=${page}`}
+                      href={`/history?view=${view}&page=${page}`}
                       className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
                         currentPage === page
                           ? 'z-10 bg-indigo-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
@@ -281,7 +309,7 @@ export default async function athleteHistoryPage({ searchParams }: PageProps) {
                     </Link>
                   ))}
                   <Link
-                    href={`/history?page=${Math.min(currentPage + 1, totalPages)}`}
+                    href={`/history?view=${view}&page=${Math.min(currentPage + 1, totalPages)}`}
                     className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
                       currentPage === totalPages ? 'pointer-events-none opacity-50' : ''
                     }`}

@@ -36,7 +36,8 @@ interface DisciplineConfig {
   discipline: Discipline
 }
 
-type AthleteScores = Record<string, number[]>
+// null = not yet entered; number (including 0) = explicitly entered
+type AthleteScores = Record<string, (number | null)[]>
 
 function isStationBased(config: DisciplineConfig | undefined): boolean {
   if (!config) return false
@@ -56,8 +57,9 @@ function getInputCount(config: DisciplineConfig | undefined): number {
 function getMaxPerInput(config: DisciplineConfig | undefined): number {
   if (!config) return 25
   if (isStationBased(config)) {
-    const stationDefault = config.discipline.name === 'five_stand' ? 5 : 10
-    return config.targets ? Math.ceil(config.targets / (config.stations || stationDefault)) : 5
+    // targets = total targets for the event; divide by stations to get per-station max
+    const stationCount = config.stations || (config.discipline.name === 'five_stand' ? 5 : 10)
+    return config.targets ? Math.ceil(config.targets / stationCount) : 5
   }
   return 25
 }
@@ -85,14 +87,15 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
   const stationBased = isStationBased(config)
   const members = squad.members
 
+  // null = not entered, number (including 0) = entered
   const computeStatus = (s: AthleteScores): ScoreStatus => {
-    let filled = 0
+    let entered = 0
     const total = members.length * inputCount
     for (const m of members) {
-      for (const v of (s[m.athleteId] || [])) { if (v > 0) filled++ }
+      for (const v of (s[m.athleteId] || [])) { if (v !== null) entered++ }
     }
-    if (filled === 0) return 'empty'
-    if (filled >= total) return 'complete'
+    if (entered === 0) return 'empty'
+    if (entered >= total) return 'complete'
     return 'partial'
   }
 
@@ -101,13 +104,10 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
 
   const focusCell = useCallback((row: number, col: number) => {
     const el = inputRefs.current[row]?.[col]
-    if (el) {
-      el.focus()
-      el.select()
-    }
+    if (el) { el.focus(); el.select() }
   }, [])
 
-  // Load existing scores
+  // Load existing scores — cells with DB records get their value (even 0); others stay null
   useEffect(() => {
     if (!discipline) { setLoading(false); return }
 
@@ -123,7 +123,7 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         for (const member of members) {
           const shoot = shoots.find((s: any) => s.athleteId === member.athleteId)
           if (shoot && shoot.scores && shoot.scores.length > 0) {
-            const arr = Array(inputCount).fill(0)
+            const arr: (number | null)[] = Array(inputCount).fill(null)
             for (const score of shoot.scores) {
               const idx = stationBased
                 ? (score.stationNumber ?? 1) - 1
@@ -132,14 +132,14 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
             }
             initial[member.athleteId] = arr
           } else {
-            initial[member.athleteId] = Array(inputCount).fill(0)
+            initial[member.athleteId] = Array(inputCount).fill(null)
           }
         }
         setScores(initial)
         onStatusChange?.(squad.id, computeStatus(initial))
       } catch {
         const empty: AthleteScores = {}
-        for (const m of members) empty[m.athleteId] = Array(inputCount).fill(0)
+        for (const m of members) empty[m.athleteId] = Array(inputCount).fill(null)
         setScores(empty)
         onStatusChange?.(squad.id, 'empty')
       } finally {
@@ -148,26 +148,26 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
     }
 
     fetchScores()
-  }, [squad.id, discipline?.id, tournamentId, inputCount, stationBased, members])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [squad.id, discipline?.id, tournamentId, inputCount, stationBased])
 
-  // Initialise refs array dimensions whenever members/inputCount change
   useEffect(() => {
     inputRefs.current = members.map((_, ri) =>
       inputRefs.current[ri] ? inputRefs.current[ri] : Array(inputCount).fill(null)
     )
   }, [members, inputCount])
 
-  const setScore = (athleteId: string, index: number, value: number) => {
+  const setScore = (athleteId: string, index: number, value: number | null) => {
     setSaved(false)
     setScores(prev => {
-      const arr = prev[athleteId] ? [...prev[athleteId]] : Array(inputCount).fill(0)
-      arr[index] = isNaN(value) ? 0 : value
+      const arr = prev[athleteId] ? [...prev[athleteId]] : Array(inputCount).fill(null)
+      arr[index] = value
       return { ...prev, [athleteId]: arr }
     })
   }
 
   const getTotal = (athleteId: string): number =>
-    (scores[athleteId] || []).reduce((sum, v) => sum + (v || 0), 0)
+    (scores[athleteId] || []).reduce((sum: number, v) => sum + (v ?? 0), 0)
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, row: number, col: number) => {
     const lastRow = members.length - 1
@@ -177,11 +177,9 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
       case 'Tab': {
         e.preventDefault()
         if (e.shiftKey) {
-          // Shift+Tab: move left, wrap to previous row
           if (col > 0) focusCell(row, col - 1)
           else if (row > 0) focusCell(row - 1, lastCol)
         } else {
-          // Tab: move right, wrap to next row
           if (col < lastCol) focusCell(row, col + 1)
           else if (row < lastRow) focusCell(row + 1, 0)
         }
@@ -189,23 +187,13 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
       }
       case 'Enter': {
         e.preventDefault()
-        // Enter: move down (same column), wrap to top of next column
         if (row < lastRow) focusCell(row + 1, col)
         else if (col < lastCol) focusCell(0, col + 1)
         break
       }
-      case 'ArrowUp': {
-        e.preventDefault()
-        if (row > 0) focusCell(row - 1, col)
-        break
-      }
-      case 'ArrowDown': {
-        e.preventDefault()
-        if (row < lastRow) focusCell(row + 1, col)
-        break
-      }
+      case 'ArrowUp': { e.preventDefault(); if (row > 0) focusCell(row - 1, col); break }
+      case 'ArrowDown': { e.preventDefault(); if (row < lastRow) focusCell(row + 1, col); break }
       case 'ArrowLeft': {
-        // Only navigate if cursor is at start of input
         const input = e.currentTarget
         if (input.selectionStart === 0 && input.selectionEnd === 0) {
           e.preventDefault()
@@ -214,7 +202,6 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         break
       }
       case 'ArrowRight': {
-        // Only navigate if cursor is at end of input
         const input = e.currentTarget
         if (input.selectionStart === input.value.length) {
           e.preventDefault()
@@ -237,11 +224,13 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
           athleteId: m.athleteId,
           disciplineId: discipline.id,
           date: new Date(timeSlotDate).toISOString(),
-          rounds: (scores[m.athleteId] || []).map((val, idx) => ({
-            ...(stationBased ? { stationNumber: idx + 1 } : { roundNumber: idx + 1 }),
-            targets: val,
-            maxTargets: maxPerInput
-          }))
+          // Only save cells that have been explicitly entered (not null)
+          rounds: (scores[m.athleteId] || [])
+            .flatMap((val, idx) => val !== null ? [{
+              ...(stationBased ? { stationNumber: idx + 1 } : { roundNumber: idx + 1 }),
+              targets: val,
+              maxTargets: maxPerInput
+            }] : [])
         }))
 
       const res = await fetch(`/api/tournaments/${tournamentId}/scores`, {
@@ -275,9 +264,13 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         <div className="mb-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">{error}</div>
       )}
 
+      {/* Max per input hint for station-based disciplines */}
+      {stationBased && maxPerInput > 0 && (
+        <p className="text-xs text-gray-400 mb-1">Max {maxPerInput} per {stationBased ? 'station' : 'round'}</p>
+      )}
+
       <div className="overflow-x-auto rounded border border-gray-200">
         <table className="text-sm border-collapse w-full">
-          {/* Column headers */}
           <thead>
             <tr className="bg-gray-100 text-gray-600">
               <th className="text-left px-3 py-2 font-semibold border-b border-r border-gray-200 sticky left-0 bg-gray-100 z-10 min-w-[160px]">
@@ -286,6 +279,7 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
               {Array.from({ length: inputCount }, (_, i) => (
                 <th key={i} className="px-2 py-2 font-semibold border-b border-r border-gray-200 text-center w-14">
                   {stationBased ? `S${i + 1}` : `R${i + 1}`}
+                  {stationBased && <div className="text-[10px] font-normal text-gray-400">/{maxPerInput}</div>}
                 </th>
               ))}
               <th className="px-3 py-2 font-semibold border-b border-gray-200 text-center w-16 bg-gray-50">
@@ -296,16 +290,14 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
 
           <tbody>
             {members.map((member, rowIdx) => {
-              const athleteScores = scores[member.athleteId] || Array(inputCount).fill(0)
+              const athleteScores = scores[member.athleteId] || Array(inputCount).fill(null)
               const total = getTotal(member.athleteId)
-              // Initialise ref row
               if (!inputRefs.current[rowIdx]) {
                 inputRefs.current[rowIdx] = Array(inputCount).fill(null)
               }
 
               return (
                 <tr key={member.athleteId} className="group hover:bg-blue-50/30">
-                  {/* Frozen athlete name column */}
                   <td className="px-3 py-1.5 border-b border-r border-gray-200 sticky left-0 bg-white group-hover:bg-blue-50/30 z-10">
                     <div className="font-medium text-gray-900 leading-tight">{member.athlete.user.name}</div>
                     <div className="text-xs text-gray-400 leading-tight">
@@ -314,7 +306,6 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
                     </div>
                   </td>
 
-                  {/* Score input cells */}
                   {athleteScores.map((val, colIdx) => (
                     <td key={colIdx} className="p-0 border-b border-r border-gray-200">
                       <input
@@ -325,20 +316,22 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
                         type="number"
                         min={0}
                         max={maxPerInput}
-                        step={0.5}
-                        value={val === 0 ? '' : val}
-                        placeholder="0"
-                        onChange={e => setScore(member.athleteId, colIdx, parseFloat(e.target.value))}
+                        step={1}
+                        value={val === null ? '' : val}
+                        placeholder="—"
+                        onChange={e => {
+                          const raw = e.target.value
+                          setScore(member.athleteId, colIdx, raw === '' ? null : Math.min(parseFloat(raw), maxPerInput))
+                        }}
                         onFocus={e => e.target.select()}
                         onKeyDown={e => handleKeyDown(e, rowIdx, colIdx)}
-                        className="w-full h-9 text-center text-sm font-mono bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className={`w-full h-9 text-center text-sm font-mono bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${val === null ? 'text-gray-300' : 'text-gray-900'}`}
                       />
                     </td>
                   ))}
 
-                  {/* Running total */}
                   <td className="px-3 py-1.5 border-b border-gray-200 text-center font-bold text-gray-800 bg-gray-50 tabular-nums">
-                    {total || '—'}
+                    {(scores[member.athleteId] || []).some(v => v !== null) ? total : '—'}
                   </td>
                 </tr>
               )
