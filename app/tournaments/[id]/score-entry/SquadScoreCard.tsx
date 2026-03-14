@@ -289,16 +289,25 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
           </thead>
 
           <tbody>
-            {members.map((member, rowIdx) => {
+            {(() => {
+              // Detect tied totals among athletes with at least one score entered
+              const enteredTotals = members
+                .map(m => ({ id: m.athleteId, total: getTotal(m.athleteId), hasScore: (scores[m.athleteId] || []).some(v => v !== null) }))
+                .filter(e => e.hasScore)
+              const totalCounts: Record<number, number> = {}
+              for (const e of enteredTotals) totalCounts[e.total] = (totalCounts[e.total] || 0) + 1
+              const tiedAthleteIds = new Set(enteredTotals.filter(e => totalCounts[e.total] > 1).map(e => e.id))
+              return members.map((member, rowIdx) => {
               const athleteScores = scores[member.athleteId] || Array(inputCount).fill(null)
               const total = getTotal(member.athleteId)
+              const isTied = tiedAthleteIds.has(member.athleteId)
               if (!inputRefs.current[rowIdx]) {
                 inputRefs.current[rowIdx] = Array(inputCount).fill(null)
               }
 
               return (
-                <tr key={member.athleteId} className="group hover:bg-blue-50/30">
-                  <td className="px-3 py-1.5 border-b border-r border-gray-200 sticky left-0 bg-white group-hover:bg-blue-50/30 z-10">
+                <tr key={member.athleteId} className={`group hover:bg-blue-50/30 ${isTied ? 'bg-amber-50' : ''}`}>
+                  <td className={`px-3 py-1.5 border-b border-r border-gray-200 sticky left-0 z-10 ${isTied ? 'bg-amber-50 group-hover:bg-amber-100/60' : 'bg-white group-hover:bg-blue-50/30'}`}>
                     <div className="font-medium text-gray-900 leading-tight">{member.athlete.user.name}</div>
                     <div className="text-xs text-gray-400 leading-tight">
                       {member.athlete.division || '—'}
@@ -330,12 +339,18 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
                     </td>
                   ))}
 
-                  <td className="px-3 py-1.5 border-b border-gray-200 text-center font-bold text-gray-800 bg-gray-50 tabular-nums">
-                    {(scores[member.athleteId] || []).some(v => v !== null) ? total : '—'}
+                  <td className={`px-3 py-1.5 border-b border-gray-200 text-center font-bold tabular-nums ${isTied ? 'bg-amber-100 text-amber-800' : 'bg-gray-50 text-gray-800'}`}>
+                    {(scores[member.athleteId] || []).some(v => v !== null) ? (
+                      <span className="flex items-center justify-center gap-1">
+                        {total}
+                        {isTied && <span className="text-[10px] font-bold text-amber-600 leading-none">TIE</span>}
+                      </span>
+                    ) : '—'}
                   </td>
                 </tr>
               )
-            })}
+            })
+            })()}
           </tbody>
         </table>
       </div>
