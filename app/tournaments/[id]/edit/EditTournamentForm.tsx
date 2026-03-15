@@ -44,6 +44,7 @@ interface Tournament {
   longRunDisciplines: string
   tiebreakOrder: string
   shootOffMaxPlace?: number
+  countbackStartStation?: number
 }
 
 interface EditTournamentFormProps {
@@ -145,6 +146,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
   const [trapTeamSize, setTrapTeamSize] = useState(tournament.trapTeamSize ?? 5)
   const [leaderboardHideTeams, setLeaderboardHideTeams] = useState(tournament.leaderboardHideTeams ?? false)
   const [shootOffMaxPlace, setShootOffMaxPlace] = useState(tournament.shootOffMaxPlace ?? 0)
+  const [countbackStartStation, setCountbackStartStation] = useState(tournament.countbackStartStation ?? 0)
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -196,6 +198,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           longRunDisciplines,
           tiebreakOrder: tiebreakOrder.split(',').map(s => s.trim()).filter(Boolean),
           shootOffMaxPlace,
+          countbackStartStation,
         })
       })
 
@@ -407,6 +410,24 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                     {isSelected && awardStructureVersion === 'v2' && sport === 'nsca' && (
                       <div className="mt-2 text-xs text-green-700">
                         NSCA rules — countback by station (8→1) for places below 3rd; shoot-off for top 3
+                      </div>
+                    )}
+                    {isSelected && awardStructureVersion === 'v2' && sport === 'nsca' && (
+                      <div className="mt-2" onClick={e => e.preventDefault()}>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Countback starting station
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={20}
+                          value={countbackStartStation}
+                          onChange={e => setCountbackStartStation(parseInt(e.target.value) || 0)}
+                          className="w-24 px-2 py-1 text-sm border border-gray-300 rounded"
+                        />
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          0 = auto (highest station). Set to 8 for a 10-station course that starts countback at station 8.
+                        </p>
                       </div>
                     )}
                     {/* Per-discipline scoring config */}

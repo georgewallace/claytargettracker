@@ -60,6 +60,7 @@ export interface AwardConfig {
   tiebreakOrder: string[]      // e.g. ["lrf","lrb","shootoff"]
   longRunDisciplines: string[] // disciplineIds where LRF/LRB tiebreaking applies
   shootOffMaxPlace: number     // 0 = all places; 3 = USAYESS (only places 1–3 require shoot-offs)
+  countbackStartStation: number  // 0 = auto; N = start from station N
 }
 
 type SortItem = { total: number; tiebreak?: number | null; lrf?: number | null; lrb?: number | null; entry: AthleteScoreEntry }
@@ -110,7 +111,7 @@ function makeSortEntriesByScore(config: AwardConfig, disciplineId?: string) {
       } else if (criterion === 'countback') {
         // NSCA only — sporting clays / five_stand
         if (category !== 'sporting') continue
-        const result = countbackCompare(a.scores, b.scores)
+        const result = countbackCompare(a.scores, b.scores, config.countbackStartStation)
         if (result !== 0) return result
       } else if (criterion === 'shootoff') {
         const av = a.tiebreakScore ?? 0, bv = b.tiebreakScore ?? 0
@@ -164,10 +165,11 @@ function scoreRowNum(s: ScoreRow): number {
 }
 
 // NSCA rule 18.2: compare from last station/layout back to first
-function countbackCompare(aScores: ScoreRow[], bScores: ScoreRow[]): number {
-  const nums = [...new Set([...aScores, ...bScores].map(scoreRowNum))]
-    .filter(n => n > 0)
-    .sort((x, y) => y - x) // descending: 8, 7, 6 ...
+// startStation: 0 = auto (use highest station present); N = start from station N
+function countbackCompare(aScores: ScoreRow[], bScores: ScoreRow[], startStation: number = 0): number {
+  const allNums = [...new Set([...aScores, ...bScores].map(scoreRowNum))].filter(n => n > 0)
+  const maxStation = startStation > 0 ? startStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
+  const nums = allNums.filter(n => n <= maxStation).sort((x, y) => y - x) // descending from maxStation
   for (const num of nums) {
     const av = aScores.find(s => scoreRowNum(s) === num)?.targets ?? 0
     const bv = bScores.find(s => scoreRowNum(s) === num)?.targets ?? 0
@@ -389,7 +391,7 @@ export function sortWithPlaceAwareTiebreaks(
           const aLRB = a.longRunBack ?? 0, bLRB = b.longRunBack ?? 0
           if (bLRB !== aLRB) return bLRB - aLRB
         } else if (category === 'sporting') {
-          const cbResult = countbackCompare(a.scores, b.scores)
+          const cbResult = countbackCompare(a.scores, b.scores, config.countbackStartStation)
           if (cbResult !== 0) return cbResult
         }
         // trap 4+: alphabetical only

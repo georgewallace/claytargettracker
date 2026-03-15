@@ -22,6 +22,7 @@ const baseConfig: AwardConfig = {
   tiebreakOrder: ['shootoff', 'longrun'],
   longRunDisciplines: [],
   shootOffMaxPlace: 0,
+  countbackStartStation: 0,
 }
 
 function makeEntry(

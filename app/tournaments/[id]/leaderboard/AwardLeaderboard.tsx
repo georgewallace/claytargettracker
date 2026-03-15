@@ -50,6 +50,7 @@ interface AwardLeaderboardProps {
     longRunDisciplines?: string
     tiebreakOrder?: string
     shootOffMaxPlace?: number
+    countbackStartStation?: number
   }
 }
 
@@ -166,19 +167,26 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
     const parts = [`score:${e.totalScore}`]
 
     if (useShootOff) {
-      // Standard criteria from tiebreakOrder
-      for (const criterion of config.tiebreakOrder) {
-        if (criterion === 'longrun' && useLongRun) {
-          parts.push(`lr_max:${Math.max(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
-          parts.push(`lr_min:${Math.min(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
-        } else if (criterion === 'countback' && category === 'sporting') {
-          const nums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
-            .filter(n => n > 0).sort((x, y) => y - x)
-          for (const num of nums) {
-            const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
-            parts.push(`cb${num}:${score}`)
-          }
-        } else if (criterion === 'shootoff') parts.push(`so:${e.tiebreakScore ?? 'null'}`)
+      if (config.shootOffMaxPlace > 0) {
+        // USAYESS: places 1-3 are shoot-off ONLY — longrun/countback don't break these ties
+        parts.push(`so:${e.tiebreakScore ?? 'null'}`)
+      } else {
+        // Standard: apply full tiebreakOrder with countback/longrun by discipline
+        for (const criterion of config.tiebreakOrder) {
+          if (criterion === 'longrun' && useLongRun) {
+            parts.push(`lr_max:${Math.max(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
+            parts.push(`lr_min:${Math.min(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
+          } else if (criterion === 'countback' && category === 'sporting') {
+            const allNums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
+              .filter(n => n > 0)
+            const maxSt = config.countbackStartStation > 0 ? config.countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
+            const nums = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
+            for (const num of nums) {
+              const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
+              parts.push(`cb${num}:${score}`)
+            }
+          } else if (criterion === 'shootoff') parts.push(`so:${e.tiebreakScore ?? 'null'}`)
+        }
       }
     } else if (useLongRun) {
       // USAYESS places 4+: LRF first, then LRB
@@ -186,8 +194,10 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
       parts.push(`lrb:${e.longRunBack ?? 0}`)
     } else if (category === 'sporting') {
       // Countback for sporting places 4+
-      const nums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
-        .filter(n => n > 0).sort((x, y) => y - x)
+      const allNums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
+        .filter(n => n > 0)
+      const maxSt = config.countbackStartStation > 0 ? config.countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
+      const nums = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
       for (const num of nums) {
         const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
         parts.push(`cb${num}:${score}`)
@@ -373,6 +383,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
       try { return JSON.parse(tournament.longRunDisciplines ?? '[]') } catch { return [] }
     })(),
     shootOffMaxPlace: tournament.shootOffMaxPlace ?? 0,
+    countbackStartStation: tournament.countbackStartStation ?? 0,
   }), [tournament])
 
   // Build AthleteScoreEntry map per discipline
