@@ -6,6 +6,7 @@ import {
   calculateCollegiateHOA,
   calculateEventAwards,
   calculateTeamAwards,
+  getDisciplineCategory,
   AwardConfig,
   AthleteScoreEntry,
 } from '@/lib/awardCalculations'
@@ -141,14 +142,22 @@ function divLabel(div: string | null) { return div ? (DIVISION_LABELS[div] ?? di
 
 // Returns athleteIds that share the same effective rank (after applying all tiebreak criteria)
 // with at least one other athlete — these are "unbroken" ties with no way to separate them
-function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig): Set<string> {
+function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, disciplineId?: string): Set<string> {
+  const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
   const key = (e: AthleteScoreEntry): string => {
     const parts = [`score:${e.totalScore}`]
     for (const criterion of config.tiebreakOrder) {
-      if (criterion === 'longrun') {
-        // NSSA rule d: best of LRF/LRB, then opposite end
+      if (criterion === 'longrun' && category === 'skeet' && disciplineId && config.longRunDisciplines.includes(disciplineId)) {
         parts.push(`lr_max:${Math.max(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
         parts.push(`lr_min:${Math.min(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
+      } else if (criterion === 'countback' && category === 'sporting') {
+        // NSCA: include each station score descending in the key
+        const nums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
+          .filter(n => n > 0).sort((x, y) => y - x)
+        for (const num of nums) {
+          const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
+          parts.push(`cb${num}:${score}`)
+        }
       } else if (criterion === 'shootoff') parts.push(`so:${e.tiebreakScore ?? 'null'}`)
     }
     return parts.join('|')
@@ -177,9 +186,10 @@ function RankedTable({
   startRank?: number
   showTies?: boolean
   config: AwardConfig
+  disciplineId?: string
 }) {
   if (rows.length === 0) return null
-  const unbrokenTied = showTies ? getUnbrokenTiedIds(rows, config) : new Set<string>()
+  const unbrokenTied = showTies ? getUnbrokenTiedIds(rows, config, disciplineId) : new Set<string>()
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse">
@@ -647,7 +657,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
                 <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${allDivisionSections.length}, minmax(160px, 260px))` }}>
                   {allDivisionSections.map(({ div, athletes }) => {
                     const divHighlights = buildPlaceHighlights(athletes, config.individualEventPlaces)
-                    const divUnbrokenTied = getUnbrokenTiedIds(athletes, config)
+                    const divUnbrokenTied = getUnbrokenTiedIds(athletes, config, d.disciplineId)
                     return (
                       <div key={div} className="border border-gray-100 rounded overflow-hidden">
                         {/* Division header */}

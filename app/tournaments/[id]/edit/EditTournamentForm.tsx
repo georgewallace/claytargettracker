@@ -61,6 +61,21 @@ function isStationBased(name: string) {
   return name === 'sporting_clays' || name === 'super_sport'
 }
 
+// Governing body that determines tiebreak rules for this discipline
+function getDisciplineSport(name: string): 'nssa' | 'ata' | 'nsca' | null {
+  const n = name.toLowerCase()
+  if (n.includes('skeet')) return 'nssa'
+  if (n.includes('trap') || n === 'super_sport') return 'ata'
+  if (n.includes('sporting') || n === 'five_stand') return 'nsca'
+  return null
+}
+
+const SPORT_BADGE: Record<'nssa' | 'ata' | 'nsca', { label: string; color: string }> = {
+  nssa: { label: 'NSSA', color: 'bg-blue-100 text-blue-700' },
+  ata:  { label: 'ATA',  color: 'bg-orange-100 text-orange-700' },
+  nsca: { label: 'NSCA', color: 'bg-green-100 text-green-700' },
+}
+
 function defaultRounds(name: string) {
   if (name === 'trap' || name === 'skeet') return 4
   if (name === 'five_stand') return 2
@@ -317,6 +332,9 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
             const showRounds = isRoundBased(discipline.name)
             const showStations = isStationBased(discipline.name)
 
+            const sport = getDisciplineSport(discipline.name)
+            const badge = sport ? SPORT_BADGE[sport] : null
+
             return (
               <div key={discipline.id}
                 className={`border rounded-lg transition ${cannotUncheck ? 'border-gray-400 bg-gray-50' : isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'}`}>
@@ -327,7 +345,14 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                     className="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                   <div className="ml-3 flex-1">
                     <div className="flex items-center justify-between">
-                      <div className="font-medium text-gray-900">{discipline.displayName}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">{discipline.displayName}</span>
+                        {badge && (
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${badge.color}`}>
+                            {badge.label}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex gap-2">
                         {hasScores && (
                           <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
@@ -347,8 +372,8 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                     {cannotUncheck && (
                       <div className="text-xs text-orange-600 mt-1 font-medium">⚠️ Cannot remove - athletes registered</div>
                     )}
-                    {/* Long run tiebreakers — v2 only */}
-                    {isSelected && awardStructureVersion === 'v2' && (showRounds) && (
+                    {/* Tiebreak rules note — v2 only, per sport governing body */}
+                    {isSelected && awardStructureVersion === 'v2' && sport === 'nssa' && showRounds && (
                       <div className="mt-2 flex items-center gap-2">
                         <input
                           type="checkbox"
@@ -369,8 +394,18 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                           className="text-sm text-gray-700"
                           onClick={e => e.preventDefault()}
                         >
-                          Long run tiebreakers (LRF / LRB)
+                          Long run tiebreakers (LRF / LRB) — <span className="text-blue-600 font-medium">NSSA rule d</span>
                         </label>
+                      </div>
+                    )}
+                    {isSelected && awardStructureVersion === 'v2' && sport === 'ata' && (
+                      <div className="mt-2 text-xs text-orange-700">
+                        ATA rules — shoot-off only; long run tiebreakers do not apply
+                      </div>
+                    )}
+                    {isSelected && awardStructureVersion === 'v2' && sport === 'nsca' && (
+                      <div className="mt-2 text-xs text-green-700">
+                        NSCA rules — countback by station (8→1) for places below 3rd; shoot-off for top 3
                       </div>
                     )}
                     {/* Per-discipline scoring config */}
@@ -465,12 +500,19 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
               <label className="block text-sm font-medium text-gray-700 mb-2">Tiebreak Order</label>
               <select value={tiebreakOrder} onChange={e => setTiebreakOrder(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="shootoff,longrun">Shoot-off → Long Run (NSSA default)</option>
+                <option value="shootoff,longrun">Shoot-off → Long Run (NSSA skeet default)</option>
+                <option value="shootoff,countback">Shoot-off → Countback (NSCA sporting default)</option>
+                <option value="shootoff,longrun,countback">All sport rules — shoot-off → long run / countback by discipline</option>
+                <option value="shootoff">Shoot-off only (ATA trap)</option>
                 <option value="longrun,shootoff">Long Run → Shoot-off</option>
-                <option value="longrun">Long Run only</option>
-                <option value="shootoff">Shoot-off only</option>
+                <option value="countback,shootoff">Countback → Shoot-off</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">NSSA: shoot-offs decide championships; long run (best of LRF/LRB, then opposite end) decides other places</p>
+              <p className="text-xs text-gray-500 mt-1">
+                NSSA skeet: shoot-off for championships, long run (best of LRF/LRB then opposite end) for other places.
+                ATA trap: shoot-off only.
+                NSCA sporting: shoot-off for top 3, countback by station (8→1) for other places.
+                Criteria automatically apply only to the matching discipline type.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

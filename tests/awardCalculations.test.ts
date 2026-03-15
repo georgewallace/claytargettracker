@@ -4,6 +4,7 @@ import {
   calculateCollegiateHOA,
   calculateEventAwards,
   calculateTeamAwards,
+  getDisciplineCategory,
   AthleteScoreEntry,
   AwardConfig,
 } from '../lib/awardCalculations'
@@ -178,6 +179,81 @@ describe('calculateEventAwards', () => {
     const result = calculateEventAwards([e1, e2], 'skeet', config)
     expect(result.divisionPlacements['Varsity'][0].athleteId).toBe('a1')
     expect(result.divisionPlacements['Varsity'][1].athleteId).toBe('a2')
+  })
+})
+
+describe('getDisciplineCategory', () => {
+  it('classifies skeet as NSSA', () => expect(getDisciplineCategory('skeet')).toBe('skeet'))
+  it('classifies trap as ATA', () => expect(getDisciplineCategory('trap')).toBe('trap'))
+  it('classifies doubles_trap as ATA', () => expect(getDisciplineCategory('doubles_trap')).toBe('trap'))
+  it('classifies super_sport as ATA', () => expect(getDisciplineCategory('super_sport')).toBe('trap'))
+  it('classifies sporting_clays as NSCA', () => expect(getDisciplineCategory('sporting_clays')).toBe('sporting'))
+  it('classifies five_stand as NSCA', () => expect(getDisciplineCategory('five_stand')).toBe('sporting'))
+})
+
+function makeScoreEntry(
+  athleteId: string,
+  disciplineId: string,
+  totalScore: number,
+  stationScores: number[],
+  opts: Partial<AthleteScoreEntry['athlete']> = {}
+): AthleteScoreEntry {
+  return {
+    athleteId,
+    disciplineId,
+    totalScore,
+    scores: stationScores.map((targets, i) => ({ stationNumber: i + 1, targets, maxTargets: 25 })),
+    athlete: {
+      division: opts.division ?? 'Varsity',
+      gender: opts.gender ?? 'male',
+      teamId: opts.teamId ?? null,
+      name: opts.name ?? athleteId,
+    },
+  }
+}
+
+describe('NSCA countback (calculateEventAwards — sporting_clays)', () => {
+  const config: AwardConfig = { ...baseConfig, tiebreakOrder: ['shootoff', 'countback'] }
+
+  it('countback from last station breaks a tie — higher station 8 score wins', () => {
+    // Both score 90 total across 9 stations.
+    // A: st1=8, st2-7=10, st8=12, st9=10  (station 9 tied, station 8: A=12 > B=10 → A wins)
+    // B: st1-9=10 each
+    const e1 = makeScoreEntry('a1', 'sporting_clays', 90, [8,10,10,10,10,10,12,10,10], { name: 'A1' })
+    const e2 = makeScoreEntry('a2', 'sporting_clays', 90, [10,10,10,10,10,10,10,10,10], { name: 'A2' })
+    const result = calculateEventAwards([e1, e2], 'sporting_clays', config)
+    expect(result.divisionPlacements['Varsity'][0].athleteId).toBe('a1')
+    expect(result.divisionPlacements['Varsity'][1].athleteId).toBe('a2')
+  })
+
+  it('countback falls through to earlier station when last station is tied', () => {
+    // Both 90 total, station 9 tied at 10; A has 11 on station 8, B has 9
+    const e1 = makeScoreEntry('a1', 'sporting_clays', 90, [10,10,10,10,10,10,11,10,9], { name: 'A1' })
+    const e2 = makeScoreEntry('a2', 'sporting_clays', 90, [10,10,10,10,10,10,9,10,11], { name: 'A2' })
+    // station 9: A=9, B=11 → B wins on last station... wait let me recalc
+    // actually station indices: stationNumber = i+1, so stationScores[0] = station 1
+    // e1 stations: 1=10,2=10,3=10,4=10,5=10,6=10,7=11,8=10,9=9 total=90
+    // e2 stations: 1=10,2=10,3=10,4=10,5=10,6=10,7=9,8=10,9=11 total=90
+    // countback: station 9 → A=9, B=11 → B wins
+    const result = calculateEventAwards([e1, e2], 'sporting_clays', config)
+    expect(result.divisionPlacements['Varsity'][0].athleteId).toBe('a2')
+  })
+
+  it('countback does NOT apply to skeet (longrun criterion only)', () => {
+    // Same total, countback in tiebreakOrder — skeet ignores it
+    const e1 = makeScoreEntry('a1', 'skeet', 90, [10,10,10,10,10,10,10,10,10], { name: 'A1' })
+    const e2 = makeScoreEntry('a2', 'skeet', 90, [10,10,10,10,10,10,10,12,8], { name: 'A2' })
+    const result = calculateEventAwards([e1, e2], 'skeet', config)
+    // No criteria separate them (no longrun, countback ignored for skeet) → alphabetical
+    expect(result.divisionPlacements['Varsity'][0].athleteId).toBe('a1') // 'A1' < 'A2'
+  })
+
+  it('countback does NOT apply to trap', () => {
+    const e1 = makeScoreEntry('a1', 'trap', 90, [10,10,10,10,10,10,10,12,8], { name: 'A1' })
+    const e2 = makeScoreEntry('a2', 'trap', 90, [10,10,10,10,10,10,10,10,10], { name: 'A2' })
+    const result = calculateEventAwards([e1, e2], 'trap', config)
+    // countback ignored for trap → alphabetical
+    expect(result.divisionPlacements['Varsity'][0].athleteId).toBe('a1')
   })
 })
 

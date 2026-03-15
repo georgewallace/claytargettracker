@@ -87,19 +87,30 @@ function makeSortByScore(config: AwardConfig) {
   }
 }
 
-// Factory: returns a sort comparator for AthleteScoreEntry objects (used in event/team calculations)
-// 'longrun' criterion: compare max(LRF,LRB) first (NSSA rule d), then min(LRF,LRB) if tied.
-function makeSortEntriesByScore(config: AwardConfig) {
+// Factory: returns a sort comparator for AthleteScoreEntry objects (used in event/team calculations).
+// disciplineId determines which tiebreak criteria are active:
+//   skeet   → 'longrun' applies (NSSA rule d: max(LRF,LRB) then opposite end)
+//   sporting → 'countback' applies (NSCA rule 18.2: from last station back)
+//   trap    → only 'shootoff' applies (ATA: shoot-off only)
+function makeSortEntriesByScore(config: AwardConfig, disciplineId?: string) {
+  const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
   return (a: AthleteScoreEntry, b: AthleteScoreEntry): number => {
     if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
     for (const criterion of config.tiebreakOrder) {
       if (criterion === 'longrun') {
+        // NSSA only — and only if this discipline is enrolled in longRunDisciplines
+        if (category !== 'skeet' || !disciplineId || !config.longRunDisciplines.includes(disciplineId)) continue
         const aMax = Math.max(a.longRunFront ?? 0, a.longRunBack ?? 0)
         const bMax = Math.max(b.longRunFront ?? 0, b.longRunBack ?? 0)
         if (bMax !== aMax) return bMax - aMax
         const aMin = Math.min(a.longRunFront ?? 0, a.longRunBack ?? 0)
         const bMin = Math.min(b.longRunFront ?? 0, b.longRunBack ?? 0)
         if (bMin !== aMin) return bMin - aMin
+      } else if (criterion === 'countback') {
+        // NSCA only — sporting clays / five_stand
+        if (category !== 'sporting') continue
+        const result = countbackCompare(a.scores, b.scores)
+        if (result !== 0) return result
       } else if (criterion === 'shootoff') {
         const av = a.tiebreakScore ?? 0, bv = b.tiebreakScore ?? 0
         if (bv !== av) return bv - av
@@ -112,8 +123,54 @@ function makeSortEntriesByScore(config: AwardConfig) {
 const TRAP_DISCIPLINE_NAMES = ['trap', 'super_sport', 'doubles_trap']
 
 function isTrapDiscipline(disciplineId: string): boolean {
-  // Check by discipline name/id patterns - trap disciplines use trapTeamSize
   return TRAP_DISCIPLINE_NAMES.some(name => disciplineId.toLowerCase().includes(name))
+}
+
+/**
+ * Classify a discipline by the governing body whose tiebreak rules apply.
+ * skeet   → NSSA (long run from front/back)
+ * trap    → ATA  (shoot-off only)
+ * sporting → NSCA (countback by station/layout, shoot-off for top 3)
+ */
+export function getDisciplineCategory(disciplineId: string): 'skeet' | 'trap' | 'sporting' | 'other' {
+  const n = disciplineId.toLowerCase()
+  if (n.includes('skeet')) return 'skeet'
+  if (n.includes('trap') || n.includes('super_sport')) return 'trap'
+  if (n.includes('sporting') || n.includes('five_stand')) return 'sporting'
+  return 'other'
+}
+
+type ScoreRow = { roundNumber?: number | null; stationNumber?: number | null; targets: number }
+
+function scoreRowNum(s: ScoreRow): number {
+  return s.stationNumber ?? s.roundNumber ?? 0
+}
+
+// NSCA rule 18.2: compare from last station/layout back to first
+function countbackCompare(aScores: ScoreRow[], bScores: ScoreRow[]): number {
+  const nums = [...new Set([...aScores, ...bScores].map(scoreRowNum))]
+    .filter(n => n > 0)
+    .sort((x, y) => y - x) // descending: 8, 7, 6 ...
+  for (const num of nums) {
+    const av = aScores.find(s => scoreRowNum(s) === num)?.targets ?? 0
+    const bv = bScores.find(s => scoreRowNum(s) === num)?.targets ?? 0
+    if (bv !== av) return bv - av
+  }
+  return 0
+}
+
+// NSCA rule 18.7: sum each team's station scores, compare from last station back
+function teamCountbackCompare(aAthletes: AthleteScoreEntry[], bAthletes: AthleteScoreEntry[]): number {
+  const allScores = [...aAthletes, ...bAthletes].flatMap(a => a.scores)
+  const nums = [...new Set(allScores.map(scoreRowNum))]
+    .filter(n => n > 0)
+    .sort((x, y) => y - x)
+  for (const num of nums) {
+    const aSum = aAthletes.reduce((s, a) => s + (a.scores.find(r => scoreRowNum(r) === num)?.targets ?? 0), 0)
+    const bSum = bAthletes.reduce((s, a) => s + (a.scores.find(r => scoreRowNum(r) === num)?.targets ?? 0), 0)
+    if (bSum !== aSum) return bSum - aSum
+  }
+  return 0
 }
 
 /**
@@ -276,7 +333,7 @@ export function calculateEventAwards(
   config: AwardConfig
 ): EventAwardResult {
   const { individualEventPlaces } = config
-  const sortEntriesByScore = makeSortEntriesByScore(config)
+  const sortEntriesByScore = makeSortEntriesByScore(config, disciplineId)
 
   // Event champions: top male and top female in this discipline — gender stored as 'M'/'F' or 'male'/'female'
   const isMale = (g: string | null) => g === 'M' || g === 'male'
@@ -314,7 +371,9 @@ export function calculateTeamAwards(
   config: AwardConfig
 ): TeamAwardResult {
   const { teamSizeDefault, trapTeamSize, teamEventPlaces } = config
-  const sortEntriesByScore = makeSortEntriesByScore(config)
+  const sortEntriesByScore = makeSortEntriesByScore(config, disciplineId)
+  const category = getDisciplineCategory(disciplineId)
+  const useCountback = category === 'sporting' && config.tiebreakOrder.includes('countback')
   const teamSize = isTrapDiscipline(disciplineId) ? trapTeamSize : teamSizeDefault
 
   const divisions = ['Varsity', 'JV', 'Intermediate', 'Novice']
@@ -359,8 +418,12 @@ export function calculateTeamAwards(
       }
     }
 
-    // Sort division teams by total score and assign top N places
-    divTeams.sort((a, b) => b.totalScore - a.totalScore)
+    // Sort division teams by total score, then countback for sporting (NSCA rule 18.7)
+    divTeams.sort((a, b) => {
+      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
+      if (useCountback) return teamCountbackCompare(a.athletes, b.athletes)
+      return 0
+    })
     divisionTeams[div] = divTeams.slice(0, teamEventPlaces)
   }
 
@@ -381,7 +444,11 @@ export function calculateTeamAwards(
     }
   }
 
-  openTeams.sort((a, b) => b.totalScore - a.totalScore)
+  openTeams.sort((a, b) => {
+    if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
+    if (useCountback) return teamCountbackCompare(a.athletes, b.athletes)
+    return 0
+  })
 
   return {
     disciplineId,

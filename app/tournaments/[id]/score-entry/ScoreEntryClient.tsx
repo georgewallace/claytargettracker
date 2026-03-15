@@ -14,6 +14,7 @@ interface TieGroupAthlete {
   tiebreakScore: number | null
   longRunFront: number | null
   longRunBack: number | null
+  scores?: Array<{ stationNumber?: number | null; roundNumber?: number | null; targets: number }>
 }
 
 interface TieGroup {
@@ -32,17 +33,40 @@ function getTieGroupStatus(
   longRunDisciplines: string[]
 ): { broken: boolean; resolvedBy: string | null } {
   const useLongRun = longRunDisciplines.includes(discId)
+  const discCategory = discId.toLowerCase().includes('skeet') ? 'skeet'
+    : (discId.toLowerCase().includes('trap') || discId.toLowerCase().includes('super_sport')) ? 'trap'
+    : (discId.toLowerCase().includes('sporting') || discId.toLowerCase().includes('five_stand')) ? 'sporting'
+    : 'other'
+  const useCountback = discCategory === 'sporting' && tiebreakOrder.includes('countback')
 
-  // Build composite key for each athlete across all criteria
-  // 'longrun': NSSA rule d — max(LRF,LRB) first, then min(LRF,LRB) (opposite end)
+  // Build composite key for each athlete across all criteria.
+  // Criteria apply based on sport type:
+  //   longrun   → NSSA skeet only (max LRF/LRB, then opposite end)
+  //   countback → NSCA sporting only (station scores from last back)
+  //   shootoff  → all sports
+  const getStationNums = (a: TieGroupAthlete) =>
+    [...new Set((a.scores ?? []).map((s: { stationNumber?: number | null; roundNumber?: number | null }) =>
+      s.stationNumber ?? s.roundNumber ?? 0))]
+      .filter((n): n is number => n > 0)
+      .sort((x, y) => y - x)
+
   const makeKey = (a: TieGroupAthlete): string => {
     const parts: string[] = []
     for (const criterion of tiebreakOrder) {
       if (criterion === 'longrun' && useLongRun) {
         parts.push(`${Math.max(a.longRunFront ?? 0, a.longRunBack ?? 0)}`)
         parts.push(`${Math.min(a.longRunFront ?? 0, a.longRunBack ?? 0)}`)
-      } else if (criterion === 'shootoff') parts.push(`${a.tiebreakScore ?? 'x'}`)
-      else parts.push('?')
+      } else if (criterion === 'countback' && useCountback) {
+        for (const num of getStationNums(a)) {
+          const score = (a.scores ?? []).find((s: { stationNumber?: number | null; roundNumber?: number | null; targets: number }) =>
+            (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
+          parts.push(`${score}`)
+        }
+      } else if (criterion === 'shootoff') {
+        parts.push(`${a.tiebreakScore ?? 'x'}`)
+      } else {
+        parts.push('?')
+      }
     }
     return parts.join('|')
   }
@@ -50,8 +74,16 @@ function getTieGroupStatus(
   const keys = athletes.map(a => makeKey(a))
   if (new Set(keys).size !== athletes.length) return { broken: false, resolvedBy: null }
 
-  // Find which criterion first distinguishes all athletes
-  // For 'longrun' we emit two sub-parts (max then min); track separately
+  // Expand criteria into individual slots for prefix-key search
+  const expandedCriteria: string[] = []
+  for (const c of tiebreakOrder) {
+    if (c === 'longrun' && useLongRun) { expandedCriteria.push('lr_max', 'lr_min') }
+    else if (c === 'countback' && useCountback) {
+      const nums = getStationNums(athletes[0])
+      nums.forEach((_, i) => expandedCriteria.push(`cb_${i}`))
+    } else { expandedCriteria.push(c) }
+  }
+
   const prefixParts = (upTo: number) =>
     athletes.map(a => {
       const parts: string[] = []
@@ -60,6 +92,13 @@ function getTieGroupStatus(
         if (criterion === 'longrun' && useLongRun) {
           if (parts.length < upTo) parts.push(`${Math.max(a.longRunFront ?? 0, a.longRunBack ?? 0)}`)
           if (parts.length < upTo) parts.push(`${Math.min(a.longRunFront ?? 0, a.longRunBack ?? 0)}`)
+        } else if (criterion === 'countback' && useCountback) {
+          for (const num of getStationNums(a)) {
+            if (parts.length >= upTo) break
+            const score = (a.scores ?? []).find((s: { stationNumber?: number | null; roundNumber?: number | null; targets: number }) =>
+              (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
+            parts.push(`${score}`)
+          }
         } else if (criterion === 'shootoff') {
           parts.push(`${a.tiebreakScore ?? 'x'}`)
         } else {
@@ -69,18 +108,13 @@ function getTieGroupStatus(
       return parts.join('|')
     })
 
-  // Expanded criteria list (longrun expands to two slots: lr_max, lr_min)
-  const expandedCriteria: string[] = []
-  for (const c of tiebreakOrder) {
-    if (c === 'longrun' && useLongRun) { expandedCriteria.push('lr_max', 'lr_min') }
-    else { expandedCriteria.push(c) }
-  }
-
   for (let i = 1; i <= expandedCriteria.length; i++) {
     const partial = prefixParts(i)
     if (new Set(partial).size === athletes.length) {
       const slot = expandedCriteria[i - 1]
-      const label = slot === 'lr_max' || slot === 'lr_min' ? 'Long Run' : 'shoot-off'
+      const label = slot === 'lr_max' || slot === 'lr_min' ? 'Long Run'
+        : slot.startsWith('cb_') ? 'Countback'
+        : 'shoot-off'
       return { broken: true, resolvedBy: label }
     }
   }
@@ -137,10 +171,12 @@ function TiesPanel({
         name: string
         division: string | null
         teamName: string | null
+        scores: Array<{ stationNumber?: number | null; roundNumber?: number | null; targets: number }>
       }>> = {}
 
       for (const shoot of data.shoots ?? []) {
-        const total = (shoot.scores ?? []).reduce((s: number, sc: { targets: number }) => s + sc.targets, 0)
+        const scores = shoot.scores ?? []
+        const total = scores.reduce((s: number, sc: { targets: number }) => s + sc.targets, 0)
         if (total === 0) continue
         if (!byDisc[shoot.disciplineId]) byDisc[shoot.disciplineId] = {}
         byDisc[shoot.disciplineId][shoot.athleteId] = {
@@ -151,6 +187,7 @@ function TiesPanel({
           name: shoot.athlete.user.name,
           division: shoot.athlete.division,
           teamName: shoot.athlete.team?.name ?? null,
+          scores,
         }
       }
 
@@ -168,6 +205,7 @@ function TiesPanel({
             tiebreakScore: info.tiebreak,
             longRunFront: info.longRunFront,
             longRunBack: info.longRunBack,
+            scores: info.scores,
           })
         }
         for (const [scoreStr, aths] of Object.entries(buckets)) {
