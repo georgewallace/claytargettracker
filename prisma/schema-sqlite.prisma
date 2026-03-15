@@ -163,6 +163,7 @@ model Tournament {
   teamEventPlaces        Int     @default(2)
   teamSizeDefault        Int     @default(3)
   trapTeamSize           Int     @default(5)
+  leaderboardHideTeams   Boolean @default(false)
 
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt

@@ -131,6 +131,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       teamEventPlaces,
       teamSizeDefault,
       trapTeamSize,
+      leaderboardHideTeams,
     } = await request.json()
     
     // Support both old (disciplineIds) and new (disciplineConfigurations) format
@@ -261,6 +262,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ...(teamEventPlaces !== undefined && { teamEventPlaces }),
         ...(teamSizeDefault !== undefined && { teamSizeDefault }),
         ...(trapTeamSize !== undefined && { trapTeamSize }),
+        ...(leaderboardHideTeams !== undefined && { leaderboardHideTeams }),
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,

@@ -39,6 +39,7 @@ interface Tournament {
   teamEventPlaces: number
   teamSizeDefault: number
   trapTeamSize: number
+  leaderboardHideTeams: boolean
 }
 
 interface EditTournamentFormProps {
@@ -117,6 +118,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
   const [teamEventPlaces, setTeamEventPlaces] = useState(tournament.teamEventPlaces ?? 2)
   const [teamSizeDefault, setTeamSizeDefault] = useState(tournament.teamSizeDefault ?? 3)
   const [trapTeamSize, setTrapTeamSize] = useState(tournament.trapTeamSize ?? 5)
+  const [leaderboardHideTeams, setLeaderboardHideTeams] = useState(tournament.leaderboardHideTeams ?? false)
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -164,6 +166,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           teamEventPlaces,
           teamSizeDefault,
           trapTeamSize,
+          leaderboardHideTeams,
         })
       })
 
@@ -413,6 +416,11 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
               <input type="checkbox" id="collegiateHOAEnabled" checked={collegiateHOAEnabled}
                 onChange={e => setCollegiateHOAEnabled(e.target.checked)} className="w-4 h-4" />
               <label htmlFor="collegiateHOAEnabled" className="text-sm text-gray-700">Enable Collegiate HOA</label>
+            </div>
+            <div className="flex items-center gap-3">
+              <input type="checkbox" id="leaderboardHideTeams" checked={leaderboardHideTeams}
+                onChange={e => setLeaderboardHideTeams(e.target.checked)} className="w-4 h-4" />
+              <label htmlFor="leaderboardHideTeams" className="text-sm text-gray-700">Hide team names under athletes in leaderboard</label>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

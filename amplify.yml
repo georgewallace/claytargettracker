@@ -23,15 +23,24 @@ frontend:
         # Run database migrations with retry logic (PostgreSQL via DATABASE_URL env var)
         - |
           echo "=== Resolving any failed migrations ==="
-          npx prisma migrate resolve --rolled-back "20241221_add_user_name_fields_and_team_contact_info" || echo "No failed migration to resolve"
-          npx prisma migrate resolve --applied "20260114_add_must_change_password" || echo "Migration not found or already resolved"
+          PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 npx prisma migrate resolve --rolled-back "20241221_add_user_name_fields_and_team_contact_info" || echo "No failed migration to resolve"
+          PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 npx prisma migrate resolve --applied "20260114_add_must_change_password" || echo "Migration not found or already resolved"
+          echo "=== Warming up database connection ==="
+          MAX_WARMUP=6
+          WARMUP_COUNT=0
+          until node -e "const { PrismaClient } = require('@prisma/client'); const p = new PrismaClient(); p.\$queryRaw\`SELECT 1\`.then(() => { console.log('DB ready'); return p.\$disconnect(); }).then(() => process.exit(0)).catch(() => { p.\$disconnect(); process.exit(1); })" 2>/dev/null; do
+            WARMUP_COUNT=$((WARMUP_COUNT+1))
+            if [ $WARMUP_COUNT -ge $MAX_WARMUP ]; then echo "DB warmup timed out, proceeding anyway..."; break; fi
+            echo "DB not ready ($WARMUP_COUNT/$MAX_WARMUP), waiting 10s..."
+            sleep 10
+          done
           echo "=== Running database migrations ==="
           MAX_RETRIES=3
           RETRY_COUNT=0
-          until npx prisma migrate deploy || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+          until PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 npx prisma migrate deploy || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
             RETRY_COUNT=$((RETRY_COUNT+1))
-            echo "Migration attempt $RETRY_COUNT failed. Waiting 10 seconds before retry..."
-            sleep 10
+            echo "Migration attempt $RETRY_COUNT failed. Waiting 15 seconds before retry..."
+            sleep 15
           done
           if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
             echo "Migration failed after $MAX_RETRIES attempts"

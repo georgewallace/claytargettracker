@@ -42,6 +42,7 @@ interface AwardLeaderboardProps {
     teamEventPlaces: number
     teamSizeDefault: number
     trapTeamSize: number
+    leaderboardHideTeams: boolean
   }
 }
 
@@ -54,20 +55,22 @@ function PlaceCard({
   entry,
   label,
   teamNames,
+  highlight,
 }: {
   place: string
   entry: AthleteScoreEntry | null
   label?: string
   teamNames: Record<string, string>
+  highlight?: RowHighlight
 }) {
   if (!entry) return null
   const teamName = entry.athlete.teamId ? teamNames[entry.athlete.teamId] : null
   return (
-    <div className="bg-white border border-gray-200 rounded p-1.5 shadow-sm hover:shadow-md transition-shadow">
-      <div className="text-[9px] font-bold text-indigo-600 uppercase tracking-wider leading-none mb-0.5">{place}</div>
+    <div className={`border border-gray-200 rounded p-1.5 shadow-sm hover:shadow-md transition-shadow ${highlight ? highlight.rowBg : 'bg-white'}`}>
+      <div className={`text-[9px] font-bold uppercase tracking-wider leading-none mb-0.5 ${highlight ? highlight.rankColor : 'text-indigo-600'}`}>{place}</div>
       <div className="font-semibold text-gray-900 text-xs leading-tight truncate">{entry.athlete.name}</div>
       {teamName && <div className="text-[10px] text-gray-500 leading-tight truncate">{teamName}</div>}
-      <div className="text-sm font-bold text-gray-800 leading-tight">
+      <div className={`text-sm font-bold leading-tight ${highlight ? highlight.rankColor : 'text-gray-800'}`}>
         {entry.totalScore} <span className="text-[10px] font-normal text-gray-400">pts</span>
       </div>
       {label && <div className="text-[9px] text-gray-400">{label}</div>}
@@ -111,11 +114,13 @@ const HIGHLIGHT_STYLES: Record<string, RowHighlight> = {
   lady:  { rowBg: 'bg-pink-50',    rankColor: 'text-pink-500',   badge: 'HOA Lady', badgeColor: 'bg-pink-100 text-pink-600' },
 }
 
-// Place-indexed highlight styles (1st=gold, 2nd=silver, 3rd=bronze)
+// Place-indexed highlight styles (1st=gold, 2nd=silver, 3rd=bronze, 4th/5th=subtle)
 const PLACE_HIGHLIGHTS: RowHighlight[] = [
   { rowBg: 'bg-yellow-50',  rankColor: 'text-yellow-600', badge: '1st', badgeColor: 'bg-yellow-100 text-yellow-700' },
   { rowBg: 'bg-gray-100',   rankColor: 'text-gray-500',   badge: '2nd', badgeColor: 'bg-gray-200 text-gray-600' },
   { rowBg: 'bg-orange-50',  rankColor: 'text-orange-500', badge: '3rd', badgeColor: 'bg-orange-100 text-orange-600' },
+  { rowBg: 'bg-blue-50',    rankColor: 'text-blue-500',   badge: '4th', badgeColor: 'bg-blue-100 text-blue-600' },
+  { rowBg: 'bg-blue-50',    rankColor: 'text-blue-500',   badge: '5th', badgeColor: 'bg-blue-100 text-blue-600' },
 ]
 
 // Build highlights map for a ranked list of entries, capped to configured places
@@ -263,6 +268,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [zoom, setZoom] = useState(100)
   const [allAthletesPage, setAllAthletesPage] = useState(0)
+  const showAthleteTeams = !tournament.leaderboardHideTeams
   const ALL_ATHLETES_PAGE_SIZE = 20
 
   const activeTabRef = useRef(activeTab)
@@ -477,19 +483,19 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
         <div className="space-y-4">
           <Section title="High Over All">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <PlaceCard place="HOA" entry={hoaResult.hoa} teamNames={teamNames} />
-              <PlaceCard place="Runner Up" entry={hoaResult.ru} teamNames={teamNames} />
-              <PlaceCard place="3rd Place" entry={hoaResult.third} teamNames={teamNames} />
-              <PlaceCard place="HOA Lady" entry={hoaResult.hoaLady} teamNames={teamNames} />
+              <PlaceCard place="HOA" entry={hoaResult.hoa} teamNames={teamNames} highlight={HIGHLIGHT_STYLES.hoa} />
+              <PlaceCard place="Runner Up" entry={hoaResult.ru} teamNames={teamNames} highlight={HIGHLIGHT_STYLES.ru} />
+              <PlaceCard place="3rd Place" entry={hoaResult.third} teamNames={teamNames} highlight={HIGHLIGHT_STYLES.third} />
+              <PlaceCard place="HOA Lady" entry={hoaResult.hoaLady} teamNames={teamNames} highlight={HIGHLIGHT_STYLES.lady} />
             </div>
           </Section>
 
           {config.collegiateHOAEnabled && (collegiateResult.first || collegiateResult.second || collegiateResult.third) && (
             <Section title="Collegiate HOA">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <PlaceCard place="1st" entry={collegiateResult.first} teamNames={teamNames} />
-                <PlaceCard place="2nd" entry={collegiateResult.second} teamNames={teamNames} />
-                <PlaceCard place="3rd" entry={collegiateResult.third} teamNames={teamNames} />
+                <PlaceCard place="1st" entry={collegiateResult.first} teamNames={teamNames} highlight={PLACE_HIGHLIGHTS[0]} />
+                <PlaceCard place="2nd" entry={collegiateResult.second} teamNames={teamNames} highlight={PLACE_HIGHLIGHTS[1]} />
+                <PlaceCard place="3rd" entry={collegiateResult.third} teamNames={teamNames} highlight={PLACE_HIGHLIGHTS[2]} />
               </div>
             </Section>
           )}
@@ -649,7 +655,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
                                     </span>
                                   )}
                                 </div>
-                                {teamName && (
+                                {showAthleteTeams && teamName && (
                                   <div className="text-[10px] text-gray-400 truncate leading-tight">{teamName}</div>
                                 )}
                               </div>
