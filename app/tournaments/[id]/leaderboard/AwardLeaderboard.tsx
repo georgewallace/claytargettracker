@@ -692,18 +692,18 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
                               key={`${team.teamId}-${i}`}
                               className={`px-2 py-1.5 border-b border-gray-100 last:border-b-0 ${hl ? hl.rowBg : 'hover:bg-gray-50'}`}
                             >
-                              <div className="flex items-center gap-1.5">
-                                <span className={`text-[10px] font-bold tabular-nums w-5 shrink-0 ${hl ? hl.rankColor : 'text-gray-400'}`}>
-                                  {i + 1}
+                              <div className="flex items-start gap-1.5">
+                                <span className={`text-[10px] font-bold tabular-nums w-7 shrink-0 ${hl ? hl.rankColor : 'text-gray-400'}`}>
+                                  {placeLabels[i] ?? `${i + 1}`}
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                  {hl?.badge && (
-                                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded leading-none ${hl.badgeColor}`}>{hl.badge}</span>
-                                  )}
                                   <div className="text-xs font-medium text-gray-900 truncate leading-tight">{team.teamName}</div>
                                   <div className="leading-tight">
                                     {team.athletes.map(a => (
-                                      <div key={a.athleteId} className="text-[10px] text-gray-400 truncate">{a.athlete.name}</div>
+                                      <div key={a.athleteId} className="flex items-center justify-between gap-2">
+                                        <span className="text-[10px] text-gray-400 truncate">{a.athlete.name}</span>
+                                        <span className="text-[10px] text-gray-500 tabular-nums shrink-0">{a.totalScore}</span>
+                                      </div>
                                     ))}
                                   </div>
                                 </div>
