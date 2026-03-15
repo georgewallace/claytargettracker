@@ -51,6 +51,7 @@ interface AwardLeaderboardProps {
     tiebreakOrder?: string
     shootOffMaxPlace?: number
     countbackStartStation?: number
+    longRunBreaksTopTies?: boolean
   }
 }
 
@@ -168,8 +169,11 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
 
     if (useShootOff) {
       if (config.shootOffMaxPlace > 0) {
-        // USAYESS: places 1-3 are shoot-off ONLY — longrun/countback don't break these ties
         parts.push(`so:${e.tiebreakScore ?? 'null'}`)
+        if (config.longRunBreaksTopTies && useLongRun) {
+          parts.push(`lrf:${e.longRunFront ?? 0}`)
+          parts.push(`lrb:${e.longRunBack ?? 0}`)
+        }
       } else {
         // Standard: apply full tiebreakOrder with countback/longrun by discipline
         for (const criterion of config.tiebreakOrder) {
@@ -384,6 +388,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
     })(),
     shootOffMaxPlace: tournament.shootOffMaxPlace ?? 0,
     countbackStartStation: tournament.countbackStartStation ?? 0,
+    longRunBreaksTopTies: tournament.longRunBreaksTopTies ?? false,
   }), [tournament])
 
   // Build AthleteScoreEntry map per discipline

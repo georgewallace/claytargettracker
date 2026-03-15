@@ -23,6 +23,7 @@ const baseConfig: AwardConfig = {
   longRunDisciplines: [],
   shootOffMaxPlace: 0,
   countbackStartStation: 0,
+  longRunBreaksTopTies: false,
 }
 
 function makeEntry(

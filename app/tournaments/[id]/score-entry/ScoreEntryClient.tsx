@@ -43,7 +43,8 @@ function getTieGroupStatus(
   tiebreakOrder: string[],
   longRunDisciplines: string[],
   startingRank: number = 1,
-  shootOffMaxPlace: number = 0
+  shootOffMaxPlace: number = 0,
+  longRunBreaksTopTies: boolean = false
 ): { broken: boolean; resolvedBy: string | null } {
   const useLongRun = longRunDisciplines.includes(discId)
   const discCategory = getDiscCategory(discSlug)
@@ -82,7 +83,7 @@ function getTieGroupStatus(
   // USAYESS (shootOffMaxPlace > 0): places 1-3 are shoot-off ONLY — longrun/countback don't break these ties.
   // Standard mode (shootOffMaxPlace === 0): apply full tiebreakOrder with countback injected for sporting.
   const effectiveTBOrder: string[] = shootOffMaxPlace > 0
-    ? ['shootoff']
+    ? (longRunBreaksTopTies && useLongRun ? ['shootoff', 'longrun'] : ['shootoff'])
     : useCountback && !tiebreakOrder.includes('countback')
       ? ['countback', ...tiebreakOrder]
       : tiebreakOrder
@@ -211,11 +212,13 @@ function TiesPanel({
   tiebreakOrder,
   longRunDisciplines,
   shootOffMaxPlace,
+  longRunBreaksTopTies: longRunBreaksTopTiesProp = false,
 }: {
   tournamentId: string
   tiebreakOrder: string[]
   longRunDisciplines: string[]
   shootOffMaxPlace: number
+  longRunBreaksTopTies?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [showAll, setShowAll] = useState(false)
@@ -227,6 +230,7 @@ function TiesPanel({
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [saved, setSaved] = useState<Record<string, boolean>>({})
   const [countbackStartStation, setCountbackStartStation] = useState(0)
+  const [longRunBreaksTopTies, setLongRunBreaksTopTies] = useState(longRunBreaksTopTiesProp)
 
   const tieGroups = showAll ? allTieGroups : allTieGroups.filter(g => !g.broken)
 
@@ -248,6 +252,7 @@ function TiesPanel({
       const apiShootOffMaxPlace: number = data.shootOffMaxPlace ?? shootOffMaxPlace
       const apiCountbackStartStation: number = data.countbackStartStation ?? 0
       setCountbackStartStation(apiCountbackStartStation)
+      setLongRunBreaksTopTies(data.longRunBreaksTopTies ?? false)
 
       const discNames: Record<string, string> = {}
       const discSlugs: Record<string, string> = {}
@@ -307,7 +312,7 @@ function TiesPanel({
           const score = Number(scoreStr)
           // startingRank = 1 + count of athletes with strictly higher score in this discipline
           const startingRank = 1 + Object.values(athletes).filter(a => a.total > score).length
-          const { broken, resolvedBy } = getTieGroupStatus(aths, discId, discSlugs[discId] ?? discId, apiTiebreakOrder, apiLongRunDisciplines, startingRank, apiShootOffMaxPlace)
+          const { broken, resolvedBy } = getTieGroupStatus(aths, discId, discSlugs[discId] ?? discId, apiTiebreakOrder, apiLongRunDisciplines, startingRank, apiShootOffMaxPlace, longRunBreaksTopTies)
           groups.push({
             disciplineId: discId,
             disciplineName: discNames[discId] ?? discId,
@@ -334,7 +339,7 @@ function TiesPanel({
     } finally {
       setLoading(false)
     }
-  }, [tournamentId, tiebreakOrder, longRunDisciplines, shootOffMaxPlace])
+  }, [tournamentId, tiebreakOrder, longRunDisciplines, shootOffMaxPlace, longRunBreaksTopTiesProp])
 
   const saveTiebreak = async (athleteId: string, disciplineId: string) => {
     const key = `${athleteId}:${disciplineId}`
@@ -664,6 +669,7 @@ interface Tournament {
   tiebreakOrder: string
   shootOffMaxPlace?: number
   countbackStartStation?: number
+  longRunBreaksTopTies?: boolean
   disciplines: TournamentDiscipline[]
   timeSlots: TimeSlot[]
 }
@@ -939,6 +945,7 @@ export default function ScoreEntryClient({ tournament, initialSquadStatus }: Sco
           tiebreakOrder={tiebreakOrder}
           longRunDisciplines={longRunDisciplines}
           shootOffMaxPlace={tournament.shootOffMaxPlace ?? 0}
+          longRunBreaksTopTies={tournament.longRunBreaksTopTies ?? false}
         />
       )}
 

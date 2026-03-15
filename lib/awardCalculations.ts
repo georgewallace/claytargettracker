@@ -61,6 +61,7 @@ export interface AwardConfig {
   longRunDisciplines: string[] // disciplineIds where LRF/LRB tiebreaking applies
   shootOffMaxPlace: number     // 0 = all places; 3 = USAYESS (only places 1–3 require shoot-offs)
   countbackStartStation: number  // 0 = auto; N = start from station N
+  longRunBreaksTopTies: boolean  // When true, LRF/LRB also breaks top-place (rank 1-3) ties
 }
 
 type SortItem = { total: number; tiebreak?: number | null; lrf?: number | null; lrb?: number | null; entry: AthleteScoreEntry }
@@ -384,6 +385,13 @@ export function sortWithPlaceAwareTiebreaks(
         if (useShootOff) {
           const av = a.tiebreakScore ?? 0, bv = b.tiebreakScore ?? 0
           if (bv !== av) return bv - av
+          // If longRunBreaksTopTies is enabled, also apply LRF/LRB for rank 1-3
+          if (config.longRunBreaksTopTies && useLongRun) {
+            const aLRF = a.longRunFront ?? 0, bLRF = b.longRunFront ?? 0
+            if (bLRF !== aLRF) return bLRF - aLRF
+            const aLRB = a.longRunBack ?? 0, bLRB = b.longRunBack ?? 0
+            if (bLRB !== aLRB) return bLRB - aLRB
+          }
         } else if (useLongRun) {
           // USAYESS places 4+: LRF first, then LRB (not max/min like NSSA rule d)
           const aLRF = a.longRunFront ?? 0, bLRF = b.longRunFront ?? 0

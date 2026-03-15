@@ -55,6 +55,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         tiebreakOrder: true,
         shootOffMaxPlace: true,
         countbackStartStation: true,
+        longRunBreaksTopTies: true,
         enableShootOffs: true,
         shootOffTriggers: true,
         shootOffFormat: true,

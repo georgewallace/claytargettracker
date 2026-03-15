@@ -45,6 +45,7 @@ interface Tournament {
   tiebreakOrder: string
   shootOffMaxPlace?: number
   countbackStartStation?: number
+  longRunBreaksTopTies?: boolean
 }
 
 interface EditTournamentFormProps {
@@ -147,6 +148,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
   const [leaderboardHideTeams, setLeaderboardHideTeams] = useState(tournament.leaderboardHideTeams ?? false)
   const [shootOffMaxPlace, setShootOffMaxPlace] = useState(tournament.shootOffMaxPlace ?? 0)
   const [countbackStartStation, setCountbackStartStation] = useState(tournament.countbackStartStation ?? 0)
+  const [longRunBreaksTopTies, setLongRunBreaksTopTies] = useState(tournament.longRunBreaksTopTies ?? false)
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -199,6 +201,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           tiebreakOrder: tiebreakOrder.split(',').map(s => s.trim()).filter(Boolean),
           shootOffMaxPlace,
           countbackStartStation,
+          longRunBreaksTopTies,
         })
       })
 
@@ -548,6 +551,21 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                 USAYESS: only 1st–3rd place ties are shot off.
                 Other ties broken by LRF → LRB (skeet) or countback (sporting).
                 Requires &quot;Long run tiebreakers&quot; enabled on skeet disciplines.
+              </p>
+            </div>
+            <div className="mt-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={longRunBreaksTopTies}
+                  onChange={e => setLongRunBreaksTopTies(e.target.checked)}
+                  className="w-4 h-4 rounded accent-indigo-600"
+                />
+                <span className="text-sm font-medium text-gray-700">Long run breaks top-place ties</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1 ml-6">
+                When enabled, different LRF/LRB values automatically resolve ties at places 1–{shootOffMaxPlace || '3'},
+                without requiring a shoot-off.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">

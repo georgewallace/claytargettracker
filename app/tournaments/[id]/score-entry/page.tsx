@@ -25,6 +25,7 @@ export default async function ScoreEntryPage({ params }: { params: Promise<{ id:
       tiebreakOrder: true,
       shootOffMaxPlace: true,
       countbackStartStation: true,
+      longRunBreaksTopTies: true,
       disciplines: {
         select: {
           disciplineId: true,
