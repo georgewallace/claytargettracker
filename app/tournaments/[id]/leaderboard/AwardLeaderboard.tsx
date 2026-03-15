@@ -145,9 +145,11 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig): 
   const key = (e: AthleteScoreEntry): string => {
     const parts = [`score:${e.totalScore}`]
     for (const criterion of config.tiebreakOrder) {
-      if (criterion === 'lrf') parts.push(`lrf:${e.longRunFront ?? 'null'}`)
-      else if (criterion === 'lrb') parts.push(`lrb:${e.longRunBack ?? 'null'}`)
-      else if (criterion === 'shootoff') parts.push(`so:${e.tiebreakScore ?? 'null'}`)
+      if (criterion === 'longrun') {
+        // NSSA rule d: best of LRF/LRB, then opposite end
+        parts.push(`lr_max:${Math.max(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
+        parts.push(`lr_min:${Math.min(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
+      } else if (criterion === 'shootoff') parts.push(`so:${e.tiebreakScore ?? 'null'}`)
     }
     return parts.join('|')
   }
@@ -320,7 +322,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
     teamSizeDefault: tournament.teamSizeDefault,
     trapTeamSize: tournament.trapTeamSize,
     tiebreakOrder: (() => {
-      try { return JSON.parse(tournament.tiebreakOrder ?? '["lrf","lrb","shootoff"]') } catch { return ['lrf', 'lrb', 'shootoff'] }
+      try { return JSON.parse(tournament.tiebreakOrder ?? '["shootoff","longrun"]') } catch { return ['shootoff', 'longrun'] }
     })(),
     longRunDisciplines: (() => {
       try { return JSON.parse(tournament.longRunDisciplines ?? '[]') } catch { return [] }

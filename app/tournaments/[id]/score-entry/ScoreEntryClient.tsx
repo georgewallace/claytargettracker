@@ -34,12 +34,14 @@ function getTieGroupStatus(
   const useLongRun = longRunDisciplines.includes(discId)
 
   // Build composite key for each athlete across all criteria
+  // 'longrun': NSSA rule d — max(LRF,LRB) first, then min(LRF,LRB) (opposite end)
   const makeKey = (a: TieGroupAthlete): string => {
     const parts: string[] = []
     for (const criterion of tiebreakOrder) {
-      if (criterion === 'lrf' && useLongRun) parts.push(`${a.longRunFront ?? 'x'}`)
-      else if (criterion === 'lrb' && useLongRun) parts.push(`${a.longRunBack ?? 'x'}`)
-      else if (criterion === 'shootoff') parts.push(`${a.tiebreakScore ?? 'x'}`)
+      if (criterion === 'longrun' && useLongRun) {
+        parts.push(`${Math.max(a.longRunFront ?? 0, a.longRunBack ?? 0)}`)
+        parts.push(`${Math.min(a.longRunFront ?? 0, a.longRunBack ?? 0)}`)
+      } else if (criterion === 'shootoff') parts.push(`${a.tiebreakScore ?? 'x'}`)
       else parts.push('?')
     }
     return parts.join('|')
@@ -49,31 +51,36 @@ function getTieGroupStatus(
   if (new Set(keys).size !== athletes.length) return { broken: false, resolvedBy: null }
 
   // Find which criterion first distinguishes all athletes
-  const prefixKeys = (upTo: number) =>
+  // For 'longrun' we emit two sub-parts (max then min); track separately
+  const prefixParts = (upTo: number) =>
     athletes.map(a => {
       const parts: string[] = []
-      let count = 0
       for (const criterion of tiebreakOrder) {
-        if (count >= upTo) break
-        if (criterion === 'lrf' && useLongRun) { parts.push(`${a.longRunFront ?? 'x'}`); count++ }
-        else if (criterion === 'lrb' && useLongRun) { parts.push(`${a.longRunBack ?? 'x'}`); count++ }
-        else if (criterion === 'shootoff') { parts.push(`${a.tiebreakScore ?? 'x'}`); count++ }
-        else { parts.push('?'); count++ }
+        if (parts.length >= upTo) break
+        if (criterion === 'longrun' && useLongRun) {
+          if (parts.length < upTo) parts.push(`${Math.max(a.longRunFront ?? 0, a.longRunBack ?? 0)}`)
+          if (parts.length < upTo) parts.push(`${Math.min(a.longRunFront ?? 0, a.longRunBack ?? 0)}`)
+        } else if (criterion === 'shootoff') {
+          parts.push(`${a.tiebreakScore ?? 'x'}`)
+        } else {
+          parts.push('?')
+        }
       }
       return parts.join('|')
     })
 
-  // Determine which criterion breaks the tie
-  const activeCriteria = tiebreakOrder.filter(c => {
-    if (c === 'lrf' || c === 'lrb') return useLongRun
-    return true
-  })
+  // Expanded criteria list (longrun expands to two slots: lr_max, lr_min)
+  const expandedCriteria: string[] = []
+  for (const c of tiebreakOrder) {
+    if (c === 'longrun' && useLongRun) { expandedCriteria.push('lr_max', 'lr_min') }
+    else { expandedCriteria.push(c) }
+  }
 
-  for (let i = 1; i <= activeCriteria.length; i++) {
-    const partial = prefixKeys(i)
+  for (let i = 1; i <= expandedCriteria.length; i++) {
+    const partial = prefixParts(i)
     if (new Set(partial).size === athletes.length) {
-      const criterion = activeCriteria[i - 1]
-      const label = criterion === 'lrf' ? 'LRF' : criterion === 'lrb' ? 'LRB' : 'shoot-off'
+      const slot = expandedCriteria[i - 1]
+      const label = slot === 'lr_max' || slot === 'lr_min' ? 'Long Run' : 'shoot-off'
       return { broken: true, resolvedBy: label }
     }
   }
@@ -560,7 +567,7 @@ export default function ScoreEntryClient({ tournament, initialSquadStatus }: Sco
     try { return JSON.parse(tournament.longRunDisciplines || '[]') as string[] } catch { return [] as string[] }
   }, [tournament.longRunDisciplines])
   const tiebreakOrder = useMemo(() => {
-    try { return JSON.parse(tournament.tiebreakOrder || '["lrf","lrb","shootoff"]') as string[] } catch { return ['lrf', 'lrb', 'shootoff'] as string[] }
+    try { return JSON.parse(tournament.tiebreakOrder || '["shootoff","longrun"]') as string[] } catch { return ['shootoff', 'longrun'] as string[] }
   }, [tournament.tiebreakOrder])
 
   // Active discipline tab

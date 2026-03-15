@@ -17,7 +17,7 @@ const baseConfig: AwardConfig = {
   teamEventPlaces: 2,
   teamSizeDefault: 3,
   trapTeamSize: 5,
-  tiebreakOrder: ['lrf', 'lrb', 'shootoff'],
+  tiebreakOrder: ['shootoff', 'longrun'],
   longRunDisciplines: [],
 }
 
@@ -152,6 +152,30 @@ describe('calculateEventAwards', () => {
     const e1 = makeEntry('a1', 'skeet', 24.5, { division: 'Varsity', name: 'A1' })
     const e2 = makeEntry('a2', 'skeet', 24.0, { division: 'Varsity', name: 'A2' })
     const result = calculateEventAwards([e1, e2], 'skeet', baseConfig)
+    expect(result.divisionPlacements['Varsity'][0].athleteId).toBe('a1')
+    expect(result.divisionPlacements['Varsity'][1].athleteId).toBe('a2')
+  })
+
+  it('NSSA rule d: uses max(LRF,LRB) first — athlete with higher back run wins over higher front run', () => {
+    // A: LRF=10, LRB=15 → best = 15
+    // B: LRF=14, LRB=8  → best = 14
+    // NSSA: A wins (15 > 14); naive LRF-first would give B (14 > 10)
+    const config = { ...baseConfig, tiebreakOrder: ['longrun'], longRunDisciplines: ['skeet'] }
+    const e1: AthleteScoreEntry = { ...makeEntry('a1', 'skeet', 90, { division: 'Varsity', name: 'A1' }), longRunFront: 10, longRunBack: 15 }
+    const e2: AthleteScoreEntry = { ...makeEntry('a2', 'skeet', 90, { division: 'Varsity', name: 'A2' }), longRunFront: 14, longRunBack: 8 }
+    const result = calculateEventAwards([e1, e2], 'skeet', config)
+    expect(result.divisionPlacements['Varsity'][0].athleteId).toBe('a1')
+    expect(result.divisionPlacements['Varsity'][1].athleteId).toBe('a2')
+  })
+
+  it('NSSA rule d: uses opposite end when max(LRF,LRB) is tied', () => {
+    // A: LRF=15, LRB=12 → max=15, min=12
+    // B: LRF=15, LRB=10 → max=15, min=10
+    // Max tied → compare opposite end: A wins (12 > 10)
+    const config = { ...baseConfig, tiebreakOrder: ['longrun'], longRunDisciplines: ['skeet'] }
+    const e1: AthleteScoreEntry = { ...makeEntry('a1', 'skeet', 90, { division: 'Varsity', name: 'A1' }), longRunFront: 15, longRunBack: 12 }
+    const e2: AthleteScoreEntry = { ...makeEntry('a2', 'skeet', 90, { division: 'Varsity', name: 'A2' }), longRunFront: 15, longRunBack: 10 }
+    const result = calculateEventAwards([e1, e2], 'skeet', config)
     expect(result.divisionPlacements['Varsity'][0].athleteId).toBe('a1')
     expect(result.divisionPlacements['Varsity'][1].athleteId).toBe('a2')
   })

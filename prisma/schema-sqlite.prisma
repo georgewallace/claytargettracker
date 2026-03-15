@@ -165,7 +165,7 @@ model Tournament {
   trapTeamSize           Int     @default(5)
   leaderboardHideTeams   Boolean @default(false)
   longRunDisciplines     String  @default("[]")
-  tiebreakOrder          String  @default("[\"lrf\",\"lrb\",\"shootoff\"]")
+  tiebreakOrder          String  @default("[\"shootoff\",\"longrun\"]")
 
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt

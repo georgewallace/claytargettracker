@@ -116,9 +116,9 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
   })
   const [tiebreakOrder, setTiebreakOrder] = useState<string>(() => {
     try {
-      const arr = JSON.parse(tournament.tiebreakOrder || '["lrf","lrb","shootoff"]')
+      const arr = JSON.parse(tournament.tiebreakOrder || '["shootoff","longrun"]')
       return arr.join(',')
-    } catch { return 'lrf,lrb,shootoff' }
+    } catch { return 'shootoff,longrun' }
   })
   const [leaderboardTabInterval, setLeaderboardTabInterval] = useState(tournament.leaderboardTabInterval || 15000)
   const [awardStructureVersion, setAwardStructureVersion] = useState(tournament.awardStructureVersion || 'legacy')
@@ -465,11 +465,12 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
               <label className="block text-sm font-medium text-gray-700 mb-2">Tiebreak Order</label>
               <select value={tiebreakOrder} onChange={e => setTiebreakOrder(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="lrf,lrb,shootoff">LRF → LRB → Shoot-off (default)</option>
-                <option value="lrf,shootoff">LRF → Shoot-off</option>
+                <option value="shootoff,longrun">Shoot-off → Long Run (NSSA default)</option>
+                <option value="longrun,shootoff">Long Run → Shoot-off</option>
+                <option value="longrun">Long Run only</option>
                 <option value="shootoff">Shoot-off only</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">Order in which tiebreakers are applied when athletes have the same score</p>
+              <p className="text-xs text-gray-500 mt-1">NSSA: shoot-offs decide championships; long run (best of LRF/LRB, then opposite end) decides other places</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

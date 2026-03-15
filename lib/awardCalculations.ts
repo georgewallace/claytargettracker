@@ -65,16 +65,19 @@ type SortItem = { total: number; tiebreak?: number | null; lrf?: number | null; 
 
 // Factory: returns a sort comparator for aggregated score objects (used in HOA/Collegiate)
 // Applies tiebreakOrder across all configured criteria; null values compare as 0 (no advantage)
+// 'longrun' criterion: compare max(LRF,LRB) first (NSSA rule d — whichever is longest),
+//   then min(LRF,LRB) (the opposite end) if still tied.
 function makeSortByScore(config: AwardConfig) {
   return (a: SortItem, b: SortItem): number => {
     if (b.total !== a.total) return b.total - a.total
     for (const criterion of config.tiebreakOrder) {
-      if (criterion === 'lrf') {
-        const av = a.lrf ?? 0, bv = b.lrf ?? 0
-        if (bv !== av) return bv - av
-      } else if (criterion === 'lrb') {
-        const av = a.lrb ?? 0, bv = b.lrb ?? 0
-        if (bv !== av) return bv - av
+      if (criterion === 'longrun') {
+        const aMax = Math.max(a.lrf ?? 0, a.lrb ?? 0)
+        const bMax = Math.max(b.lrf ?? 0, b.lrb ?? 0)
+        if (bMax !== aMax) return bMax - aMax
+        const aMin = Math.min(a.lrf ?? 0, a.lrb ?? 0)
+        const bMin = Math.min(b.lrf ?? 0, b.lrb ?? 0)
+        if (bMin !== aMin) return bMin - aMin
       } else if (criterion === 'shootoff') {
         const av = a.tiebreak ?? 0, bv = b.tiebreak ?? 0
         if (bv !== av) return bv - av
@@ -85,17 +88,18 @@ function makeSortByScore(config: AwardConfig) {
 }
 
 // Factory: returns a sort comparator for AthleteScoreEntry objects (used in event/team calculations)
-// Applies tiebreakOrder; null values compare as 0 (no advantage)
+// 'longrun' criterion: compare max(LRF,LRB) first (NSSA rule d), then min(LRF,LRB) if tied.
 function makeSortEntriesByScore(config: AwardConfig) {
   return (a: AthleteScoreEntry, b: AthleteScoreEntry): number => {
     if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
     for (const criterion of config.tiebreakOrder) {
-      if (criterion === 'lrf') {
-        const av = a.longRunFront ?? 0, bv = b.longRunFront ?? 0
-        if (bv !== av) return bv - av
-      } else if (criterion === 'lrb') {
-        const av = a.longRunBack ?? 0, bv = b.longRunBack ?? 0
-        if (bv !== av) return bv - av
+      if (criterion === 'longrun') {
+        const aMax = Math.max(a.longRunFront ?? 0, a.longRunBack ?? 0)
+        const bMax = Math.max(b.longRunFront ?? 0, b.longRunBack ?? 0)
+        if (bMax !== aMax) return bMax - aMax
+        const aMin = Math.min(a.longRunFront ?? 0, a.longRunBack ?? 0)
+        const bMin = Math.min(b.longRunFront ?? 0, b.longRunBack ?? 0)
+        if (bMin !== aMin) return bMin - aMin
       } else if (criterion === 'shootoff') {
         const av = a.tiebreakScore ?? 0, bv = b.tiebreakScore ?? 0
         if (bv !== av) return bv - av
