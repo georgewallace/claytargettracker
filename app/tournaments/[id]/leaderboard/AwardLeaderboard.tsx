@@ -24,6 +24,8 @@ interface AwardLeaderboardProps {
       athleteId: string
       disciplineId: string
       tiebreakScore?: number | null
+      longRunFront?: number | null
+      longRunBack?: number | null
       scores: Array<{ roundNumber?: number | null; stationNumber?: number | null; targets: number; maxTargets: number }>
       athlete: {
         id: string
@@ -43,6 +45,8 @@ interface AwardLeaderboardProps {
     teamSizeDefault: number
     trapTeamSize: number
     leaderboardHideTeams: boolean
+    longRunDisciplines?: string
+    tiebreakOrder?: string
   }
 }
 
@@ -135,10 +139,18 @@ function buildPlaceHighlights(entries: AthleteScoreEntry[], places: number): Rec
 const DIVISION_LABELS: Record<string, string> = { JV: 'Junior Varsity' }
 function divLabel(div: string | null) { return div ? (DIVISION_LABELS[div] ?? div) : '—' }
 
-// Returns athleteIds that share the same (totalScore, tiebreakScore) with at least one other athlete
-// These are "unbroken" ties — identical rank with no way to separate them
-function getUnbrokenTiedIds(entries: AthleteScoreEntry[]): Set<string> {
-  const key = (e: AthleteScoreEntry) => `${e.totalScore}:${e.tiebreakScore ?? ''}`
+// Returns athleteIds that share the same effective rank (after applying all tiebreak criteria)
+// with at least one other athlete — these are "unbroken" ties with no way to separate them
+function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig): Set<string> {
+  const key = (e: AthleteScoreEntry): string => {
+    const parts = [`score:${e.totalScore}`]
+    for (const criterion of config.tiebreakOrder) {
+      if (criterion === 'lrf') parts.push(`lrf:${e.longRunFront ?? 'null'}`)
+      else if (criterion === 'lrb') parts.push(`lrb:${e.longRunBack ?? 'null'}`)
+      else if (criterion === 'shootoff') parts.push(`so:${e.tiebreakScore ?? 'null'}`)
+    }
+    return parts.join('|')
+  }
   const counts: Record<string, number> = {}
   for (const e of entries) counts[key(e)] = (counts[key(e)] || 0) + 1
   return new Set(entries.filter(e => counts[key(e)] > 1).map(e => e.athleteId))
@@ -153,6 +165,7 @@ function RankedTable({
   highlights = {},
   startRank = 1,
   showTies = true,
+  config,
 }: {
   rows: AthleteScoreEntry[]
   teamNames: Record<string, string>
@@ -161,9 +174,10 @@ function RankedTable({
   highlights?: Record<string, RowHighlight>
   startRank?: number
   showTies?: boolean
+  config: AwardConfig
 }) {
   if (rows.length === 0) return null
-  const unbrokenTied = showTies ? getUnbrokenTiedIds(rows) : new Set<string>()
+  const unbrokenTied = showTies ? getUnbrokenTiedIds(rows, config) : new Set<string>()
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse">
@@ -305,6 +319,12 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
     teamEventPlaces: tournament.teamEventPlaces,
     teamSizeDefault: tournament.teamSizeDefault,
     trapTeamSize: tournament.trapTeamSize,
+    tiebreakOrder: (() => {
+      try { return JSON.parse(tournament.tiebreakOrder ?? '["lrf","lrb","shootoff"]') } catch { return ['lrf', 'lrb', 'shootoff'] }
+    })(),
+    longRunDisciplines: (() => {
+      try { return JSON.parse(tournament.longRunDisciplines ?? '[]') } catch { return [] }
+    })(),
   }), [tournament])
 
   // Build AthleteScoreEntry map per discipline
@@ -317,6 +337,8 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
         disciplineId: shoot.disciplineId,
         totalScore: total,
         tiebreakScore: shoot.tiebreakScore,
+        longRunFront: shoot.longRunFront,
+        longRunBack: shoot.longRunBack,
         scores: shoot.scores,
         athlete: {
           division: shoot.athlete.division === 'Junior Varsity' ? 'JV' : shoot.athlete.division,
@@ -519,6 +541,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
               teamNames={teamNames}
               showDivision
               showTies={false}
+              config={config}
               disciplineCols={disciplinesWithScores.map(d => ({ id: d.disciplineId, label: d.discipline.displayName }))}
               highlights={{
                 ...(hoaResult.hoa ? { [hoaResult.hoa.athleteId]: HIGHLIGHT_STYLES.hoa } : {}),
@@ -622,7 +645,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
                 <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${allDivisionSections.length}, minmax(160px, 260px))` }}>
                   {allDivisionSections.map(({ div, athletes }) => {
                     const divHighlights = buildPlaceHighlights(athletes, config.individualEventPlaces)
-                    const divUnbrokenTied = getUnbrokenTiedIds(athletes)
+                    const divUnbrokenTied = getUnbrokenTiedIds(athletes, config)
                     return (
                       <div key={div} className="border border-gray-100 rounded overflow-hidden">
                         {/* Division header */}

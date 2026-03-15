@@ -164,6 +164,8 @@ model Tournament {
   teamSizeDefault        Int     @default(3)
   trapTeamSize           Int     @default(5)
   leaderboardHideTeams   Boolean @default(false)
+  longRunDisciplines     String  @default("[]")
+  tiebreakOrder          String  @default("[\"lrf\",\"lrb\",\"shootoff\"]")
 
   createdAt               DateTime                     @default(now())
   updatedAt               DateTime                     @updatedAt
@@ -316,6 +318,8 @@ model Shoot {
   date          DateTime   @default(now())
   notes         String?
   tiebreakScore Float?     // Optional shoot-off score used only to break ties
+  longRunFront  Int?       // Long run from front (LRF) for automatic tiebreaking
+  longRunBack   Int?       // Long run from back (LRB) for automatic tiebreaking
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   scores        Score[]

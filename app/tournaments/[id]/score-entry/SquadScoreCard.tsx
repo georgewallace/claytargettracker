@@ -36,8 +36,19 @@ interface DisciplineConfig {
   discipline: Discipline
 }
 
+interface PreloadedShoot {
+  id: string
+  athleteId: string
+  disciplineId: string
+  tiebreakScore?: number | null
+  longRunFront?: number | null
+  longRunBack?: number | null
+  scores: Array<{ roundNumber?: number | null; stationNumber?: number | null; targets: number; maxTargets: number }>
+}
+
 // null = not yet entered; number (including 0) = explicitly entered
 type AthleteScores = Record<string, (number | null)[]>
+type LongRunValues = Record<string, { front: number | null; back: number | null }>
 
 function isStationBased(config: DisciplineConfig | undefined): boolean {
   if (!config) return false
@@ -75,10 +86,13 @@ interface SquadScoreCardProps {
   config: DisciplineConfig | undefined
   timeSlotDate: Date | string
   onStatusChange?: (squadId: string, status: ScoreStatus) => void
+  preloadedShots?: PreloadedShoot[]
+  useLongRun?: boolean
 }
 
-export default function SquadScoreCard({ tournamentId, squad, discipline, config, timeSlotDate, onStatusChange }: SquadScoreCardProps) {
+export default function SquadScoreCard({ tournamentId, squad, discipline, config, timeSlotDate, onStatusChange, preloadedShots, useLongRun = false }: SquadScoreCardProps) {
   const [scores, setScores] = useState<AthleteScores>({})
+  const [longRun, setLongRun] = useState<LongRunValues>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -109,9 +123,44 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
     if (el) { el.focus(); el.select() }
   }, [])
 
-  // Load existing scores — cells with DB records get their value (even 0); others stay null
+  // Initialize scores from preloaded data or fetch from API
   useEffect(() => {
     if (!discipline) { setLoading(false); return }
+
+    const buildState = (shoots: PreloadedShoot[]) => {
+      const initial: AthleteScores = {}
+      const initialLR: LongRunValues = {}
+      for (const member of members) {
+        const shoot = shoots.find(s => s.athleteId === member.athleteId)
+        if (shoot && shoot.scores && shoot.scores.length > 0) {
+          const arr: (number | null)[] = Array(inputCount).fill(null)
+          for (const score of shoot.scores) {
+            const idx = stationBased
+              ? (score.stationNumber ?? 1) - 1
+              : (score.roundNumber ?? 1) - 1
+            if (idx >= 0 && idx < inputCount) arr[idx] = score.targets
+          }
+          initial[member.athleteId] = arr
+        } else {
+          initial[member.athleteId] = Array(inputCount).fill(null)
+        }
+        initialLR[member.athleteId] = {
+          front: shoot?.longRunFront ?? null,
+          back: shoot?.longRunBack ?? null,
+        }
+      }
+      return { initial, initialLR }
+    }
+
+    if (preloadedShots !== undefined) {
+      // Use preloaded data — skip fetch
+      const { initial, initialLR } = buildState(preloadedShots)
+      setScores(initial)
+      setLongRun(initialLR)
+      onStatusChange?.(squad.id, computeStatus(initial))
+      setLoading(false)
+      return
+    }
 
     const fetchScores = async () => {
       try {
@@ -120,29 +169,19 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
         )
         if (!res.ok) { setLoading(false); return }
         const shoots = await res.json()
-
-        const initial: AthleteScores = {}
-        for (const member of members) {
-          const shoot = shoots.find((s: any) => s.athleteId === member.athleteId)
-          if (shoot && shoot.scores && shoot.scores.length > 0) {
-            const arr: (number | null)[] = Array(inputCount).fill(null)
-            for (const score of shoot.scores) {
-              const idx = stationBased
-                ? (score.stationNumber ?? 1) - 1
-                : (score.roundNumber ?? 1) - 1
-              if (idx >= 0 && idx < inputCount) arr[idx] = score.targets
-            }
-            initial[member.athleteId] = arr
-          } else {
-            initial[member.athleteId] = Array(inputCount).fill(null)
-          }
-        }
+        const { initial, initialLR } = buildState(shoots)
         setScores(initial)
+        setLongRun(initialLR)
         onStatusChange?.(squad.id, computeStatus(initial))
       } catch {
         const empty: AthleteScores = {}
-        for (const m of members) empty[m.athleteId] = Array(inputCount).fill(null)
+        const emptyLR: LongRunValues = {}
+        for (const m of members) {
+          empty[m.athleteId] = Array(inputCount).fill(null)
+          emptyLR[m.athleteId] = { front: null, back: null }
+        }
         setScores(empty)
+        setLongRun(emptyLR)
         onStatusChange?.(squad.id, 'empty')
       } finally {
         setLoading(false)
@@ -151,7 +190,7 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
 
     fetchScores()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [squad.id, discipline?.id, tournamentId, inputCount, stationBased])
+  }, [squad.id, discipline?.id, tournamentId, inputCount, stationBased, preloadedShots])
 
   useEffect(() => {
     inputRefs.current = members.map((_, ri) =>
@@ -166,6 +205,14 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
       arr[index] = value
       return { ...prev, [athleteId]: arr }
     })
+  }
+
+  const setLongRunValue = (athleteId: string, field: 'front' | 'back', value: number | null) => {
+    setSaved(false)
+    setLongRun(prev => ({
+      ...prev,
+      [athleteId]: { ...(prev[athleteId] || { front: null, back: null }), [field]: value }
+    }))
   }
 
   const getTotal = (athleteId: string): number =>
@@ -232,7 +279,11 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
               ...(stationBased ? { stationNumber: idx + 1 } : { roundNumber: idx + 1 }),
               targets: val,
               maxTargets: maxPerInput
-            }] : [])
+            }] : []),
+          ...(useLongRun && {
+            longRunFront: longRun[m.athleteId]?.front ?? null,
+            longRunBack: longRun[m.athleteId]?.back ?? null,
+          }),
         }))
 
       const res = await fetch(`/api/tournaments/${tournamentId}/scores`, {
@@ -284,9 +335,19 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
                   {stationBased && <div className="text-[10px] font-normal text-gray-400">/{maxPerInput}</div>}
                 </th>
               ))}
-              <th className="px-3 py-2 font-semibold border-b border-gray-200 text-center w-16 bg-gray-50">
+              <th className="px-3 py-2 font-semibold border-b border-r border-gray-200 text-center w-16 bg-gray-50">
                 Total
               </th>
+              {useLongRun && (
+                <>
+                  <th className="px-2 py-2 font-semibold border-b border-r border-gray-200 text-center w-16 text-indigo-600">
+                    LRF
+                  </th>
+                  <th className="px-2 py-2 font-semibold border-b border-gray-200 text-center w-16 text-indigo-600">
+                    LRB
+                  </th>
+                </>
+              )}
             </tr>
           </thead>
 
@@ -295,6 +356,7 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
               return members.map((member, rowIdx) => {
               const athleteScores = scores[member.athleteId] || Array(inputCount).fill(null)
               const total = getTotal(member.athleteId)
+              const lr = longRun[member.athleteId] || { front: null, back: null }
               if (!inputRefs.current[rowIdx]) {
                 inputRefs.current[rowIdx] = Array(inputCount).fill(null)
               }
@@ -333,9 +395,44 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
                     </td>
                   ))}
 
-                  <td className="px-3 py-1.5 border-b border-gray-200 text-center font-bold tabular-nums bg-gray-50 text-gray-800">
+                  <td className="px-3 py-1.5 border-b border-r border-gray-200 text-center font-bold tabular-nums bg-gray-50 text-gray-800">
                     {(scores[member.athleteId] || []).some(v => v !== null) ? total : '—'}
                   </td>
+
+                  {useLongRun && (
+                    <>
+                      <td className="p-0 border-b border-r border-gray-200">
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={lr.front === null ? '' : lr.front}
+                          placeholder="—"
+                          onChange={e => {
+                            const raw = e.target.value
+                            setLongRunValue(member.athleteId, 'front', raw === '' ? null : parseInt(raw, 10))
+                          }}
+                          onFocus={e => e.target.select()}
+                          className={`w-full h-9 text-center text-sm font-mono bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${lr.front === null ? 'text-gray-300' : 'text-indigo-700 font-semibold'}`}
+                        />
+                      </td>
+                      <td className="p-0 border-b border-gray-200">
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={lr.back === null ? '' : lr.back}
+                          placeholder="—"
+                          onChange={e => {
+                            const raw = e.target.value
+                            setLongRunValue(member.athleteId, 'back', raw === '' ? null : parseInt(raw, 10))
+                          }}
+                          onFocus={e => e.target.select()}
+                          className={`w-full h-9 text-center text-sm font-mono bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${lr.back === null ? 'text-gray-300' : 'text-indigo-700 font-semibold'}`}
+                        />
+                      </td>
+                    </>
+                  )}
                 </tr>
               )
             })

@@ -20,6 +20,9 @@ export default async function ScoreEntryPage({ params }: { params: Promise<{ id:
       id: true,
       name: true,
       enableScores: true,
+      awardStructureVersion: true,
+      longRunDisciplines: true,
+      tiebreakOrder: true,
       disciplines: {
         select: {
           disciplineId: true,

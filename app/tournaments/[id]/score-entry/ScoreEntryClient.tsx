@@ -6,15 +6,90 @@ import { format } from 'date-fns'
 
 // ── Ties Panel ────────────────────────────────────────────────────────────────
 
+interface TieGroupAthlete {
+  athleteId: string
+  name: string
+  division: string | null
+  teamName: string | null
+  tiebreakScore: number | null
+  longRunFront: number | null
+  longRunBack: number | null
+}
+
 interface TieGroup {
   disciplineId: string
   disciplineName: string
   score: number
-  broken: boolean  // true if all athletes have distinct tiebreak scores
-  athletes: { athleteId: string; name: string; division: string | null; teamName: string | null; tiebreakScore: number | null }[]
+  broken: boolean
+  resolvedBy: string | null  // null = not broken; 'LRF' | 'LRB' | 'shoot-off' | null
+  athletes: TieGroupAthlete[]
 }
 
-function TiesPanel({ tournamentId }: { tournamentId: string }) {
+function getTieGroupStatus(
+  athletes: TieGroupAthlete[],
+  discId: string,
+  tiebreakOrder: string[],
+  longRunDisciplines: string[]
+): { broken: boolean; resolvedBy: string | null } {
+  const useLongRun = longRunDisciplines.includes(discId)
+
+  // Build composite key for each athlete across all criteria
+  const makeKey = (a: TieGroupAthlete): string => {
+    const parts: string[] = []
+    for (const criterion of tiebreakOrder) {
+      if (criterion === 'lrf' && useLongRun) parts.push(`${a.longRunFront ?? 'x'}`)
+      else if (criterion === 'lrb' && useLongRun) parts.push(`${a.longRunBack ?? 'x'}`)
+      else if (criterion === 'shootoff') parts.push(`${a.tiebreakScore ?? 'x'}`)
+      else parts.push('?')
+    }
+    return parts.join('|')
+  }
+
+  const keys = athletes.map(a => makeKey(a))
+  if (new Set(keys).size !== athletes.length) return { broken: false, resolvedBy: null }
+
+  // Find which criterion first distinguishes all athletes
+  const prefixKeys = (upTo: number) =>
+    athletes.map(a => {
+      const parts: string[] = []
+      let count = 0
+      for (const criterion of tiebreakOrder) {
+        if (count >= upTo) break
+        if (criterion === 'lrf' && useLongRun) { parts.push(`${a.longRunFront ?? 'x'}`); count++ }
+        else if (criterion === 'lrb' && useLongRun) { parts.push(`${a.longRunBack ?? 'x'}`); count++ }
+        else if (criterion === 'shootoff') { parts.push(`${a.tiebreakScore ?? 'x'}`); count++ }
+        else { parts.push('?'); count++ }
+      }
+      return parts.join('|')
+    })
+
+  // Determine which criterion breaks the tie
+  const activeCriteria = tiebreakOrder.filter(c => {
+    if (c === 'lrf' || c === 'lrb') return useLongRun
+    return true
+  })
+
+  for (let i = 1; i <= activeCriteria.length; i++) {
+    const partial = prefixKeys(i)
+    if (new Set(partial).size === athletes.length) {
+      const criterion = activeCriteria[i - 1]
+      const label = criterion === 'lrf' ? 'LRF' : criterion === 'lrb' ? 'LRB' : 'shoot-off'
+      return { broken: true, resolvedBy: label }
+    }
+  }
+
+  return { broken: true, resolvedBy: null }
+}
+
+function TiesPanel({
+  tournamentId,
+  tiebreakOrder,
+  longRunDisciplines,
+}: {
+  tournamentId: string
+  tiebreakOrder: string[]
+  longRunDisciplines: string[]
+}) {
   const [open, setOpen] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -33,12 +108,30 @@ function TiesPanel({ tournamentId }: { tournamentId: string }) {
       if (!res.ok) return
       const data = await res.json()
 
+      // Use the tournament's tiebreakOrder and longRunDisciplines from the response
+      // if they differ from what was passed as props (data may be fresher)
+      const apiTiebreakOrder: string[] = (() => {
+        try { return JSON.parse(data.tiebreakOrder || '[]') } catch { return tiebreakOrder }
+      })()
+      const apiLongRunDisciplines: string[] = (() => {
+        try { return JSON.parse(data.longRunDisciplines || '[]') } catch { return longRunDisciplines }
+      })()
+
       const discNames: Record<string, string> = {}
       for (const td of data.disciplines ?? []) {
         discNames[td.disciplineId] = td.discipline.displayName
       }
 
-      const byDisc: Record<string, Record<string, { total: number; tiebreak: number | null; name: string; division: string | null; teamName: string | null }>> = {}
+      const byDisc: Record<string, Record<string, {
+        total: number
+        tiebreak: number | null
+        longRunFront: number | null
+        longRunBack: number | null
+        name: string
+        division: string | null
+        teamName: string | null
+      }>> = {}
+
       for (const shoot of data.shoots ?? []) {
         const total = (shoot.scores ?? []).reduce((s: number, sc: { targets: number }) => s + sc.targets, 0)
         if (total === 0) continue
@@ -46,35 +139,48 @@ function TiesPanel({ tournamentId }: { tournamentId: string }) {
         byDisc[shoot.disciplineId][shoot.athleteId] = {
           total,
           tiebreak: shoot.tiebreakScore ?? null,
+          longRunFront: shoot.longRunFront ?? null,
+          longRunBack: shoot.longRunBack ?? null,
           name: shoot.athlete.user.name,
           division: shoot.athlete.division,
           teamName: shoot.athlete.team?.name ?? null,
         }
       }
 
-      // Bucket by total score only — captures all ties, broken or not
+      // Bucket by total score — captures all ties, broken or not
       const groups: TieGroup[] = []
       for (const [discId, athletes] of Object.entries(byDisc)) {
-        const buckets: Record<number, { athleteId: string; name: string; division: string | null; teamName: string | null; tiebreakScore: number | null }[]> = {}
+        const buckets: Record<number, TieGroupAthlete[]> = {}
         for (const [athleteId, info] of Object.entries(athletes)) {
           if (!buckets[info.total]) buckets[info.total] = []
-          buckets[info.total].push({ athleteId, name: info.name, division: info.division, teamName: info.teamName, tiebreakScore: info.tiebreak })
+          buckets[info.total].push({
+            athleteId,
+            name: info.name,
+            division: info.division,
+            teamName: info.teamName,
+            tiebreakScore: info.tiebreak,
+            longRunFront: info.longRunFront,
+            longRunBack: info.longRunBack,
+          })
         }
         for (const [scoreStr, aths] of Object.entries(buckets)) {
           if (aths.length < 2) continue
-          // Broken = all athletes have a tiebreak score AND they are all distinct
-          const tiebreaks = aths.map(a => a.tiebreakScore)
-          const allHaveTiebreak = tiebreaks.every(t => t != null)
-          const allDistinct = new Set(tiebreaks).size === tiebreaks.length
-          const broken = allHaveTiebreak && allDistinct
-          groups.push({ disciplineId: discId, disciplineName: discNames[discId] ?? discId, score: Number(scoreStr), broken, athletes: aths })
+          const { broken, resolvedBy } = getTieGroupStatus(aths, discId, apiTiebreakOrder, apiLongRunDisciplines)
+          groups.push({
+            disciplineId: discId,
+            disciplineName: discNames[discId] ?? discId,
+            score: Number(scoreStr),
+            broken,
+            resolvedBy,
+            athletes: aths,
+          })
         }
       }
       groups.sort((a, b) => a.disciplineName.localeCompare(b.disciplineName) || b.score - a.score)
       setAllTieGroups(groups)
       setLastFetched(new Date())
 
-      // Pre-populate inputs
+      // Pre-populate shoot-off inputs
       const newInputs: Record<string, string> = {}
       for (const [discId, athletes] of Object.entries(byDisc)) {
         for (const [athleteId, info] of Object.entries(athletes)) {
@@ -85,7 +191,7 @@ function TiesPanel({ tournamentId }: { tournamentId: string }) {
     } finally {
       setLoading(false)
     }
-  }, [tournamentId])
+  }, [tournamentId, tiebreakOrder, longRunDisciplines])
 
   const saveTiebreak = async (athleteId: string, disciplineId: string) => {
     const key = `${athleteId}:${disciplineId}`
@@ -163,11 +269,12 @@ function TiesPanel({ tournamentId }: { tournamentId: string }) {
           ) : (
             <div className="divide-y divide-gray-100">
               {tieGroups.map((group, gi) => {
-                // Find duplicate entered values within this group
+                // Find duplicate entered shoot-off values within this group
                 const enteredVals = group.athletes.map(a => inputs[`${a.athleteId}:${group.disciplineId}`] ?? '')
                 const valCounts: Record<string, number> = {}
                 for (const v of enteredVals) { if (v !== '') valCounts[v] = (valCounts[v] || 0) + 1 }
                 const hasDuplicates = Object.values(valCounts).some(c => c > 1)
+                const useLongRun = longRunDisciplines.includes(group.disciplineId)
 
                 return (
                 <div key={gi} className={`px-4 py-3 ${group.broken ? 'bg-green-50/40' : ''}`}>
@@ -177,7 +284,9 @@ function TiesPanel({ tournamentId }: { tournamentId: string }) {
                       {group.score} pts
                     </span>
                     {group.broken
-                      ? <span className="text-xs text-green-600 font-medium">✓ Broken</span>
+                      ? <span className="text-xs text-green-600 font-medium">
+                          ✓ {group.resolvedBy ? `Resolved by ${group.resolvedBy}` : 'Broken'}
+                        </span>
                       : <span className="text-xs text-red-600 font-medium">Needs shoot-off</span>
                     }
                     {hasDuplicates && (
@@ -193,6 +302,12 @@ function TiesPanel({ tournamentId }: { tournamentId: string }) {
                           <th className="px-3 py-1.5 text-left font-semibold">Athlete</th>
                           <th className="px-3 py-1.5 text-left font-semibold hidden sm:table-cell">Concurrent</th>
                           <th className="px-3 py-1.5 text-left font-semibold hidden sm:table-cell">Team</th>
+                          {useLongRun && (
+                            <>
+                              <th className="px-2 py-1.5 text-center font-semibold text-indigo-600">LRF</th>
+                              <th className="px-2 py-1.5 text-center font-semibold text-indigo-600">LRB</th>
+                            </>
+                          )}
                           <th className="px-3 py-1.5 text-left font-semibold w-40">Shoot-off Score</th>
                         </tr>
                       </thead>
@@ -209,6 +324,16 @@ function TiesPanel({ tournamentId }: { tournamentId: string }) {
                               <td className="px-3 py-2 font-medium text-gray-900">{a.name}</td>
                               <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{a.division || '—'}</td>
                               <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{a.teamName || '—'}</td>
+                              {useLongRun && (
+                                <>
+                                  <td className="px-2 py-2 text-center text-indigo-700 font-mono text-sm font-semibold">
+                                    {a.longRunFront ?? '—'}
+                                  </td>
+                                  <td className="px-2 py-2 text-center text-indigo-700 font-mono text-sm font-semibold">
+                                    {a.longRunBack ?? '—'}
+                                  </td>
+                                </>
+                              )}
                               <td className="px-3 py-2">
                                 <div className="flex items-center gap-2">
                                   <input
@@ -302,9 +427,22 @@ interface TournamentDiscipline {
   discipline: { id: string; name: string; displayName: string }
 }
 
+interface PreloadedShoot {
+  id: string
+  athleteId: string
+  disciplineId: string
+  tiebreakScore?: number | null
+  longRunFront?: number | null
+  longRunBack?: number | null
+  scores: Array<{ roundNumber?: number | null; stationNumber?: number | null; targets: number; maxTargets: number }>
+}
+
 interface Tournament {
   id: string
   name: string
+  awardStructureVersion: string
+  longRunDisciplines: string
+  tiebreakOrder: string
   disciplines: TournamentDiscipline[]
   timeSlots: TimeSlot[]
 }
@@ -416,6 +554,15 @@ function StatusDot({ status }: { status?: ScoreStatus }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ScoreEntryClient({ tournament, initialSquadStatus }: ScoreEntryClientProps) {
+  // Parse tournament config
+  const isV2 = tournament.awardStructureVersion === 'v2'
+  const longRunDisciplines = useMemo(() => {
+    try { return JSON.parse(tournament.longRunDisciplines || '[]') as string[] } catch { return [] as string[] }
+  }, [tournament.longRunDisciplines])
+  const tiebreakOrder = useMemo(() => {
+    try { return JSON.parse(tournament.tiebreakOrder || '["lrf","lrb","shootoff"]') as string[] } catch { return ['lrf', 'lrb', 'shootoff'] as string[] }
+  }, [tournament.tiebreakOrder])
+
   // Active discipline tab
   const disciplinesWithSlots = useMemo(() => {
     const ids = new Set(tournament.timeSlots.map(ts => ts.disciplineId))
@@ -425,6 +572,36 @@ export default function ScoreEntryClient({ tournament, initialSquadStatus }: Sco
   const [activeDisciplineId, setActiveDisciplineId] = useState<string>(
     disciplinesWithSlots[0]?.disciplineId ?? ''
   )
+
+  // Bulk-preloaded scores: disciplineId → PreloadedShoot[]
+  const [preloadedScores, setPreloadedScores] = useState<Record<string, PreloadedShoot[]>>({})
+  const [loadingDisciplines, setLoadingDisciplines] = useState<Set<string>>(new Set())
+
+  const loadDisciplineScores = useCallback(async (disciplineId: string) => {
+    if (preloadedScores[disciplineId] !== undefined || loadingDisciplines.has(disciplineId)) return
+    setLoadingDisciplines(prev => new Set([...prev, disciplineId]))
+    try {
+      const res = await fetch(`/api/tournaments/${tournament.id}/scores?disciplineId=${disciplineId}`)
+      if (res.ok) {
+        const shoots = await res.json()
+        setPreloadedScores(prev => ({ ...prev, [disciplineId]: shoots }))
+      }
+    } finally {
+      setLoadingDisciplines(prev => {
+        const next = new Set(prev)
+        next.delete(disciplineId)
+        return next
+      })
+    }
+  }, [tournament.id, preloadedScores, loadingDisciplines])
+
+  // Load scores for the initial discipline on mount
+  useEffect(() => {
+    if (activeDisciplineId) {
+      loadDisciplineScores(activeDisciplineId)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Filters
   const [squadFilter, setSquadFilter] = useState('')
@@ -445,6 +622,7 @@ export default function ScoreEntryClient({ tournament, initialSquadStatus }: Sco
   const handleTabChange = (id: string) => {
     setActiveDisciplineId(id)
     setPage(1)
+    loadDisciplineScores(id)
   }
 
   // Flat squad list for active discipline
@@ -528,10 +706,19 @@ export default function ScoreEntryClient({ tournament, initialSquadStatus }: Sco
     return { complete, partial, empty }
   }, [allSquads, squadStatus])
 
+  // Whether the active discipline uses long run tiebreakers (v2 only)
+  const activeDisciplineUsesLongRun = isV2 && longRunDisciplines.includes(activeDisciplineId)
+
   return (
     <div>
       {/* ── Ties panel ──────────────────────────────────────────────── */}
-      <TiesPanel tournamentId={tournament.id} />
+      {isV2 && (
+        <TiesPanel
+          tournamentId={tournament.id}
+          tiebreakOrder={tiebreakOrder}
+          longRunDisciplines={longRunDisciplines}
+        />
+      )}
 
       {/* ── Discipline tabs ─────────────────────────────────────────── */}
       <div className="flex flex-wrap gap-1 border-b border-gray-200 mb-6">
@@ -641,7 +828,15 @@ export default function ScoreEntryClient({ tournament, initialSquadStatus }: Sco
         </div>
       ) : (
         <div className="space-y-2">
-          {pagedSquads.map(({ squad, timeSlot }) => (
+          {pagedSquads.map(({ squad, timeSlot }) => {
+            // Get preloaded shots for this squad's athletes (from the bulk-fetched data)
+            const preloadedForSquad = preloadedScores[activeDisciplineId]
+              ? preloadedScores[activeDisciplineId].filter(
+                  s => squad.members.some(m => m.athleteId === s.athleteId)
+                )
+              : undefined
+
+            return (
             <div key={squad.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <button
                 className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition text-left"
@@ -682,11 +877,13 @@ export default function ScoreEntryClient({ tournament, initialSquadStatus }: Sco
                     config={activeConfig}
                     timeSlotDate={timeSlot.date}
                     onStatusChange={handleStatusChange}
+                    preloadedShots={preloadedForSquad}
+                    useLongRun={activeDisciplineUsesLongRun}
                   />
                 </div>
               )}
             </div>
-          ))}
+          )})}
         </div>
       )}
 

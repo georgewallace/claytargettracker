@@ -50,6 +50,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         teamEventPlaces: true,
         teamSizeDefault: true,
         trapTeamSize: true,
+        leaderboardHideTeams: true,
+        longRunDisciplines: true,
+        tiebreakOrder: true,
         enableShootOffs: true,
         shootOffTriggers: true,
         shootOffFormat: true,
@@ -86,6 +89,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             haaIndividualPlace: true,
             haaConcurrent: true,
             tiebreakScore: true,
+            longRunFront: true,
+            longRunBack: true,
             athlete: {
               select: {
                 id: true,

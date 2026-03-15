@@ -17,6 +17,8 @@ const baseConfig: AwardConfig = {
   teamEventPlaces: 2,
   teamSizeDefault: 3,
   trapTeamSize: 5,
+  tiebreakOrder: ['lrf', 'lrb', 'shootoff'],
+  longRunDisciplines: [],
 }
 
 function makeEntry(

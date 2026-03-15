@@ -10,7 +10,7 @@ type RouteParams = {
   }>
 }
 
-// GET: Fetch existing scores for a squad or athlete
+// GET: Fetch existing scores for a squad, athlete, or the entire discipline (bulk)
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
@@ -20,12 +20,34 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const athleteId = searchParams.get('athleteId')
     const disciplineId = searchParams.get('disciplineId')
 
-    // Must have either squadId or athleteId, and must have disciplineId
-    if (!disciplineId || (!squadId && !athleteId)) {
+    if (!disciplineId) {
       return NextResponse.json(
-        { error: 'Missing required parameters. Need disciplineId and either squadId or athleteId' },
+        { error: 'Missing required parameter: disciplineId' },
         { status: 400 }
       )
+    }
+
+    // Bulk mode: no squadId or athleteId — return all shoots for the tournament+discipline
+    if (!squadId && !athleteId) {
+      const shoots = await prisma.shoot.findMany({
+        where: { tournamentId, disciplineId },
+        select: {
+          id: true,
+          athleteId: true,
+          disciplineId: true,
+          date: true,
+          tiebreakScore: true,
+          longRunFront: true,
+          longRunBack: true,
+          scores: {
+            orderBy: [
+              { roundNumber: 'asc' },
+              { stationNumber: 'asc' }
+            ]
+          }
+        }
+      })
+      return NextResponse.json(shoots, { status: 200 })
     }
 
     let athleteIds: string[] = []
@@ -69,6 +91,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         disciplineId: true,
         date: true,
         tiebreakScore: true,
+        longRunFront: true,
+        longRunBack: true,
         scores: {
           orderBy: [
             { roundNumber: 'asc' },
@@ -93,7 +117,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
     const { id: tournamentId } = await params
-    
+
     // Only coaches and admins can enter scores
     if (user.role !== 'coach' && user.role !== 'admin') {
       return NextResponse.json(
@@ -118,8 +142,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       disciplineId: string;
       date: string;
       rounds: Array<{ roundNumber?: number; stationNumber?: number; targets: number; maxTargets: number }>;
+      longRunFront?: number | null;
+      longRunBack?: number | null;
     }>) {
-      const { athleteId, disciplineId, date, rounds } = athleteScore
+      const { athleteId, disciplineId, date, rounds, longRunFront, longRunBack } = athleteScore
 
       if (!athleteId || !disciplineId || !date || !Array.isArray(rounds)) {
         continue // Skip invalid entries
@@ -140,14 +166,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             tournamentId,
             athleteId,
             disciplineId,
-            date: new Date(date)
+            date: new Date(date),
+            ...(longRunFront !== undefined && { longRunFront: longRunFront === null ? null : longRunFront }),
+            ...(longRunBack !== undefined && { longRunBack: longRunBack === null ? null : longRunBack }),
           }
         })
       } else {
-        // Update the date if it changed
+        // Update the date and LRF/LRB if they changed
         shoot = await prisma.shoot.update({
           where: { id: shoot.id },
-          data: { date: new Date(date) }
+          data: {
+            date: new Date(date),
+            ...(longRunFront !== undefined && { longRunFront: longRunFront === null ? null : longRunFront }),
+            ...(longRunBack !== undefined && { longRunBack: longRunBack === null ? null : longRunBack }),
+          }
         })
       }
 
@@ -215,4 +247,3 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

@@ -4,6 +4,8 @@ export interface AthleteScoreEntry {
   disciplineId: string
   totalScore: number
   tiebreakScore?: number | null  // Optional shoot-off score for tie-breaking
+  longRunFront?: number | null   // Long run from front (LRF) for automatic tiebreaking
+  longRunBack?: number | null    // Long run from back (LRB) for automatic tiebreaking
   scores: Array<{ roundNumber?: number | null; stationNumber?: number | null; targets: number; maxTargets: number }>
   athlete: {
     division: string | null
@@ -55,24 +57,52 @@ export interface AwardConfig {
   teamEventPlaces: number
   teamSizeDefault: number
   trapTeamSize: number
+  tiebreakOrder: string[]      // e.g. ["lrf","lrb","shootoff"]
+  longRunDisciplines: string[] // disciplineIds where LRF/LRB tiebreaking applies
 }
 
-// Sort descending by totalScore, then by tiebreakScore (higher = better), then alphabetically by name
-function sortByScore(a: { total: number; tiebreak?: number | null; entry: AthleteScoreEntry }, b: { total: number; tiebreak?: number | null; entry: AthleteScoreEntry }): number {
-  if (b.total !== a.total) return b.total - a.total
-  // Tiebreak: higher tiebreakScore wins; null/undefined tiebreak treated as 0
-  const at = a.tiebreak ?? 0
-  const bt = b.tiebreak ?? 0
-  if (bt !== at) return bt - at
-  return a.entry.athlete.name.localeCompare(b.entry.athlete.name)
+type SortItem = { total: number; tiebreak?: number | null; lrf?: number | null; lrb?: number | null; entry: AthleteScoreEntry }
+
+// Factory: returns a sort comparator for aggregated score objects (used in HOA/Collegiate)
+// Applies tiebreakOrder across all configured criteria; null values compare as 0 (no advantage)
+function makeSortByScore(config: AwardConfig) {
+  return (a: SortItem, b: SortItem): number => {
+    if (b.total !== a.total) return b.total - a.total
+    for (const criterion of config.tiebreakOrder) {
+      if (criterion === 'lrf') {
+        const av = a.lrf ?? 0, bv = b.lrf ?? 0
+        if (bv !== av) return bv - av
+      } else if (criterion === 'lrb') {
+        const av = a.lrb ?? 0, bv = b.lrb ?? 0
+        if (bv !== av) return bv - av
+      } else if (criterion === 'shootoff') {
+        const av = a.tiebreak ?? 0, bv = b.tiebreak ?? 0
+        if (bv !== av) return bv - av
+      }
+    }
+    return a.entry.athlete.name.localeCompare(b.entry.athlete.name)
+  }
 }
 
-function sortEntriesByScore(a: AthleteScoreEntry, b: AthleteScoreEntry): number {
-  if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
-  const at = a.tiebreakScore ?? 0
-  const bt = b.tiebreakScore ?? 0
-  if (bt !== at) return bt - at
-  return a.athlete.name.localeCompare(b.athlete.name)
+// Factory: returns a sort comparator for AthleteScoreEntry objects (used in event/team calculations)
+// Applies tiebreakOrder; null values compare as 0 (no advantage)
+function makeSortEntriesByScore(config: AwardConfig) {
+  return (a: AthleteScoreEntry, b: AthleteScoreEntry): number => {
+    if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
+    for (const criterion of config.tiebreakOrder) {
+      if (criterion === 'lrf') {
+        const av = a.longRunFront ?? 0, bv = b.longRunFront ?? 0
+        if (bv !== av) return bv - av
+      } else if (criterion === 'lrb') {
+        const av = a.longRunBack ?? 0, bv = b.longRunBack ?? 0
+        if (bv !== av) return bv - av
+      } else if (criterion === 'shootoff') {
+        const av = a.tiebreakScore ?? 0, bv = b.tiebreakScore ?? 0
+        if (bv !== av) return bv - av
+      }
+    }
+    return a.athlete.name.localeCompare(b.athlete.name)
+  }
 }
 
 const TRAP_DISCIPLINE_NAMES = ['trap', 'super_sport', 'doubles_trap']
@@ -92,9 +122,10 @@ export function calculateHOAAwards(
   config: AwardConfig
 ): HOAResult {
   const { hoaScope, hoaIncludesDivisions, hoaHighLadyCanWinBoth } = config
+  const sortByScore = makeSortByScore(config)
 
   // Collect all unique athletes from included divisions (excluding Collegiate)
-  const athleteScores: Record<string, { entry: AthleteScoreEntry; total: number; tiebreak?: number | null }> = {}
+  const athleteScores: Record<string, SortItem> = {}
 
   const allEntries = Object.values(entriesByDiscipline).flat()
 
@@ -103,28 +134,54 @@ export function calculateHOAAwards(
     if (!hoaIncludesDivisions.includes(div)) continue
     if (div === 'Collegiate') continue
 
+    const discId = entry.disciplineId
+    const discUsesLongRun = config.longRunDisciplines.includes(discId)
+
     if (hoaScope === 'combined') {
       // Aggregate total across all disciplines
       if (!athleteScores[entry.athleteId]) {
-        athleteScores[entry.athleteId] = { entry, total: 0, tiebreak: entry.tiebreakScore }
+        athleteScores[entry.athleteId] = {
+          entry,
+          total: 0,
+          tiebreak: entry.tiebreakScore,
+          lrf: discUsesLongRun ? (entry.longRunFront ?? null) : null,
+          lrb: discUsesLongRun ? (entry.longRunBack ?? null) : null,
+        }
       }
       athleteScores[entry.athleteId].total += entry.totalScore
       // Use highest tiebreakScore across disciplines
       if ((entry.tiebreakScore ?? 0) > (athleteScores[entry.athleteId].tiebreak ?? 0)) {
         athleteScores[entry.athleteId].tiebreak = entry.tiebreakScore
       }
+      // Use highest LRF/LRB from longRun disciplines
+      if (discUsesLongRun) {
+        if ((entry.longRunFront ?? 0) > (athleteScores[entry.athleteId].lrf ?? 0)) {
+          athleteScores[entry.athleteId].lrf = entry.longRunFront
+        }
+        if ((entry.longRunBack ?? 0) > (athleteScores[entry.athleteId].lrb ?? 0)) {
+          athleteScores[entry.athleteId].lrb = entry.longRunBack
+        }
+      }
     } else {
       // per_discipline: use the single discipline score
       if (!athleteScores[entry.athleteId]) {
-        athleteScores[entry.athleteId] = { entry, total: entry.totalScore, tiebreak: entry.tiebreakScore }
+        athleteScores[entry.athleteId] = {
+          entry,
+          total: entry.totalScore,
+          tiebreak: entry.tiebreakScore,
+          lrf: discUsesLongRun ? (entry.longRunFront ?? null) : null,
+          lrb: discUsesLongRun ? (entry.longRunBack ?? null) : null,
+        }
       } else if (entry.totalScore > athleteScores[entry.athleteId].total) {
         athleteScores[entry.athleteId].total = entry.totalScore
         athleteScores[entry.athleteId].tiebreak = entry.tiebreakScore
+        athleteScores[entry.athleteId].lrf = discUsesLongRun ? (entry.longRunFront ?? null) : null
+        athleteScores[entry.athleteId].lrb = discUsesLongRun ? (entry.longRunBack ?? null) : null
       }
     }
   }
 
-  // Sort descending by total score, then tiebreakScore
+  // Sort descending by total score, then by tiebreakOrder criteria
   const sorted = Object.values(athleteScores).sort(sortByScore)
 
   if (sorted.length === 0) {
@@ -162,19 +219,37 @@ export function calculateCollegiateHOA(
   entriesByDiscipline: Record<string, AthleteScoreEntry[]>,
   config: AwardConfig
 ): CollegiateHOAResult {
+  const sortByScore = makeSortByScore(config)
   const allEntries = Object.values(entriesByDiscipline).flat()
-  const athleteScores: Record<string, { entry: AthleteScoreEntry; total: number; tiebreak?: number | null }> = {}
+  const athleteScores: Record<string, SortItem> = {}
 
   for (const entry of allEntries) {
     const div = entry.athlete.division || ''
     if (div !== 'Collegiate') continue
 
+    const discId = entry.disciplineId
+    const discUsesLongRun = config.longRunDisciplines.includes(discId)
+
     if (!athleteScores[entry.athleteId]) {
-      athleteScores[entry.athleteId] = { entry, total: 0, tiebreak: entry.tiebreakScore }
+      athleteScores[entry.athleteId] = {
+        entry,
+        total: 0,
+        tiebreak: entry.tiebreakScore,
+        lrf: discUsesLongRun ? (entry.longRunFront ?? null) : null,
+        lrb: discUsesLongRun ? (entry.longRunBack ?? null) : null,
+      }
     }
     athleteScores[entry.athleteId].total += entry.totalScore
     if ((entry.tiebreakScore ?? 0) > (athleteScores[entry.athleteId].tiebreak ?? 0)) {
       athleteScores[entry.athleteId].tiebreak = entry.tiebreakScore
+    }
+    if (discUsesLongRun) {
+      if ((entry.longRunFront ?? 0) > (athleteScores[entry.athleteId].lrf ?? 0)) {
+        athleteScores[entry.athleteId].lrf = entry.longRunFront
+      }
+      if ((entry.longRunBack ?? 0) > (athleteScores[entry.athleteId].lrb ?? 0)) {
+        athleteScores[entry.athleteId].lrb = entry.longRunBack
+      }
     }
   }
 
@@ -197,6 +272,7 @@ export function calculateEventAwards(
   config: AwardConfig
 ): EventAwardResult {
   const { individualEventPlaces } = config
+  const sortEntriesByScore = makeSortEntriesByScore(config)
 
   // Event champions: top male and top female in this discipline — gender stored as 'M'/'F' or 'male'/'female'
   const isMale = (g: string | null) => g === 'M' || g === 'male'
@@ -234,6 +310,7 @@ export function calculateTeamAwards(
   config: AwardConfig
 ): TeamAwardResult {
   const { teamSizeDefault, trapTeamSize, teamEventPlaces } = config
+  const sortEntriesByScore = makeSortEntriesByScore(config)
   const teamSize = isTrapDiscipline(disciplineId) ? trapTeamSize : teamSizeDefault
 
   const divisions = ['Varsity', 'JV', 'Intermediate', 'Novice']

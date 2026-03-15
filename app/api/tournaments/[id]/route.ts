@@ -132,6 +132,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       teamSizeDefault,
       trapTeamSize,
       leaderboardHideTeams,
+      longRunDisciplines,
+      tiebreakOrder,
     } = await request.json()
     
     // Support both old (disciplineIds) and new (disciplineConfigurations) format
@@ -263,6 +265,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ...(teamSizeDefault !== undefined && { teamSizeDefault }),
         ...(trapTeamSize !== undefined && { trapTeamSize }),
         ...(leaderboardHideTeams !== undefined && { leaderboardHideTeams }),
+        ...(longRunDisciplines !== undefined && { longRunDisciplines: JSON.stringify(longRunDisciplines) }),
+        ...(tiebreakOrder !== undefined && { tiebreakOrder: JSON.stringify(tiebreakOrder) }),
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,

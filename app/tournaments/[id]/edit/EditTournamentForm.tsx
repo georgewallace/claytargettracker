@@ -40,6 +40,8 @@ interface Tournament {
   teamSizeDefault: number
   trapTeamSize: number
   leaderboardHideTeams: boolean
+  longRunDisciplines: string
+  tiebreakOrder: string
 }
 
 interface EditTournamentFormProps {
@@ -109,6 +111,15 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
     return map
   })
 
+  const [longRunDisciplines, setLongRunDisciplines] = useState<string[]>(() => {
+    try { return JSON.parse(tournament.longRunDisciplines || '[]') } catch { return [] }
+  })
+  const [tiebreakOrder, setTiebreakOrder] = useState<string>(() => {
+    try {
+      const arr = JSON.parse(tournament.tiebreakOrder || '["lrf","lrb","shootoff"]')
+      return arr.join(',')
+    } catch { return 'lrf,lrb,shootoff' }
+  })
   const [leaderboardTabInterval, setLeaderboardTabInterval] = useState(tournament.leaderboardTabInterval || 15000)
   const [awardStructureVersion, setAwardStructureVersion] = useState(tournament.awardStructureVersion || 'legacy')
   const [hoaScope, setHoaScope] = useState(tournament.hoaScope || 'combined')
@@ -167,6 +178,8 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           teamSizeDefault,
           trapTeamSize,
           leaderboardHideTeams,
+          longRunDisciplines,
+          tiebreakOrder: tiebreakOrder.split(',').map(s => s.trim()).filter(Boolean),
         })
       })
 
@@ -334,6 +347,32 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                     {cannotUncheck && (
                       <div className="text-xs text-orange-600 mt-1 font-medium">⚠️ Cannot remove - athletes registered</div>
                     )}
+                    {/* Long run tiebreakers — v2 only */}
+                    {isSelected && awardStructureVersion === 'v2' && (showRounds) && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`longrun-${discipline.id}`}
+                          checked={longRunDisciplines.includes(discipline.id)}
+                          onChange={e => {
+                            setLongRunDisciplines(prev =>
+                              e.target.checked
+                                ? [...prev, discipline.id]
+                                : prev.filter(id => id !== discipline.id)
+                            )
+                          }}
+                          onClick={e => e.stopPropagation()}
+                          className="w-4 h-4 text-indigo-600 rounded"
+                        />
+                        <label
+                          htmlFor={`longrun-${discipline.id}`}
+                          className="text-sm text-gray-700"
+                          onClick={e => e.preventDefault()}
+                        >
+                          Long run tiebreakers (LRF / LRB)
+                        </label>
+                      </div>
+                    )}
                     {/* Per-discipline scoring config */}
                     {isSelected && (showRounds || showStations) && (
                       <div className="mt-3 pt-3 border-t border-indigo-200" onClick={e => e.preventDefault()}>
@@ -421,6 +460,16 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
               <input type="checkbox" id="leaderboardHideTeams" checked={leaderboardHideTeams}
                 onChange={e => setLeaderboardHideTeams(e.target.checked)} className="w-4 h-4" />
               <label htmlFor="leaderboardHideTeams" className="text-sm text-gray-700">Hide team names under athletes in leaderboard</label>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tiebreak Order</label>
+              <select value={tiebreakOrder} onChange={e => setTiebreakOrder(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="lrf,lrb,shootoff">LRF → LRB → Shoot-off (default)</option>
+                <option value="lrf,shootoff">LRF → Shoot-off</option>
+                <option value="shootoff">Shoot-off only</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Order in which tiebreakers are applied when athletes have the same score</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
