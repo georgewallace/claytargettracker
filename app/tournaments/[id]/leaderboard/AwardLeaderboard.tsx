@@ -697,12 +697,10 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
                                   {i + 1}
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1 flex-wrap">
-                                    <span className="text-xs font-medium text-gray-900 truncate leading-tight">{team.teamName}</span>
-                                    {hl?.badge && (
-                                      <span className={`text-[9px] font-bold px-1 py-0.5 rounded leading-none ${hl.badgeColor}`}>{hl.badge}</span>
-                                    )}
-                                  </div>
+                                  {hl?.badge && (
+                                    <span className={`text-[9px] font-bold px-1 py-0.5 rounded leading-none ${hl.badgeColor}`}>{hl.badge}</span>
+                                  )}
+                                  <div className="text-xs font-medium text-gray-900 truncate leading-tight">{team.teamName}</div>
                                   <div className="leading-tight">
                                     {team.athletes.map(a => (
                                       <div key={a.athleteId} className="text-[10px] text-gray-400 truncate">{a.athlete.name}</div>
