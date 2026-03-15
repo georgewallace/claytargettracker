@@ -380,6 +380,7 @@ function TiesPanel({
                 const discSlug = discSlugsMap[group.disciplineId] ?? ''
                 const discCat = getDiscCategory(discSlug)
                 const useCountback = discCat === 'sporting'
+                const needsShootOff = shootOffMaxPlace === 0 || group.startingRank <= shootOffMaxPlace
                 // For countback, collect station nums in descending order from all athletes in this group
                 const allStationNums = useCountback
                   ? [...new Set(group.athletes.flatMap(a =>
@@ -399,15 +400,13 @@ function TiesPanel({
                       ? <span className="text-xs text-green-600 font-medium">
                           ✓ {group.resolvedBy ? `Resolved by ${group.resolvedBy}` : 'Broken'}
                         </span>
-                      : (() => {
-                          const needsShootOff = shootOffMaxPlace === 0 || group.startingRank <= shootOffMaxPlace
-                          const msg = needsShootOff
+                      : <span className="text-xs text-red-600 font-medium">
+                          {needsShootOff
                             ? (useCountback ? 'Countback tied — needs shoot-off' : 'Needs shoot-off')
-                            : discCat === 'skeet' ? 'Enter LRF / LRB to resolve'
-                            : discCat === 'trap' ? 'Tied — no shoot-off required'
-                            : 'Needs shoot-off'
-                          return <span className="text-xs text-red-600 font-medium">{msg}</span>
-                        })()
+                            : useLongRun ? 'Enter LRF / LRB to resolve'
+                            : useCountback ? 'Countback tied'
+                            : 'Needs shoot-off'}
+                        </span>
                     }
                     {hasDuplicates && (
                       <span className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded">
@@ -434,7 +433,7 @@ function TiesPanel({
                               Countback (St {allStationNums.join('→')})
                             </th>
                           )}
-                          <th className="px-3 py-1.5 text-left font-semibold w-40">Shoot-off Score</th>
+                          {needsShootOff && <th className="px-3 py-1.5 text-left font-semibold w-40">Shoot-off Score</th>}
                         </tr>
                       </thead>
                       <tbody>
@@ -486,39 +485,41 @@ function TiesPanel({
                                   {countbackDisplay ?? '—'}
                                 </td>
                               )}
-                              <td className="px-3 py-2">
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    step={1}
-                                    value={val}
-                                    placeholder="—"
-                                    onChange={e => {
-                                      setInputs(prev => ({ ...prev, [key]: e.target.value }))
-                                      setSaved(prev => ({ ...prev, [key]: false }))
-                                    }}
-                                    onBlur={() => { if (val !== '' && !isDuplicate) saveTiebreak(a.athleteId, group.disciplineId) }}
-                                    className={`w-20 h-8 text-center text-sm font-mono border rounded bg-white focus:outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                      isDuplicate
-                                        ? 'border-orange-400 focus:ring-orange-400 text-orange-700'
-                                        : group.broken
-                                          ? 'border-green-300 focus:ring-green-400'
-                                          : 'border-red-300 focus:ring-red-400'
-                                    }`}
-                                  />
-                                  <button
-                                    onClick={() => saveTiebreak(a.athleteId, group.disciplineId)}
-                                    disabled={isSaving || val === '' || isDuplicate}
-                                    title={isDuplicate ? 'Duplicate score — would still be a tie' : undefined}
-                                    className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium"
-                                  >
-                                    {isSaving ? '…' : 'Save'}
-                                  </button>
-                                  {isDuplicate && <span className="text-xs text-orange-600 font-medium">Duplicate</span>}
-                                  {!isDuplicate && isSaved && <span className="text-xs text-green-600 font-medium">✓</span>}
-                                </div>
-                              </td>
+                              {needsShootOff && (
+                                <td className="px-3 py-2">
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      step={1}
+                                      value={val}
+                                      placeholder="—"
+                                      onChange={e => {
+                                        setInputs(prev => ({ ...prev, [key]: e.target.value }))
+                                        setSaved(prev => ({ ...prev, [key]: false }))
+                                      }}
+                                      onBlur={() => { if (val !== '' && !isDuplicate) saveTiebreak(a.athleteId, group.disciplineId) }}
+                                      className={`w-20 h-8 text-center text-sm font-mono border rounded bg-white focus:outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                        isDuplicate
+                                          ? 'border-orange-400 focus:ring-orange-400 text-orange-700'
+                                          : group.broken
+                                            ? 'border-green-300 focus:ring-green-400'
+                                            : 'border-red-300 focus:ring-red-400'
+                                      }`}
+                                    />
+                                    <button
+                                      onClick={() => saveTiebreak(a.athleteId, group.disciplineId)}
+                                      disabled={isSaving || val === '' || isDuplicate}
+                                      title={isDuplicate ? 'Duplicate score — would still be a tie' : undefined}
+                                      className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition font-medium"
+                                    >
+                                      {isSaving ? '…' : 'Save'}
+                                    </button>
+                                    {isDuplicate && <span className="text-xs text-orange-600 font-medium">Duplicate</span>}
+                                    {!isDuplicate && isSaved && <span className="text-xs text-green-600 font-medium">✓</span>}
+                                  </div>
+                                </td>
+                              )}
                             </tr>
                           )
                         })}
