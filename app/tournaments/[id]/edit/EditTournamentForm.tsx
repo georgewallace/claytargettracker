@@ -215,18 +215,35 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">{error}</div>
       )}
 
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Tournament Name *</label>
-        <input id="name" name="name" type="text" required value={formData.name} onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="Spring Championship 2025" />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Tournament Name *</label>
+          <input id="name" name="name" type="text" required value={formData.name} onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Spring Championship 2025" />
+        </div>
+        <div>
+          <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
+          <input id="location" name="location" type="text" required value={formData.location} onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Springfield Gun Club" />
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
-        <input id="location" name="location" type="text" required value={formData.location} onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="Springfield Gun Club" />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+          <textarea id="description" name="description" rows={2} value={formData.description} onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Add tournament details, rules, and any other information..." />
+        </div>
+        <div>
+          <label htmlFor="photosUrl" className="block text-sm font-medium text-gray-700 mb-2">Photos URL</label>
+          <input id="photosUrl" name="photosUrl" type="url" value={formData.photosUrl} onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="https://photos.google.com/share/..." />
+          <p className="text-xs text-gray-500 mt-1">Paste a Google Photos share link or similar album URL</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -243,20 +260,36 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
         </div>
       </div>
 
-      <div>
-        <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-        <select id="status" name="status" value={formData.status} onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          <option value="upcoming">Upcoming</option>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-        </select>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+          <select id="status" name="status" value={formData.status} onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="upcoming">Upcoming</option>
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor="leaderboardTabInterval" className="block text-sm font-medium text-gray-700 mb-2">
+            Leaderboard Tab Interval
+          </label>
+          <select id="leaderboardTabInterval" value={leaderboardTabInterval}
+            onChange={e => setLeaderboardTabInterval(parseInt(e.target.value))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="10000">10 seconds</option>
+            <option value="15000">15 seconds (default)</option>
+            <option value="20000">20 seconds</option>
+            <option value="30000">30 seconds</option>
+            <option value="60000">1 minute</option>
+          </select>
+        </div>
       </div>
 
       {/* Discipline Selection with per-discipline config */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">Disciplines * (select at least one)</label>
-        <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
           {allDisciplines.map(discipline => {
             const registrationCount = disciplineRegistrationCounts[discipline.id] || 0
             const scoreCount = disciplineScoreCounts[discipline.id] || 0
@@ -348,38 +381,6 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
             )
           })}
         </div>
-      </div>
-
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-        <textarea id="description" name="description" rows={4} value={formData.description} onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="Add tournament details, rules, and any other information..." />
-      </div>
-
-      <div>
-        <label htmlFor="photosUrl" className="block text-sm font-medium text-gray-700 mb-2">Photos URL</label>
-        <input id="photosUrl" name="photosUrl" type="url" value={formData.photosUrl} onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="https://photos.google.com/share/..." />
-        <p className="text-xs text-gray-500 mt-1">Paste a Google Photos share link or similar album URL</p>
-      </div>
-
-      {/* Leaderboard Tab Interval */}
-      <div>
-        <label htmlFor="leaderboardTabInterval" className="block text-sm font-medium text-gray-700 mb-2">
-          Leaderboard Tab Switching Interval
-        </label>
-        <select id="leaderboardTabInterval" value={leaderboardTabInterval}
-          onChange={e => setLeaderboardTabInterval(parseInt(e.target.value))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          <option value="10000">10 seconds</option>
-          <option value="15000">15 seconds (default)</option>
-          <option value="20000">20 seconds</option>
-          <option value="30000">30 seconds</option>
-          <option value="60000">1 minute</option>
-        </select>
-        <p className="text-xs text-gray-500 mt-1">How often the leaderboard automatically switches between tabs</p>
       </div>
 
       {/* Award Structure v2 */}
