@@ -27,18 +27,29 @@ interface TieGroup {
   athletes: TieGroupAthlete[]
 }
 
+function getDiscCategory(discSlug: string): 'skeet' | 'trap' | 'sporting' | 'other' {
+  const s = discSlug.toLowerCase()
+  if (s.includes('skeet')) return 'skeet'
+  if (s.includes('trap') || s.includes('super_sport')) return 'trap'
+  if (s.includes('sporting') || s.includes('five_stand')) return 'sporting'
+  return 'other'
+}
+
 function getTieGroupStatus(
   athletes: TieGroupAthlete[],
   discId: string,
+  discSlug: string,
   tiebreakOrder: string[],
   longRunDisciplines: string[]
 ): { broken: boolean; resolvedBy: string | null } {
   const useLongRun = longRunDisciplines.includes(discId)
-  const discCategory = discId.toLowerCase().includes('skeet') ? 'skeet'
-    : (discId.toLowerCase().includes('trap') || discId.toLowerCase().includes('super_sport')) ? 'trap'
-    : (discId.toLowerCase().includes('sporting') || discId.toLowerCase().includes('five_stand')) ? 'sporting'
-    : 'other'
-  const useCountback = discCategory === 'sporting' && tiebreakOrder.includes('countback')
+  const discCategory = getDiscCategory(discSlug)
+  // Countback is always on for sporting disciplines (NSCA rule), regardless of tiebreakOrder config
+  const useCountback = discCategory === 'sporting'
+  // Inject countback into effective order for sporting if not present
+  const effectiveTBOrder: string[] = useCountback && !tiebreakOrder.includes('countback')
+    ? ['countback', ...tiebreakOrder]
+    : tiebreakOrder
 
   // Build composite key for each athlete across all criteria.
   // Criteria apply based on sport type:
@@ -53,7 +64,7 @@ function getTieGroupStatus(
 
   const makeKey = (a: TieGroupAthlete): string => {
     const parts: string[] = []
-    for (const criterion of tiebreakOrder) {
+    for (const criterion of effectiveTBOrder) {
       if (criterion === 'longrun' && useLongRun) {
         parts.push(`${Math.max(a.longRunFront ?? 0, a.longRunBack ?? 0)}`)
         parts.push(`${Math.min(a.longRunFront ?? 0, a.longRunBack ?? 0)}`)
@@ -77,7 +88,7 @@ function getTieGroupStatus(
 
   // Expand criteria into individual slots for prefix-key search
   const expandedCriteria: string[] = []
-  for (const c of tiebreakOrder) {
+  for (const c of effectiveTBOrder) {
     if (c === 'longrun' && useLongRun) { expandedCriteria.push('lr_max', 'lr_min') }
     else if (c === 'countback' && useCountback) {
       const nums = getStationNums(athletes[0])
@@ -88,7 +99,7 @@ function getTieGroupStatus(
   const prefixParts = (upTo: number) =>
     athletes.map(a => {
       const parts: string[] = []
-      for (const criterion of tiebreakOrder) {
+      for (const criterion of effectiveTBOrder) {
         if (parts.length >= upTo) break
         if (criterion === 'longrun' && useLongRun) {
           if (parts.length < upTo) parts.push(`${Math.max(a.longRunFront ?? 0, a.longRunBack ?? 0)}`)
@@ -136,6 +147,7 @@ function TiesPanel({
   const [showAll, setShowAll] = useState(false)
   const [loading, setLoading] = useState(false)
   const [allTieGroups, setAllTieGroups] = useState<TieGroup[]>([])
+  const [discSlugsMap, setDiscSlugsMap] = useState<Record<string, string>>({})
   const [lastFetched, setLastFetched] = useState<Date | null>(null)
   const [inputs, setInputs] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
@@ -160,9 +172,12 @@ function TiesPanel({
       })()
 
       const discNames: Record<string, string> = {}
+      const discSlugs: Record<string, string> = {}
       for (const td of data.disciplines ?? []) {
         discNames[td.disciplineId] = td.discipline.displayName
+        discSlugs[td.disciplineId] = td.discipline.name
       }
+      setDiscSlugsMap(discSlugs)
 
       const byDisc: Record<string, Record<string, {
         total: number
@@ -211,7 +226,7 @@ function TiesPanel({
         }
         for (const [scoreStr, aths] of Object.entries(buckets)) {
           if (aths.length < 2) continue
-          const { broken, resolvedBy } = getTieGroupStatus(aths, discId, apiTiebreakOrder, apiLongRunDisciplines)
+          const { broken, resolvedBy } = getTieGroupStatus(aths, discId, discSlugs[discId] ?? discId, apiTiebreakOrder, apiLongRunDisciplines)
           groups.push({
             disciplineId: discId,
             disciplineName: discNames[discId] ?? discId,
@@ -321,6 +336,16 @@ function TiesPanel({
                 for (const v of enteredVals) { if (v !== '') valCounts[v] = (valCounts[v] || 0) + 1 }
                 const hasDuplicates = Object.values(valCounts).some(c => c > 1)
                 const useLongRun = longRunDisciplines.includes(group.disciplineId)
+                const discSlug = discSlugsMap[group.disciplineId] ?? ''
+                const discCat = getDiscCategory(discSlug)
+                const useCountback = discCat === 'sporting'
+                // For countback, collect station nums in descending order from all athletes in this group
+                const allStationNums = useCountback
+                  ? [...new Set(group.athletes.flatMap(a =>
+                      (a.scores ?? []).map((s: { stationNumber?: number | null; roundNumber?: number | null }) =>
+                        s.stationNumber ?? s.roundNumber ?? 0)
+                    ))].filter((n): n is number => n > 0).sort((x, y) => y - x)
+                  : []
 
                 return (
                 <div key={gi} className={`px-4 py-3 ${group.broken ? 'bg-green-50/40' : ''}`}>
@@ -333,7 +358,9 @@ function TiesPanel({
                       ? <span className="text-xs text-green-600 font-medium">
                           ✓ {group.resolvedBy ? `Resolved by ${group.resolvedBy}` : 'Broken'}
                         </span>
-                      : <span className="text-xs text-red-600 font-medium">Needs shoot-off</span>
+                      : <span className="text-xs text-red-600 font-medium">
+                          {useCountback ? 'Countback tied — needs shoot-off' : 'Needs shoot-off'}
+                        </span>
                     }
                     {hasDuplicates && (
                       <span className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded">
@@ -354,6 +381,11 @@ function TiesPanel({
                               <th className="px-2 py-1.5 text-center font-semibold text-indigo-600">LRB</th>
                             </>
                           )}
+                          {useCountback && allStationNums.length > 0 && (
+                            <th className="px-3 py-1.5 text-left font-semibold text-purple-600">
+                              Countback (St {allStationNums.join('→')})
+                            </th>
+                          )}
                           <th className="px-3 py-1.5 text-left font-semibold w-40">Shoot-off Score</th>
                         </tr>
                       </thead>
@@ -364,6 +396,14 @@ function TiesPanel({
                           const isSaved = saved[key]
                           const val = inputs[key] ?? ''
                           const isDuplicate = val !== '' && (valCounts[val] ?? 0) > 1
+                          // Build countback station score display for this athlete
+                          const countbackDisplay = useCountback && allStationNums.length > 0
+                            ? allStationNums.map(num => {
+                                const sc = (a.scores ?? []).find((s: { stationNumber?: number | null; roundNumber?: number | null; targets: number }) =>
+                                  (s.stationNumber ?? s.roundNumber ?? 0) === num)
+                                return sc != null ? `${sc.targets}` : '—'
+                              }).join(' · ')
+                            : null
 
                           return (
                             <tr key={a.athleteId} className={`border-t border-gray-100 ${group.broken && !isDuplicate ? 'bg-green-50/60' : isDuplicate ? 'bg-orange-50' : 'bg-red-50'}`}>
@@ -379,6 +419,11 @@ function TiesPanel({
                                     {a.longRunBack ?? '—'}
                                   </td>
                                 </>
+                              )}
+                              {useCountback && allStationNums.length > 0 && (
+                                <td className="px-3 py-2 text-purple-700 font-mono text-xs">
+                                  {countbackDisplay ?? '—'}
+                                </td>
                               )}
                               <td className="px-3 py-2">
                                 <div className="flex items-center gap-2">
