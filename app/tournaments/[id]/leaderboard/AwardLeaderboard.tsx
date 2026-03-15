@@ -589,9 +589,9 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
           ...divisionList.flatMap(div => {
             const teams = uncappedTeamResult.divisionTeams[div]
             if (!teams || teams.length === 0) return []
-            return [{ label: `${divisionLabel[div] ?? div} Concurrent Teams`, teams }]
+            return [{ label: `${divisionLabel[div] ?? div} Concurrent`, teams }]
           }),
-          ...(uncappedTeamResult.openTeams.length > 0 ? [{ label: 'Open Teams', teams: uncappedTeamResult.openTeams }] : [])
+          ...(uncappedTeamResult.openTeams.length > 0 ? [{ label: 'Open', teams: uncappedTeamResult.openTeams }] : [])
         ]
 
         const COLS = 3
