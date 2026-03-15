@@ -178,6 +178,7 @@ function RankedTable({
   startRank = 1,
   showTies = true,
   config,
+  disciplineId,
 }: {
   rows: AthleteScoreEntry[]
   teamNames: Record<string, string>
