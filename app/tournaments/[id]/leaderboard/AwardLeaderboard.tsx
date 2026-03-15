@@ -686,7 +686,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
                         </div>
                         {/* Teams */}
                         {teams.map((team, i) => {
-                          const hl = i < config.teamEventPlaces ? PLACE_HIGHLIGHTS[Math.min(i, PLACE_HIGHLIGHTS.length - 1)] : undefined
+                          const hl = i < config.teamEventPlaces && i < PLACE_HIGHLIGHTS.length ? PLACE_HIGHLIGHTS[i] : undefined
                           return (
                             <div
                               key={`${team.teamId}-${i}`}
