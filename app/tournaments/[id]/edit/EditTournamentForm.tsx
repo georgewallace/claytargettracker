@@ -67,8 +67,8 @@ function isStationBased(name: string) {
 function getDisciplineSport(name: string): 'nssa' | 'ata' | 'nsca' | null {
   const n = name.toLowerCase()
   if (n.includes('skeet')) return 'nssa'
-  if (n.includes('trap') || n === 'super_sport') return 'ata'
-  if (n.includes('sporting') || n === 'five_stand') return 'nsca'
+  if (n.includes('trap')) return 'ata'
+  if (n.includes('sporting') || n === 'five_stand' || n === 'super_sport') return 'nsca'
   return null
 }
 

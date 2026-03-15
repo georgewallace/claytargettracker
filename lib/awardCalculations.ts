@@ -121,7 +121,7 @@ function makeSortEntriesByScore(config: AwardConfig, disciplineId?: string) {
   }
 }
 
-const TRAP_DISCIPLINE_NAMES = ['trap', 'super_sport', 'doubles_trap']
+const TRAP_DISCIPLINE_NAMES = ['trap', 'doubles_trap']
 
 function isTrapDiscipline(disciplineId: string): boolean {
   return TRAP_DISCIPLINE_NAMES.some(name => disciplineId.toLowerCase().includes(name))
@@ -152,8 +152,8 @@ export function parseTiebreakOrder(raw: string | null | undefined): string[] {
 export function getDisciplineCategory(disciplineId: string): 'skeet' | 'trap' | 'sporting' | 'other' {
   const n = disciplineId.toLowerCase()
   if (n.includes('skeet')) return 'skeet'
-  if (n.includes('trap') || n.includes('super_sport')) return 'trap'
-  if (n.includes('sporting') || n.includes('five_stand')) return 'sporting'
+  if (n.includes('trap')) return 'trap'
+  if (n.includes('sporting') || n.includes('five_stand') || n.includes('super_sport')) return 'sporting'
   return 'other'
 }
 

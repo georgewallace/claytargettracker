@@ -31,8 +31,8 @@ interface TieGroup {
 function getDiscCategory(discSlug: string): 'skeet' | 'trap' | 'sporting' | 'other' {
   const s = discSlug.toLowerCase()
   if (s.includes('skeet')) return 'skeet'
-  if (s.includes('trap') || s.includes('super_sport')) return 'trap'
-  if (s.includes('sporting') || s.includes('five_stand')) return 'sporting'
+  if (s.includes('trap')) return 'trap'
+  if (s.includes('sporting') || s.includes('five_stand') || s.includes('super_sport')) return 'sporting'
   return 'other'
 }
 
