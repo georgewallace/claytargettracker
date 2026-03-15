@@ -127,6 +127,22 @@ function isTrapDiscipline(disciplineId: string): boolean {
 }
 
 /**
+ * Parse tiebreakOrder from its stored JSON string, migrating legacy 'lrf'/'lrb'
+ * criteria (pre-v2.1) to the unified 'longrun' criterion.
+ * Safe to call on any stored value — returns a valid array with no duplicates.
+ */
+export function parseTiebreakOrder(raw: string | null | undefined): string[] {
+  try {
+    const arr: string[] = JSON.parse(raw ?? '["shootoff","longrun"]')
+    // Backwards compat: old separate 'lrf'/'lrb' entries collapse to 'longrun'
+    const migrated = arr.flatMap(c => (c === 'lrf' || c === 'lrb') ? ['longrun'] : [c])
+    return [...new Set(migrated)] // dedupe (lrf+lrb would both expand to longrun)
+  } catch {
+    return ['shootoff', 'longrun']
+  }
+}
+
+/**
  * Classify a discipline by the governing body whose tiebreak rules apply.
  * skeet   → NSSA (long run from front/back)
  * trap    → ATA  (shoot-off only)

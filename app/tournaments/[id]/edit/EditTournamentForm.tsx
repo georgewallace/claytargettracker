@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { parseTiebreakOrder } from '@/lib/awardCalculations'
 
 interface Discipline {
   id: string
@@ -129,12 +130,9 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
   const [longRunDisciplines, setLongRunDisciplines] = useState<string[]>(() => {
     try { return JSON.parse(tournament.longRunDisciplines || '[]') } catch { return [] }
   })
-  const [tiebreakOrder, setTiebreakOrder] = useState<string>(() => {
-    try {
-      const arr = JSON.parse(tournament.tiebreakOrder || '["shootoff","longrun"]')
-      return arr.join(',')
-    } catch { return 'shootoff,longrun' }
-  })
+  const [tiebreakOrder, setTiebreakOrder] = useState<string>(() =>
+    parseTiebreakOrder(tournament.tiebreakOrder).join(',')
+  )
   const [leaderboardTabInterval, setLeaderboardTabInterval] = useState(tournament.leaderboardTabInterval || 15000)
   const [awardStructureVersion, setAwardStructureVersion] = useState(tournament.awardStructureVersion || 'legacy')
   const [hoaScope, setHoaScope] = useState(tournament.hoaScope || 'combined')

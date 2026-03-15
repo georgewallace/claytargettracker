@@ -5,6 +5,7 @@ import {
   calculateEventAwards,
   calculateTeamAwards,
   getDisciplineCategory,
+  parseTiebreakOrder,
   AthleteScoreEntry,
   AwardConfig,
 } from '../lib/awardCalculations'
@@ -179,6 +180,22 @@ describe('calculateEventAwards', () => {
     const result = calculateEventAwards([e1, e2], 'skeet', config)
     expect(result.divisionPlacements['Varsity'][0].athleteId).toBe('a1')
     expect(result.divisionPlacements['Varsity'][1].athleteId).toBe('a2')
+  })
+})
+
+describe('parseTiebreakOrder — legacy migration', () => {
+  it('migrates legacy ["lrf","lrb","shootoff"] to ["longrun","shootoff"]', () => {
+    expect(parseTiebreakOrder('["lrf","lrb","shootoff"]')).toEqual(['longrun', 'shootoff'])
+  })
+  it('dedups when lrf and lrb both appear', () => {
+    expect(parseTiebreakOrder('["lrf","lrb"]')).toEqual(['longrun'])
+  })
+  it('passes through current values unchanged', () => {
+    expect(parseTiebreakOrder('["shootoff","longrun","countback"]')).toEqual(['shootoff', 'longrun', 'countback'])
+  })
+  it('returns default on null/invalid input', () => {
+    expect(parseTiebreakOrder(null)).toEqual(['shootoff', 'longrun'])
+    expect(parseTiebreakOrder('not-json')).toEqual(['shootoff', 'longrun'])
   })
 })
 

@@ -7,6 +7,7 @@ import {
   calculateEventAwards,
   calculateTeamAwards,
   getDisciplineCategory,
+  parseTiebreakOrder,
   AwardConfig,
   AthleteScoreEntry,
 } from '@/lib/awardCalculations'
@@ -332,7 +333,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
     teamSizeDefault: tournament.teamSizeDefault,
     trapTeamSize: tournament.trapTeamSize,
     tiebreakOrder: (() => {
-      try { return JSON.parse(tournament.tiebreakOrder ?? '["shootoff","longrun"]') } catch { return ['shootoff', 'longrun'] }
+      return parseTiebreakOrder(tournament.tiebreakOrder)
     })(),
     longRunDisciplines: (() => {
       try { return JSON.parse(tournament.longRunDisciplines ?? '[]') } catch { return [] }

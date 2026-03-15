@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import SquadScoreCard from './SquadScoreCard'
 import { format } from 'date-fns'
+import { parseTiebreakOrder } from '@/lib/awardCalculations'
 
 // ── Ties Panel ────────────────────────────────────────────────────────────────
 
@@ -151,9 +152,9 @@ function TiesPanel({
 
       // Use the tournament's tiebreakOrder and longRunDisciplines from the response
       // if they differ from what was passed as props (data may be fresher)
-      const apiTiebreakOrder: string[] = (() => {
-        try { return JSON.parse(data.tiebreakOrder || '[]') } catch { return tiebreakOrder }
-      })()
+      const apiTiebreakOrder: string[] = data.tiebreakOrder
+        ? parseTiebreakOrder(data.tiebreakOrder)
+        : tiebreakOrder
       const apiLongRunDisciplines: string[] = (() => {
         try { return JSON.parse(data.longRunDisciplines || '[]') } catch { return longRunDisciplines }
       })()
@@ -605,7 +606,7 @@ export default function ScoreEntryClient({ tournament, initialSquadStatus }: Sco
     try { return JSON.parse(tournament.longRunDisciplines || '[]') as string[] } catch { return [] as string[] }
   }, [tournament.longRunDisciplines])
   const tiebreakOrder = useMemo(() => {
-    try { return JSON.parse(tournament.tiebreakOrder || '["shootoff","longrun"]') as string[] } catch { return ['shootoff', 'longrun'] as string[] }
+    return parseTiebreakOrder(tournament.tiebreakOrder)
   }, [tournament.tiebreakOrder])
 
   // Active discipline tab
