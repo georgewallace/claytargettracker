@@ -21,6 +21,7 @@ const baseConfig: AwardConfig = {
   trapTeamSize: 5,
   tiebreakOrder: ['shootoff', 'longrun'],
   longRunDisciplines: [],
+  shootOffMaxPlace: 0,
 }
 
 function makeEntry(

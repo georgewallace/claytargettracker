@@ -25,6 +25,7 @@ interface TieGroup {
   broken: boolean
   resolvedBy: string | null  // null = not broken; 'LRF' | 'LRB' | 'shoot-off' | null
   athletes: TieGroupAthlete[]
+  startingRank: number  // 1 + count of athletes with higher score in this discipline
 }
 
 function getDiscCategory(discSlug: string): 'skeet' | 'trap' | 'sporting' | 'other' {
@@ -40,12 +41,45 @@ function getTieGroupStatus(
   discId: string,
   discSlug: string,
   tiebreakOrder: string[],
-  longRunDisciplines: string[]
+  longRunDisciplines: string[],
+  startingRank: number = 1,
+  shootOffMaxPlace: number = 0
 ): { broken: boolean; resolvedBy: string | null } {
   const useLongRun = longRunDisciplines.includes(discId)
   const discCategory = getDiscCategory(discSlug)
-  // Countback is always on for sporting disciplines (NSCA rule), regardless of tiebreakOrder config
   const useCountback = discCategory === 'sporting'
+  const useShootOffCriteria = shootOffMaxPlace === 0 || startingRank <= shootOffMaxPlace
+
+  // USAYESS auto-tiebreak for places beyond shootOffMaxPlace
+  if (!useShootOffCriteria) {
+    if (useLongRun) {
+      // LRF first, then LRB (not max/min)
+      const keys = athletes.map(a => `${a.longRunFront ?? 0}|${a.longRunBack ?? 0}`)
+      if (new Set(keys).size !== athletes.length) return { broken: false, resolvedBy: null }
+      const lrfKeys = athletes.map(a => `${a.longRunFront ?? 0}`)
+      if (new Set(lrfKeys).size === athletes.length) return { broken: true, resolvedBy: 'Long Run (LRF)' }
+      return { broken: true, resolvedBy: 'Long Run (LRB)' }
+    }
+    if (useCountback) {
+      const getStationNums = (a: TieGroupAthlete) =>
+        [...new Set((a.scores ?? []).map((s: { stationNumber?: number | null; roundNumber?: number | null }) =>
+          s.stationNumber ?? s.roundNumber ?? 0))]
+          .filter((n): n is number => n > 0).sort((x, y) => y - x)
+      const makeKey = (a: TieGroupAthlete): string =>
+        getStationNums(a).map(num =>
+          ((a.scores ?? []).find((s: { stationNumber?: number | null; roundNumber?: number | null; targets: number }) =>
+            (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0).toString()
+        ).join('|')
+      const keys = athletes.map(makeKey)
+      if (new Set(keys).size === athletes.length) return { broken: true, resolvedBy: 'Countback' }
+      return { broken: false, resolvedBy: null }
+    }
+    // Trap/other 4+: no automatic resolver
+    return { broken: false, resolvedBy: null }
+  }
+
+  // Standard shoot-off criteria path (existing logic)
+  // Countback is always on for sporting disciplines (NSCA rule), regardless of tiebreakOrder config
   // Inject countback into effective order for sporting if not present
   const effectiveTBOrder: string[] = useCountback && !tiebreakOrder.includes('countback')
     ? ['countback', ...tiebreakOrder]
@@ -138,10 +172,12 @@ function TiesPanel({
   tournamentId,
   tiebreakOrder,
   longRunDisciplines,
+  shootOffMaxPlace,
 }: {
   tournamentId: string
   tiebreakOrder: string[]
   longRunDisciplines: string[]
+  shootOffMaxPlace: number
 }) {
   const [open, setOpen] = useState(false)
   const [showAll, setShowAll] = useState(false)
@@ -170,6 +206,7 @@ function TiesPanel({
       const apiLongRunDisciplines: string[] = (() => {
         try { return JSON.parse(data.longRunDisciplines || '[]') } catch { return longRunDisciplines }
       })()
+      const apiShootOffMaxPlace: number = data.shootOffMaxPlace ?? shootOffMaxPlace
 
       const discNames: Record<string, string> = {}
       const discSlugs: Record<string, string> = {}
@@ -226,14 +263,18 @@ function TiesPanel({
         }
         for (const [scoreStr, aths] of Object.entries(buckets)) {
           if (aths.length < 2) continue
-          const { broken, resolvedBy } = getTieGroupStatus(aths, discId, discSlugs[discId] ?? discId, apiTiebreakOrder, apiLongRunDisciplines)
+          const score = Number(scoreStr)
+          // startingRank = 1 + count of athletes with strictly higher score in this discipline
+          const startingRank = 1 + Object.values(athletes).filter(a => a.total > score).length
+          const { broken, resolvedBy } = getTieGroupStatus(aths, discId, discSlugs[discId] ?? discId, apiTiebreakOrder, apiLongRunDisciplines, startingRank, apiShootOffMaxPlace)
           groups.push({
             disciplineId: discId,
             disciplineName: discNames[discId] ?? discId,
-            score: Number(scoreStr),
+            score,
             broken,
             resolvedBy,
             athletes: aths,
+            startingRank,
           })
         }
       }
@@ -252,7 +293,7 @@ function TiesPanel({
     } finally {
       setLoading(false)
     }
-  }, [tournamentId, tiebreakOrder, longRunDisciplines])
+  }, [tournamentId, tiebreakOrder, longRunDisciplines, shootOffMaxPlace])
 
   const saveTiebreak = async (athleteId: string, disciplineId: string) => {
     const key = `${athleteId}:${disciplineId}`
@@ -358,9 +399,15 @@ function TiesPanel({
                       ? <span className="text-xs text-green-600 font-medium">
                           ✓ {group.resolvedBy ? `Resolved by ${group.resolvedBy}` : 'Broken'}
                         </span>
-                      : <span className="text-xs text-red-600 font-medium">
-                          {useCountback ? 'Countback tied — needs shoot-off' : 'Needs shoot-off'}
-                        </span>
+                      : (() => {
+                          const needsShootOff = shootOffMaxPlace === 0 || group.startingRank <= shootOffMaxPlace
+                          const msg = needsShootOff
+                            ? (useCountback ? 'Countback tied — needs shoot-off' : 'Needs shoot-off')
+                            : discCat === 'skeet' ? 'Enter LRF / LRB to resolve'
+                            : discCat === 'trap' ? 'Tied — no shoot-off required'
+                            : 'Needs shoot-off'
+                          return <span className="text-xs text-red-600 font-medium">{msg}</span>
+                        })()
                     }
                     {hasDuplicates && (
                       <span className="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded">
@@ -534,6 +581,7 @@ interface Tournament {
   awardStructureVersion: string
   longRunDisciplines: string
   tiebreakOrder: string
+  shootOffMaxPlace?: number
   disciplines: TournamentDiscipline[]
   timeSlots: TimeSlot[]
 }
@@ -808,6 +856,7 @@ export default function ScoreEntryClient({ tournament, initialSquadStatus }: Sco
           tournamentId={tournament.id}
           tiebreakOrder={tiebreakOrder}
           longRunDisciplines={longRunDisciplines}
+          shootOffMaxPlace={tournament.shootOffMaxPlace ?? 0}
         />
       )}
 

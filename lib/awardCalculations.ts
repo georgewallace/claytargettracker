@@ -59,6 +59,7 @@ export interface AwardConfig {
   trapTeamSize: number
   tiebreakOrder: string[]      // e.g. ["lrf","lrb","shootoff"]
   longRunDisciplines: string[] // disciplineIds where LRF/LRB tiebreaking applies
+  shootOffMaxPlace: number     // 0 = all places; 3 = USAYESS (only places 1–3 require shoot-offs)
 }
 
 type SortItem = { total: number; tiebreak?: number | null; lrf?: number | null; lrb?: number | null; entry: AthleteScoreEntry }
@@ -340,6 +341,68 @@ export function calculateCollegiateHOA(
 }
 
 /**
+ * Sort entries with place-aware tiebreaking.
+ * When shootOffMaxPlace === 0 (standard), delegates to existing makeSortEntriesByScore behavior.
+ * When shootOffMaxPlace > 0 (USAYESS), applies:
+ *   - Places 1..shootOffMaxPlace: tiebreakScore descending (shoot-off)
+ *   - Places 4+ skeet: LRF descending, then LRB descending (not max/min)
+ *   - Places 4+ sporting: countback (NSCA)
+ *   - Places 4+ trap: alphabetical only (remain tied)
+ */
+export function sortWithPlaceAwareTiebreaks(
+  entries: AthleteScoreEntry[],
+  config: AwardConfig,
+  disciplineId?: string
+): AthleteScoreEntry[] {
+  if (config.shootOffMaxPlace === 0) {
+    return [...entries].sort(makeSortEntriesByScore(config, disciplineId))
+  }
+
+  const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
+  const useLongRun = category === 'skeet' && disciplineId != null && config.longRunDisciplines.includes(disciplineId)
+
+  // Phase 1: sort by total score descending only
+  const byScore = [...entries].sort((a, b) => b.totalScore - a.totalScore)
+
+  // Phase 2: within each equal-score group, apply rank-aware tiebreak
+  const result: AthleteScoreEntry[] = []
+  let i = 0
+  while (i < byScore.length) {
+    const score = byScore[i].totalScore
+    let j = i
+    while (j < byScore.length && byScore[j].totalScore === score) j++
+    const group = byScore.slice(i, j)
+    const startingRank = i + 1  // 1 + count of athletes with higher score
+
+    if (group.length === 1) {
+      result.push(group[0])
+    } else {
+      const useShootOff = startingRank <= config.shootOffMaxPlace
+      const sorted = [...group].sort((a, b) => {
+        if (useShootOff) {
+          const av = a.tiebreakScore ?? 0, bv = b.tiebreakScore ?? 0
+          if (bv !== av) return bv - av
+        } else if (useLongRun) {
+          // USAYESS places 4+: LRF first, then LRB (not max/min like NSSA rule d)
+          const aLRF = a.longRunFront ?? 0, bLRF = b.longRunFront ?? 0
+          if (bLRF !== aLRF) return bLRF - aLRF
+          const aLRB = a.longRunBack ?? 0, bLRB = b.longRunBack ?? 0
+          if (bLRB !== aLRB) return bLRB - aLRB
+        } else if (category === 'sporting') {
+          const cbResult = countbackCompare(a.scores, b.scores)
+          if (cbResult !== 0) return cbResult
+        }
+        // trap 4+: alphabetical only
+        return a.athlete.name.localeCompare(b.athlete.name)
+      })
+      result.push(...sorted)
+    }
+    i = j
+  }
+  return result
+}
+
+/**
  * Calculate individual event awards for a single discipline.
  * Returns event champions (Men/Lady) and division placements.
  */
@@ -349,13 +412,12 @@ export function calculateEventAwards(
   config: AwardConfig
 ): EventAwardResult {
   const { individualEventPlaces } = config
-  const sortEntriesByScore = makeSortEntriesByScore(config, disciplineId)
 
   // Event champions: top male and top female in this discipline — gender stored as 'M'/'F' or 'male'/'female'
   const isMale = (g: string | null) => g === 'M' || g === 'male'
   const isFemale = (g: string | null) => g === 'F' || g === 'female'
-  const males = [...entries].filter(e => isMale(e.athlete.gender)).sort(sortEntriesByScore)
-  const females = [...entries].filter(e => isFemale(e.athlete.gender)).sort(sortEntriesByScore)
+  const males = sortWithPlaceAwareTiebreaks(entries.filter(e => isMale(e.athlete.gender)), config, disciplineId)
+  const females = sortWithPlaceAwareTiebreaks(entries.filter(e => isFemale(e.athlete.gender)), config, disciplineId)
 
   const championMen = males[0] || null
   const championLady = females[0] || null
@@ -368,7 +430,7 @@ export function calculateEventAwards(
     const divEntries = entries.filter(e => e.athlete.division === div)
     if (divEntries.length === 0) continue
 
-    const sorted = [...divEntries].sort(sortEntriesByScore)
+    const sorted = sortWithPlaceAwareTiebreaks(divEntries, config, disciplineId)
     divisionPlacements[div] = sorted.slice(0, individualEventPlaces)
   }
 

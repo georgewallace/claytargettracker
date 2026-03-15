@@ -23,6 +23,7 @@ export default async function ScoreEntryPage({ params }: { params: Promise<{ id:
       awardStructureVersion: true,
       longRunDisciplines: true,
       tiebreakOrder: true,
+      shootOffMaxPlace: true,
       disciplines: {
         select: {
           disciplineId: true,

@@ -43,6 +43,7 @@ interface Tournament {
   leaderboardHideTeams: boolean
   longRunDisciplines: string
   tiebreakOrder: string
+  shootOffMaxPlace?: number
 }
 
 interface EditTournamentFormProps {
@@ -143,6 +144,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
   const [teamSizeDefault, setTeamSizeDefault] = useState(tournament.teamSizeDefault ?? 3)
   const [trapTeamSize, setTrapTeamSize] = useState(tournament.trapTeamSize ?? 5)
   const [leaderboardHideTeams, setLeaderboardHideTeams] = useState(tournament.leaderboardHideTeams ?? false)
+  const [shootOffMaxPlace, setShootOffMaxPlace] = useState(tournament.shootOffMaxPlace ?? 0)
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -193,6 +195,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           leaderboardHideTeams,
           longRunDisciplines,
           tiebreakOrder: tiebreakOrder.split(',').map(s => s.trim()).filter(Boolean),
+          shootOffMaxPlace,
         })
       })
 
@@ -510,6 +513,20 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                 ATA trap: shoot-off only.
                 NSCA sporting: shoot-off for top 3, countback by station (8→1) for other places.
                 Criteria automatically apply only to the matching discipline type.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Shoot-off Required For Top How Many Places?</label>
+              <select value={shootOffMaxPlace} onChange={e => setShootOffMaxPlace(parseInt(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value={0}>All tied places (standard)</option>
+                <option value={3}>Places 1–3 only (USAYESS)</option>
+                <option value={5}>Places 1–5 only</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                USAYESS: only 1st–3rd place ties are shot off.
+                Other ties broken by LRF → LRB (skeet) or countback (sporting).
+                Requires &quot;Long run tiebreakers&quot; enabled on skeet disciplines.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">

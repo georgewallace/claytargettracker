@@ -49,6 +49,7 @@ interface AwardLeaderboardProps {
     leaderboardHideTeams: boolean
     longRunDisciplines?: string
     tiebreakOrder?: string
+    shootOffMaxPlace?: number
   }
 }
 
@@ -142,25 +143,57 @@ const DIVISION_LABELS: Record<string, string> = { JV: 'Junior Varsity' }
 function divLabel(div: string | null) { return div ? (DIVISION_LABELS[div] ?? div) : '—' }
 
 // Returns athleteIds that share the same effective rank (after applying all tiebreak criteria)
-// with at least one other athlete — these are "unbroken" ties with no way to separate them
+// with at least one other athlete — these are "unbroken" ties with no way to separate them.
+// Place-aware: for USAYESS (shootOffMaxPlace > 0), places 4+ use LRF/LRB (skeet) or countback
+// (sporting) instead of shoot-off.
 function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, disciplineId?: string): Set<string> {
+  if (entries.length === 0) return new Set()
   const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
+  const useLongRun = category === 'skeet' && disciplineId != null && config.longRunDisciplines.includes(disciplineId)
+
+  // Compute starting rank (1 + count of athletes with strictly higher score) for each score value
+  const uniqueScores = [...new Set(entries.map(e => e.totalScore))].sort((a, b) => b - a)
+  const scoreToRank = new Map<number, number>()
+  let rank = 1
+  for (const score of uniqueScores) {
+    scoreToRank.set(score, rank)
+    rank += entries.filter(e => e.totalScore === score).length
+  }
+
   const key = (e: AthleteScoreEntry): string => {
+    const startingRank = scoreToRank.get(e.totalScore) ?? 1
+    const useShootOff = config.shootOffMaxPlace === 0 || startingRank <= config.shootOffMaxPlace
     const parts = [`score:${e.totalScore}`]
-    for (const criterion of config.tiebreakOrder) {
-      if (criterion === 'longrun' && category === 'skeet' && disciplineId && config.longRunDisciplines.includes(disciplineId)) {
-        parts.push(`lr_max:${Math.max(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
-        parts.push(`lr_min:${Math.min(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
-      } else if (criterion === 'countback' && category === 'sporting') {
-        // NSCA: include each station score descending in the key
-        const nums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
-          .filter(n => n > 0).sort((x, y) => y - x)
-        for (const num of nums) {
-          const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
-          parts.push(`cb${num}:${score}`)
-        }
-      } else if (criterion === 'shootoff') parts.push(`so:${e.tiebreakScore ?? 'null'}`)
+
+    if (useShootOff) {
+      // Standard criteria from tiebreakOrder
+      for (const criterion of config.tiebreakOrder) {
+        if (criterion === 'longrun' && useLongRun) {
+          parts.push(`lr_max:${Math.max(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
+          parts.push(`lr_min:${Math.min(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
+        } else if (criterion === 'countback' && category === 'sporting') {
+          const nums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
+            .filter(n => n > 0).sort((x, y) => y - x)
+          for (const num of nums) {
+            const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
+            parts.push(`cb${num}:${score}`)
+          }
+        } else if (criterion === 'shootoff') parts.push(`so:${e.tiebreakScore ?? 'null'}`)
+      }
+    } else if (useLongRun) {
+      // USAYESS places 4+: LRF first, then LRB
+      parts.push(`lrf:${e.longRunFront ?? 0}`)
+      parts.push(`lrb:${e.longRunBack ?? 0}`)
+    } else if (category === 'sporting') {
+      // Countback for sporting places 4+
+      const nums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
+        .filter(n => n > 0).sort((x, y) => y - x)
+      for (const num of nums) {
+        const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
+        parts.push(`cb${num}:${score}`)
+      }
     }
+    // trap 4+: no additional criteria (remains tied)
     return parts.join('|')
   }
   const counts: Record<string, number> = {}
@@ -339,6 +372,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
     longRunDisciplines: (() => {
       try { return JSON.parse(tournament.longRunDisciplines ?? '[]') } catch { return [] }
     })(),
+    shootOffMaxPlace: tournament.shootOffMaxPlace ?? 0,
   }), [tournament])
 
   // Build AthleteScoreEntry map per discipline

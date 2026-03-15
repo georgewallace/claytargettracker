@@ -53,6 +53,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         leaderboardHideTeams: true,
         longRunDisciplines: true,
         tiebreakOrder: true,
+        shootOffMaxPlace: true,
         enableShootOffs: true,
         shootOffTriggers: true,
         shootOffFormat: true,

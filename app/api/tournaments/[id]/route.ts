@@ -134,6 +134,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       leaderboardHideTeams,
       longRunDisciplines,
       tiebreakOrder,
+      shootOffMaxPlace,
     } = await request.json()
     
     // Support both old (disciplineIds) and new (disciplineConfigurations) format
@@ -267,6 +268,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ...(leaderboardHideTeams !== undefined && { leaderboardHideTeams }),
         ...(longRunDisciplines !== undefined && { longRunDisciplines: JSON.stringify(longRunDisciplines) }),
         ...(tiebreakOrder !== undefined && { tiebreakOrder: JSON.stringify(tiebreakOrder) }),
+        ...(shootOffMaxPlace !== undefined && { shootOffMaxPlace }),
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,
