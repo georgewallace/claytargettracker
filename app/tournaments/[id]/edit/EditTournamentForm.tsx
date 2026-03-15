@@ -68,7 +68,7 @@ function getDisciplineSport(name: string): 'nssa' | 'ata' | 'nsca' | null {
   const n = name.toLowerCase()
   if (n.includes('skeet')) return 'nssa'
   if (n.includes('trap')) return 'ata'
-  if (n.includes('sporting') || n === 'five_stand' || n === 'super_sport') return 'nsca'
+  if (n.includes('sporting') || n === 'super_sport') return 'nsca'
   return null
 }
 

@@ -149,7 +149,7 @@ function divLabel(div: string | null) { return div ? (DIVISION_LABELS[div] ?? di
 function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, disciplineId?: string): Set<string> {
   if (entries.length === 0) return new Set()
   const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
-  const useLongRun = category === 'skeet' && disciplineId != null && config.longRunDisciplines.includes(disciplineId)
+  const useLongRun = disciplineId != null && config.longRunDisciplines.includes(disciplineId)
 
   // Compute starting rank (1 + count of athletes with strictly higher score) for each score value
   const uniqueScores = [...new Set(entries.map(e => e.totalScore))].sort((a, b) => b - a)

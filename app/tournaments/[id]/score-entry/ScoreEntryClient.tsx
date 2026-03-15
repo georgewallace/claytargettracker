@@ -32,7 +32,7 @@ function getDiscCategory(discSlug: string): 'skeet' | 'trap' | 'sporting' | 'oth
   const s = discSlug.toLowerCase()
   if (s.includes('skeet')) return 'skeet'
   if (s.includes('trap')) return 'trap'
-  if (s.includes('sporting') || s.includes('five_stand') || s.includes('super_sport')) return 'sporting'
+  if (s.includes('sporting') || s.includes('super_sport')) return 'sporting'
   return 'other'
 }
 
@@ -422,6 +422,7 @@ function TiesPanel({
                           <th className="px-3 py-1.5 text-left font-semibold">Athlete</th>
                           <th className="px-3 py-1.5 text-left font-semibold hidden sm:table-cell">Concurrent</th>
                           <th className="px-3 py-1.5 text-left font-semibold hidden sm:table-cell">Team</th>
+                          <th className="px-3 py-1.5 text-left font-semibold text-gray-500">Scores</th>
                           {useLongRun && (
                             <>
                               <th className="px-2 py-1.5 text-center font-semibold text-indigo-600">LRF</th>
@@ -451,12 +452,25 @@ function TiesPanel({
                                 return sc != null ? `${sc.targets}` : '—'
                               }).join(' · ')
                             : null
+                          // Build compact score breakdown (by round or station) for display
+                          const scoreBreakdown = (() => {
+                            const s = a.scores ?? []
+                            if (s.length === 0) return '—'
+                            const byStation = s.some(x => x.stationNumber != null)
+                            const sorted = [...s].sort((x, y) => {
+                              const nx = byStation ? (x.stationNumber ?? 0) : (x.roundNumber ?? 0)
+                              const ny = byStation ? (y.stationNumber ?? 0) : (y.roundNumber ?? 0)
+                              return nx - ny
+                            })
+                            return sorted.map(x => x.targets).join(' · ')
+                          })()
 
                           return (
                             <tr key={a.athleteId} className={`border-t border-gray-100 ${group.broken && !isDuplicate ? 'bg-green-50/60' : isDuplicate ? 'bg-orange-50' : 'bg-red-50'}`}>
                               <td className="px-3 py-2 font-medium text-gray-900">{a.name}</td>
                               <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{a.division || '—'}</td>
                               <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{a.teamName || '—'}</td>
+                              <td className="px-3 py-2 text-gray-600 font-mono text-xs">{scoreBreakdown}</td>
                               {useLongRun && (
                                 <>
                                   <td className="px-2 py-2 text-center text-indigo-700 font-mono text-sm font-semibold">

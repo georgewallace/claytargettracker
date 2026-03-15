@@ -100,7 +100,7 @@ function makeSortEntriesByScore(config: AwardConfig, disciplineId?: string) {
     for (const criterion of config.tiebreakOrder) {
       if (criterion === 'longrun') {
         // NSSA only — and only if this discipline is enrolled in longRunDisciplines
-        if (category !== 'skeet' || !disciplineId || !config.longRunDisciplines.includes(disciplineId)) continue
+        if (!disciplineId || !config.longRunDisciplines.includes(disciplineId)) continue
         const aMax = Math.max(a.longRunFront ?? 0, a.longRunBack ?? 0)
         const bMax = Math.max(b.longRunFront ?? 0, b.longRunBack ?? 0)
         if (bMax !== aMax) return bMax - aMax
@@ -153,7 +153,7 @@ export function getDisciplineCategory(disciplineId: string): 'skeet' | 'trap' | 
   const n = disciplineId.toLowerCase()
   if (n.includes('skeet')) return 'skeet'
   if (n.includes('trap')) return 'trap'
-  if (n.includes('sporting') || n.includes('five_stand') || n.includes('super_sport')) return 'sporting'
+  if (n.includes('sporting') || n.includes('super_sport')) return 'sporting'
   return 'other'
 }
 
@@ -359,7 +359,7 @@ export function sortWithPlaceAwareTiebreaks(
   }
 
   const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
-  const useLongRun = category === 'skeet' && disciplineId != null && config.longRunDisciplines.includes(disciplineId)
+  const useLongRun = disciplineId != null && config.longRunDisciplines.includes(disciplineId)
 
   // Phase 1: sort by total score descending only
   const byScore = [...entries].sort((a, b) => b.totalScore - a.totalScore)
