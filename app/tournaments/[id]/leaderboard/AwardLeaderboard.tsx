@@ -153,11 +153,10 @@ function divLabel(div: string | null) { return div ? (DIVISION_LABELS[div] ?? di
 function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, disciplineId?: string, rankContext?: AthleteScoreEntry[]): Set<string> {
   if (entries.length === 0) return new Set()
   const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
+  // Sporting/super_sport: NSCA countback → alphabetical always gives a definitive order.
+  // No "unresolved" ties exist — never show TIE badge. Shoot-off needs shown in separate section.
+  if (category === 'sporting') return new Set()
   const useLongRun = disciplineId != null && config.longRunDisciplines.includes(disciplineId)
-  // DEBUG — remove after diagnosis
-  if (category === 'sporting' && entries.length > 0) {
-    console.log('[TIE-DEBUG] disciplineId:', disciplineId, 'category:', category, 'shootOffMaxPlace:', config.shootOffMaxPlace, 'typeof:', typeof config.shootOffMaxPlace, 'longRunDisciplines:', config.longRunDisciplines, 'useLongRun:', useLongRun, 'entries:', entries.length, 'rankContext:', rankContext?.length ?? 'NONE')
-  }
 
   // Compute starting rank from rankContext (full discipline entries) if provided,
   // otherwise fall back to the filtered entries. This ensures shootOffMaxPlace is
@@ -175,74 +174,29 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
     const startingRank = scoreToRank.get(e.totalScore) ?? 1
     const useShootOff = config.shootOffMaxPlace === 0 || startingRank <= config.shootOffMaxPlace
     const parts = [`score:${e.totalScore}`]
-    // DEBUG — remove after diagnosis
-    if (category === 'sporting') {
-      console.log('[TIE-DEBUG-KEY]', e.athlete.name, 'score:', e.totalScore, 'startingRank:', startingRank, 'useShootOff:', useShootOff, 'shootOffMaxPlace:', config.shootOffMaxPlace)
-    }
 
     if (useShootOff) {
       if (config.shootOffMaxPlace > 0) {
-        // For sporting: apply countback first (NSCA rule), then shoot-off only if countback doesn't differentiate
-        if (category === 'sporting') {
-          const allNums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))].filter(n => n > 0)
-          const maxSt = config.countbackStartStation > 0 ? config.countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
-          const nums = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
-          for (const num of nums) {
-            const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
-            parts.push(`cb${num}:${score}`)
-          }
-        }
         parts.push(`so:${e.tiebreakScore ?? 'null'}`)
         if (config.longRunBreaksTopTies && useLongRun) {
           parts.push(`lrf:${e.longRunFront ?? 0}`)
           parts.push(`lrb:${e.longRunBack ?? 0}`)
         }
       } else {
-        // Standard: sporting always gets countback first (NSCA rule 18.2), regardless of tiebreakOrder
-        if (category === 'sporting') {
-          const allNums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
-            .filter(n => n > 0)
-          const maxSt = config.countbackStartStation > 0 ? config.countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
-          const nums = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
-          for (const num of nums) {
-            const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
-            parts.push(`cb${num}:${score}`)
-          }
-        }
         for (const criterion of config.tiebreakOrder) {
           if (criterion === 'longrun' && useLongRun) {
             parts.push(`lr_max:${Math.max(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
             parts.push(`lr_min:${Math.min(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
-          } else if (criterion === 'countback') {
-            continue // already applied above for sporting
           } else if (criterion === 'shootoff') parts.push(`so:${e.tiebreakScore ?? 'null'}`)
         }
       }
-    } else if (category === 'sporting') {
-      // USAYESS places 4+: countback → alphabetical always resolves sporting ties.
-      // No shoot-off ever needed beyond the threshold. Append athleteId to guarantee
-      // the key is unique — these athletes never show TIE.
-      const allNums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
-        .filter(n => n > 0)
-      const maxSt = config.countbackStartStation > 0 ? config.countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
-      const nums = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
-      for (const num of nums) {
-        const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
-        parts.push(`cb${num}:${score}`)
-      }
-      parts.push(`id:${e.athleteId}`)
     } else if (useLongRun) {
       // USAYESS skeet places 4+: LRF first, then LRB
       parts.push(`lrf:${e.longRunFront ?? 0}`)
       parts.push(`lrb:${e.longRunBack ?? 0}`)
     }
     // trap 4+: no additional criteria (remains tied)
-    const result = parts.join('|')
-    // DEBUG — remove after diagnosis
-    if (category === 'sporting') {
-      console.log('[TIE-DEBUG-FINALKEY]', e.athlete.name, '->', result)
-    }
-    return result
+    return parts.join('|')
   }
   const counts: Record<string, number> = {}
   for (const e of entries) counts[key(e)] = (counts[key(e)] || 0) + 1
