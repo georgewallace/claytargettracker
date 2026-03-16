@@ -154,6 +154,10 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
   if (entries.length === 0) return new Set()
   const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
   const useLongRun = disciplineId != null && config.longRunDisciplines.includes(disciplineId)
+  // DEBUG — remove after diagnosis
+  if (category === 'sporting' && entries.length > 0) {
+    console.log('[TIE-DEBUG] disciplineId:', disciplineId, 'category:', category, 'shootOffMaxPlace:', config.shootOffMaxPlace, 'typeof:', typeof config.shootOffMaxPlace, 'longRunDisciplines:', config.longRunDisciplines, 'useLongRun:', useLongRun, 'entries:', entries.length, 'rankContext:', rankContext?.length ?? 'NONE')
+  }
 
   // Compute starting rank from rankContext (full discipline entries) if provided,
   // otherwise fall back to the filtered entries. This ensures shootOffMaxPlace is
@@ -171,6 +175,10 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
     const startingRank = scoreToRank.get(e.totalScore) ?? 1
     const useShootOff = config.shootOffMaxPlace === 0 || startingRank <= config.shootOffMaxPlace
     const parts = [`score:${e.totalScore}`]
+    // DEBUG — remove after diagnosis
+    if (category === 'sporting') {
+      console.log('[TIE-DEBUG-KEY]', e.athlete.name, 'score:', e.totalScore, 'startingRank:', startingRank, 'useShootOff:', useShootOff, 'shootOffMaxPlace:', config.shootOffMaxPlace)
+    }
 
     if (useShootOff) {
       if (config.shootOffMaxPlace > 0) {
@@ -229,7 +237,12 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
       parts.push(`lrb:${e.longRunBack ?? 0}`)
     }
     // trap 4+: no additional criteria (remains tied)
-    return parts.join('|')
+    const result = parts.join('|')
+    // DEBUG — remove after diagnosis
+    if (category === 'sporting') {
+      console.log('[TIE-DEBUG-FINALKEY]', e.athlete.name, '->', result)
+    }
+    return result
   }
   const counts: Record<string, number> = {}
   for (const e of entries) counts[key(e)] = (counts[key(e)] || 0) + 1
