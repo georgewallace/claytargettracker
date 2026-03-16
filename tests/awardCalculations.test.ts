@@ -206,9 +206,9 @@ describe('getDisciplineCategory', () => {
   it('classifies skeet as NSSA', () => expect(getDisciplineCategory('skeet')).toBe('skeet'))
   it('classifies trap as ATA', () => expect(getDisciplineCategory('trap')).toBe('trap'))
   it('classifies doubles_trap as ATA', () => expect(getDisciplineCategory('doubles_trap')).toBe('trap'))
-  it('classifies super_sport as ATA', () => expect(getDisciplineCategory('super_sport')).toBe('trap'))
+  it('classifies super_sport as NSCA sporting', () => expect(getDisciplineCategory('super_sport')).toBe('sporting'))
   it('classifies sporting_clays as NSCA', () => expect(getDisciplineCategory('sporting_clays')).toBe('sporting'))
-  it('classifies five_stand as NSCA', () => expect(getDisciplineCategory('five_stand')).toBe('sporting'))
+  it('classifies five_stand as other (LRF/LRB)', () => expect(getDisciplineCategory('five_stand')).toBe('other'))
 })
 
 function makeScoreEntry(
