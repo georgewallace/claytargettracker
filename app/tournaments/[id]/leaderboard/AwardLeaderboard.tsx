@@ -148,18 +148,21 @@ function divLabel(div: string | null) { return div ? (DIVISION_LABELS[div] ?? di
 // with at least one other athlete — these are "unbroken" ties with no way to separate them.
 // Place-aware: for USAYESS (shootOffMaxPlace > 0), places 4+ use LRF/LRB (skeet) or countback
 // (sporting) instead of shoot-off.
-function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, disciplineId?: string): Set<string> {
+function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, disciplineId?: string, rankContext?: AthleteScoreEntry[]): Set<string> {
   if (entries.length === 0) return new Set()
   const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
   const useLongRun = disciplineId != null && config.longRunDisciplines.includes(disciplineId)
 
-  // Compute starting rank (1 + count of athletes with strictly higher score) for each score value
-  const uniqueScores = [...new Set(entries.map(e => e.totalScore))].sort((a, b) => b - a)
+  // Compute starting rank from rankContext (full discipline entries) if provided,
+  // otherwise fall back to the filtered entries. This ensures shootOffMaxPlace is
+  // evaluated against overall placement, not division-filtered rank.
+  const rankEntries = rankContext ?? entries
+  const uniqueScores = [...new Set(rankEntries.map(e => e.totalScore))].sort((a, b) => b - a)
   const scoreToRank = new Map<number, number>()
   let rank = 1
   for (const score of uniqueScores) {
     scoreToRank.set(score, rank)
-    rank += entries.filter(e => e.totalScore === score).length
+    rank += rankEntries.filter(e => e.totalScore === score).length
   }
 
   const key = (e: AthleteScoreEntry): string => {
@@ -709,7 +712,7 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
                 <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${allDivisionSections.length}, minmax(160px, 260px))` }}>
                   {allDivisionSections.map(({ div, athletes }) => {
                     const divHighlights = buildPlaceHighlights(athletes, config.individualEventPlaces)
-                    const divUnbrokenTied = getUnbrokenTiedIds(athletes, config, d.disciplineId)
+                    const divUnbrokenTied = getUnbrokenTiedIds(athletes, config, d.disciplineId, disciplineEntries)
                     return (
                       <div key={div} className="border border-gray-100 rounded overflow-hidden">
                         {/* Division header */}
