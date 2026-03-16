@@ -165,7 +165,7 @@ model Tournament {
   teamSizeDefault        Int     @default(3)
   trapTeamSize           Int     @default(5)
   leaderboardHideTeams   Boolean @default(false)
-  leaderboardTeamDisplay String  @default("name")   // "none" | "name" | "abbreviation"
+  leaderboardTeamDisplay String  @default("name")       // "none" | "name" | "abbreviation"
   longRunDisciplines     String  @default("[]")
   tiebreakOrder          String  @default("[\"shootoff\",\"longrun\"]")
   shootOffMaxPlace       Int     @default(0)            // 0 = all places; 3 = USAYESS (only places 1-3 get shoot-offs)
