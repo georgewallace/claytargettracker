@@ -47,6 +47,7 @@ interface Tournament {
   shootOffMaxPlace?: number
   countbackStartStation?: number
   longRunBreaksTopTies?: boolean
+  showShootOffSection?: boolean
 }
 
 interface EditTournamentFormProps {
@@ -153,6 +154,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
   const [shootOffMaxPlace, setShootOffMaxPlace] = useState(tournament.shootOffMaxPlace ?? 0)
   const [countbackStartStation, setCountbackStartStation] = useState(tournament.countbackStartStation ?? 0)
   const [longRunBreaksTopTies, setLongRunBreaksTopTies] = useState(tournament.longRunBreaksTopTies ?? false)
+  const [showShootOffSection, setShowShootOffSection] = useState(tournament.showShootOffSection ?? false)
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -207,6 +209,7 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           shootOffMaxPlace,
           countbackStartStation,
           longRunBreaksTopTies,
+          showShootOffSection,
         })
       })
 
@@ -475,6 +478,14 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                 <option value="abbreviation">Team Abbreviation</option>
                 <option value="none">None (hide team)</option>
               </select>
+            </div>
+            <div className="flex items-center gap-3">
+              <input type="checkbox" id="showShootOffSection" checked={showShootOffSection}
+                onChange={e => setShowShootOffSection(e.target.checked)} className="w-4 h-4" />
+              <label htmlFor="showShootOffSection" className="text-sm text-gray-700">
+                Show pending shoot-offs on leaderboard
+                <span className="ml-1 text-xs text-gray-400">(highlights tied athletes who need to shoot off)</span>
+              </label>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

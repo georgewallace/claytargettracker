@@ -459,13 +459,52 @@ function TiesPanel({
     }
   }
 
+  // Auto-fetch on mount so the callout is visible immediately
+  useEffect(() => {
+    fetchTies()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleOpen = () => {
     setOpen(o => !o)
     if (!open) fetchTies()
   }
 
+  // Groups that need a shoot-off (unbroken AND in shoot-off range)
+  const shootOffGroups = allTieGroups.filter(g => {
+    if (g.broken) return false
+    const needsShootOff = shootOffMaxPlace === 0 || g.startingRank <= shootOffMaxPlace
+    return needsShootOff
+  })
+
   return (
     <div className="mb-4">
+      {/* Persistent shoot-off callout — always visible when there are pending shoot-offs */}
+      {shootOffGroups.length > 0 && (
+        <div className="mb-3 bg-amber-50 border border-amber-300 rounded-lg px-4 py-3">
+          <div className="flex items-start gap-2">
+            <span className="text-amber-600 text-lg leading-none mt-0.5">⚠️</span>
+            <div>
+              <p className="text-sm font-semibold text-amber-800">
+                {shootOffGroups.length} shoot-off{shootOffGroups.length !== 1 ? 's' : ''} required
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {shootOffGroups.map((g, i) => {
+                  const r = g.startingRank
+                  const suffix = r === 1 ? 'st' : r === 2 ? 'nd' : r === 3 ? 'rd' : 'th'
+                  return (
+                    <li key={i} className="text-xs text-amber-700">
+                      <span className="font-medium">{g.disciplineName}</span>
+                      {' — '}Tied for {r}{suffix}: {g.athletes.map(a => a.name).join(', ')}
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       <button
         onClick={handleOpen}
         className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition ${

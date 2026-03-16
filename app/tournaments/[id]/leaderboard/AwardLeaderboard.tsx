@@ -53,6 +53,7 @@ interface AwardLeaderboardProps {
     shootOffMaxPlace?: number
     countbackStartStation?: number
     longRunBreaksTopTies?: boolean
+    showShootOffSection?: boolean
   }
 }
 
@@ -229,6 +230,44 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
   return new Set(entries.filter(e => counts[key(e)] > 1).map(e => e.athleteId))
 }
 
+// Returns groups of athletes who are tied and require a shoot-off (not auto-resolved by LRF/LRB or countback).
+// Only returns groups where useShootOff is true (i.e., rank ≤ shootOffMaxPlace, or all when shootOffMaxPlace === 0).
+function getShootOffTieGroups(
+  entries: AthleteScoreEntry[],
+  config: AwardConfig,
+  disciplineId: string,
+  rankContext?: AthleteScoreEntry[]
+): Array<{ place: number; score: number; athletes: AthleteScoreEntry[] }> {
+  if (entries.length === 0) return []
+  const rankEntries = rankContext ?? entries
+  const uniqueScores = [...new Set(rankEntries.map(e => e.totalScore))].sort((a, b) => b - a)
+  const scoreToRank = new Map<number, number>()
+  let rank = 1
+  for (const score of uniqueScores) {
+    scoreToRank.set(score, rank)
+    rank += rankEntries.filter(e => e.totalScore === score).length
+  }
+
+  const unbrokenIds = getUnbrokenTiedIds(entries, config, disciplineId, rankContext)
+  const scoreGroups = new Map<number, AthleteScoreEntry[]>()
+  for (const entry of entries) {
+    if (!unbrokenIds.has(entry.athleteId)) continue
+    const startingRank = scoreToRank.get(entry.totalScore) ?? 1
+    const useShootOff = config.shootOffMaxPlace === 0 || startingRank <= config.shootOffMaxPlace
+    if (!useShootOff) continue
+    const grp = scoreGroups.get(entry.totalScore) ?? []
+    grp.push(entry)
+    scoreGroups.set(entry.totalScore, grp)
+  }
+
+  const result: Array<{ place: number; score: number; athletes: AthleteScoreEntry[] }> = []
+  for (const [score, athletes] of scoreGroups) {
+    if (athletes.length < 2) continue
+    result.push({ place: scoreToRank.get(score) ?? 1, score, athletes })
+  }
+  return result.sort((a, b) => a.place - b.place)
+}
+
 // Compact ranked table of athletes
 function RankedTable({
   rows,
@@ -263,7 +302,7 @@ function RankedTable({
             {showDivision && <th className="px-2 py-1.5 text-left font-semibold hidden sm:table-cell">Concurrent</th>}
             <th className="px-2 py-1.5 text-left font-semibold hidden sm:table-cell">Team</th>
             {disciplineCols?.map(d => (
-              <th key={d.id} className="px-2 py-1.5 text-right font-semibold hidden md:table-cell whitespace-nowrap">{d.label}</th>
+              <th key={d.id} className="px-2 py-1.5 text-right font-semibold hidden md:table-cell w-16 min-w-[64px]">{d.label}</th>
             ))}
             <th className="px-2 py-1.5 text-right font-semibold">Total</th>
             <th className="w-3 pr-1"></th>
@@ -313,7 +352,7 @@ function RankedTable({
                 {disciplineCols?.map(d => {
                   const score = (entry as any)[`disc_${d.id}`]
                   return (
-                    <td key={d.id} className="px-2 py-1.5 text-right text-xs text-gray-500 hidden md:table-cell tabular-nums">
+                    <td key={d.id} className="px-2 py-1.5 text-right text-xs text-gray-500 hidden md:table-cell tabular-nums w-16">
                       {score != null ? score : '—'}
                     </td>
                   )
@@ -432,19 +471,28 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
     return map
   }, [tournament.shoots])
 
-  // Team display lookup: teamId → display string (name, abbreviation in parens, or auto-abbrev)
+  // Full team name lookup — used everywhere except division concurrent inline display
   const teamNames = useMemo(() => {
     const m: Record<string, string> = {}
     for (const shoot of tournament.shoots) {
       const team = shoot.athlete.team
       if (!team) continue
-      if (teamDisplayMode === 'abbreviation') {
-        const abbr = team.abbreviation
-          ?? team.name.split(/\s+/).map((w: string) => w[0]?.toUpperCase() ?? '').join('')
-        m[team.id] = `(${abbr})`
-      } else {
-        m[team.id] = team.name
-      }
+      m[team.id] = team.name
+    }
+    return m
+  }, [tournament.shoots])
+
+  // Abbreviation lookup — only populated when teamDisplayMode === 'abbreviation'
+  // Used inline after athlete name in the division concurrent section
+  const teamNamesAbbr = useMemo(() => {
+    if (teamDisplayMode !== 'abbreviation') return {} as Record<string, string>
+    const m: Record<string, string> = {}
+    for (const shoot of tournament.shoots) {
+      const team = shoot.athlete.team
+      if (!team) continue
+      const abbr = team.abbreviation
+        ?? team.name.split(/\s+/).map((w: string) => w[0]?.toUpperCase() ?? '').join('')
+      m[team.id] = abbr
     }
     return m
   }, [tournament.shoots, teamDisplayMode])
@@ -719,11 +767,42 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
             {(eventResult.championMen || eventResult.championLady) && (
               <Section title="Event Champions">
                 <div className="grid grid-cols-2 gap-2">
-                  <PlaceCard place="Men's Champion" entry={eventResult.championMen} teamNames={teamNames} />
-                  <PlaceCard place="Lady's Champion" entry={eventResult.championLady} teamNames={teamNames} />
+                  <PlaceCard place="Men's Champion" entry={eventResult.championMen} teamNames={teamNames} highlight={PLACE_HIGHLIGHTS[0]} />
+                  <PlaceCard place="Lady's Champion" entry={eventResult.championLady} teamNames={teamNames} highlight={PLACE_HIGHLIGHTS[0]} />
                 </div>
               </Section>
             )}
+
+            {/* Shoot-offs Required — shown when toggled on and there are pending shoot-offs */}
+            {tournament.showShootOffSection && (() => {
+              const groups = getShootOffTieGroups(disciplineEntries, config, d.disciplineId)
+              if (groups.length === 0) return null
+              return (
+                <Section title="Shoot-offs Required">
+                  <div className="space-y-2">
+                    {groups.map((g, gi) => {
+                      const r = g.place
+                      const suffix = r === 1 ? 'st' : r === 2 ? 'nd' : r === 3 ? 'rd' : 'th'
+                      return (
+                        <div key={gi} className="bg-amber-50 border border-amber-200 rounded p-2">
+                          <div className="text-xs font-semibold text-amber-800 mb-1">
+                            Tied for {r}{suffix} · {g.score} pts
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {g.athletes.map(a => (
+                              <span key={a.athleteId} className="text-xs bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-medium">
+                                {a.athlete.name}
+                                {a.athlete.division && <span className="ml-1 text-amber-600 font-normal text-[10px]">{a.athlete.division}</span>}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </Section>
+              )
+            })()}
 
             {/* Division Results — divisions side by side, athletes flow down each column */}
             {allDivisionSections.length > 0 && (
@@ -744,7 +823,10 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
                         {athletes.map((entry, i) => {
                           const hl = divHighlights[entry.athleteId]
                           const isTied = divUnbrokenTied.has(entry.athleteId)
-                          const teamName = entry.athlete.teamId ? teamNames[entry.athlete.teamId] : null
+                          // In abbreviation mode: show abbr inline. In name mode: show full name inline. In none mode: nothing.
+                          const inlineTeam = entry.athlete.teamId
+                            ? (teamDisplayMode === 'abbreviation' ? teamNamesAbbr[entry.athlete.teamId] : teamDisplayMode === 'name' ? teamNames[entry.athlete.teamId] : null)
+                            : null
                           return (
                             <div
                               key={entry.athleteId}
@@ -756,18 +838,13 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
                               <div className="flex-1 min-w-0">
                                 <div className="text-xs font-medium truncate leading-tight text-gray-900">
                                   {entry.athlete.name}
+                                  {inlineTeam && (
+                                    <span className="ml-1 text-[10px] text-gray-400 font-normal">{inlineTeam}</span>
+                                  )}
                                   {isTied && (
                                     <span className="ml-1 text-[9px] font-bold px-1 py-0.5 rounded leading-none bg-red-100 text-red-600">TIE</span>
                                   )}
-                                  {!isTied && hl?.badge && (
-                                    <span className={`ml-1 text-[9px] font-bold px-1 py-0.5 rounded leading-none ${hl.badgeColor}`}>
-                                      {hl.badge}
-                                    </span>
-                                  )}
                                 </div>
-                                {showAthleteTeams && teamName && (
-                                  <div className="text-[10px] text-gray-400 truncate leading-tight">{teamName}</div>
-                                )}
                               </div>
                               <span className={`text-xs font-bold tabular-nums shrink-0 ${isTied ? 'text-red-600' : hl ? hl.rankColor : 'text-gray-700'}`}>
                                 {entry.totalScore}

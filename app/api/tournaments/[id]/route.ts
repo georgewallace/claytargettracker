@@ -138,6 +138,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       shootOffMaxPlace,
       countbackStartStation,
       longRunBreaksTopTies,
+      showShootOffSection,
     } = await request.json()
     
     // Support both old (disciplineIds) and new (disciplineConfigurations) format
@@ -275,6 +276,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ...(shootOffMaxPlace !== undefined && { shootOffMaxPlace }),
         ...(countbackStartStation !== undefined && { countbackStartStation }),
         ...(longRunBreaksTopTies !== undefined && { longRunBreaksTopTies }),
+        ...(showShootOffSection !== undefined && { showShootOffSection }),
         disciplines: {
           create: disciplineData.map((config: any) => ({
             disciplineId: config.disciplineId,
