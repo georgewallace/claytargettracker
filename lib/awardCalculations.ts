@@ -99,6 +99,11 @@ function makeSortEntriesByScore(config: AwardConfig, disciplineId?: string) {
   const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
   return (a: AthleteScoreEntry, b: AthleteScoreEntry): number => {
     if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
+    // Sporting: always apply countback first (NSCA rule 18.2), regardless of tiebreakOrder
+    if (category === 'sporting') {
+      const cbResult = countbackCompare(a.scores, b.scores, config.countbackStartStation)
+      if (cbResult !== 0) return cbResult
+    }
     for (const criterion of config.tiebreakOrder) {
       if (criterion === 'longrun') {
         // NSSA only — and only if this discipline is enrolled in longRunDisciplines
@@ -110,10 +115,8 @@ function makeSortEntriesByScore(config: AwardConfig, disciplineId?: string) {
         const bMin = Math.min(b.longRunFront ?? 0, b.longRunBack ?? 0)
         if (bMin !== aMin) return bMin - aMin
       } else if (criterion === 'countback') {
-        // NSCA only — sporting clays / five_stand
-        if (category !== 'sporting') continue
-        const result = countbackCompare(a.scores, b.scores, config.countbackStartStation)
-        if (result !== 0) return result
+        // Already applied above for sporting; skip here to avoid double-applying
+        continue
       } else if (criterion === 'shootoff') {
         const av = a.tiebreakScore ?? 0, bv = b.tiebreakScore ?? 0
         if (bv !== av) return bv - av

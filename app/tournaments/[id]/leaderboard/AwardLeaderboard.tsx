@@ -190,20 +190,23 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
           parts.push(`lrb:${e.longRunBack ?? 0}`)
         }
       } else {
-        // Standard: apply full tiebreakOrder with countback/longrun by discipline
+        // Standard: sporting always gets countback first (NSCA rule 18.2), regardless of tiebreakOrder
+        if (category === 'sporting') {
+          const allNums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
+            .filter(n => n > 0)
+          const maxSt = config.countbackStartStation > 0 ? config.countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
+          const nums = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
+          for (const num of nums) {
+            const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
+            parts.push(`cb${num}:${score}`)
+          }
+        }
         for (const criterion of config.tiebreakOrder) {
           if (criterion === 'longrun' && useLongRun) {
             parts.push(`lr_max:${Math.max(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
             parts.push(`lr_min:${Math.min(e.longRunFront ?? 0, e.longRunBack ?? 0)}`)
-          } else if (criterion === 'countback' && category === 'sporting') {
-            const allNums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
-              .filter(n => n > 0)
-            const maxSt = config.countbackStartStation > 0 ? config.countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
-            const nums = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
-            for (const num of nums) {
-              const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
-              parts.push(`cb${num}:${score}`)
-            }
+          } else if (criterion === 'countback') {
+            continue // already applied above for sporting
           } else if (criterion === 'shootoff') parts.push(`so:${e.tiebreakScore ?? 'null'}`)
         }
       }
