@@ -210,14 +210,10 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
           } else if (criterion === 'shootoff') parts.push(`so:${e.tiebreakScore ?? 'null'}`)
         }
       }
-    } else if (useLongRun) {
-      // USAYESS places 4+: LRF first, then LRB
-      parts.push(`lrf:${e.longRunFront ?? 0}`)
-      parts.push(`lrb:${e.longRunBack ?? 0}`)
     } else if (category === 'sporting') {
-      // Countback for sporting places 4+ (USAYESS: beyond shoot-off threshold).
-      // Final tiebreaker is alphabetical — always deterministic, never needs shoot-off.
-      // Append athlete name so the key is always unique: no TIE badge for these athletes.
+      // USAYESS places 4+: countback → alphabetical always resolves sporting ties.
+      // No shoot-off ever needed beyond the threshold. Append athleteId to guarantee
+      // the key is unique — these athletes never show TIE.
       const allNums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
         .filter(n => n > 0)
       const maxSt = config.countbackStartStation > 0 ? config.countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
@@ -226,7 +222,11 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
         const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
         parts.push(`cb${num}:${score}`)
       }
-      parts.push(`name:${e.athlete.name}`)
+      parts.push(`id:${e.athleteId}`)
+    } else if (useLongRun) {
+      // USAYESS skeet places 4+: LRF first, then LRB
+      parts.push(`lrf:${e.longRunFront ?? 0}`)
+      parts.push(`lrb:${e.longRunBack ?? 0}`)
     }
     // trap 4+: no additional criteria (remains tied)
     return parts.join('|')
