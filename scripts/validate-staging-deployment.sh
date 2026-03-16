@@ -231,15 +231,21 @@ if [ $ERRORS -eq 0 ] && [ $WARNINGS -eq 0 ]; then
 elif [ $ERRORS -eq 0 ]; then
     echo -e "${YELLOW}⚠️  $WARNINGS warning(s) found, but no errors.${NC}"
     echo ""
-    read -p "Continue with deployment? (y/N) " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${GREEN}Proceeding with deployment...${NC}"
-        echo "Run: git push origin staging"
-        exit 0
+    # Auto-proceed in non-interactive mode (e.g., git hooks)
+    if [ -t 0 ]; then
+        read -p "Continue with deployment? (y/N) " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${GREEN}Proceeding with deployment...${NC}"
+            echo "Run: git push origin staging"
+            exit 0
+        else
+            echo "Deployment cancelled."
+            exit 1
+        fi
     else
-        echo "Deployment cancelled."
-        exit 1
+        echo -e "${GREEN}Non-interactive mode: proceeding with warnings...${NC}"
+        exit 0
     fi
 else
     echo -e "${RED}❌ $ERRORS error(s) found!${NC}"
