@@ -38,6 +38,7 @@ export async function PUT(
 
     const {
       name,
+      abbreviation,
       affiliation,
       headCoach,
       headCoachEmail,
@@ -61,6 +62,7 @@ export async function PUT(
       where: { id: teamId },
       data: {
         name: name.trim(),
+        abbreviation: abbreviation || null,
         affiliation: affiliation || null,
         headCoach: headCoach || null,
         headCoachEmail: headCoachEmail || null,

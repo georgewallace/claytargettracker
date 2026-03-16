@@ -11,6 +11,7 @@ interface CreateTeamFormProps {
 export default function CreateTeamForm({ onSuccess }: CreateTeamFormProps = {}) {
   const router = useRouter()
   const [name, setName] = useState('')
+  const [abbreviation, setAbbreviation] = useState('')
   const [affiliation, setAffiliation] = useState('')
   const [headCoach, setHeadCoach] = useState('')
   const [headCoachEmail, setHeadCoachEmail] = useState('')
@@ -33,6 +34,7 @@ export default function CreateTeamForm({ onSuccess }: CreateTeamFormProps = {}) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
+          abbreviation: abbreviation || null,
           affiliation: affiliation || null,
           headCoach: headCoach || null,
           headCoachEmail: headCoachEmail || null,
@@ -91,8 +93,29 @@ export default function CreateTeamForm({ onSuccess }: CreateTeamFormProps = {}) 
             type="text"
             required
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value)
+              // Auto-generate abbreviation from initials if not manually set
+              if (!abbreviation) {
+                setAbbreviation(e.target.value.split(/\s+/).filter(Boolean).map(w => w[0]?.toUpperCase() ?? '').join(''))
+              }
+            }}
             placeholder="Enter team name..."
+            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="abbreviation" className="block text-xs font-medium text-gray-700 mb-1">
+            Abbreviation <span className="text-gray-400 font-normal">(auto-generated from initials)</span>
+          </label>
+          <input
+            id="abbreviation"
+            type="text"
+            maxLength={10}
+            value={abbreviation}
+            onChange={(e) => setAbbreviation(e.target.value.toUpperCase())}
+            placeholder="e.g. RMCB"
             className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>

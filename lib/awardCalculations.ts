@@ -383,6 +383,11 @@ export function sortWithPlaceAwareTiebreaks(
       const useShootOff = startingRank <= config.shootOffMaxPlace
       const sorted = [...group].sort((a, b) => {
         if (useShootOff) {
+          // For sporting: apply countback first (NSCA rule 18.2), then shoot-off only for remaining ties
+          if (category === 'sporting') {
+            const cbResult = countbackCompare(a.scores, b.scores, config.countbackStartStation)
+            if (cbResult !== 0) return cbResult
+          }
           const av = a.tiebreakScore ?? 0, bv = b.tiebreakScore ?? 0
           if (bv !== av) return bv - av
           // If longRunBreaksTopTies is enabled, also apply LRF/LRB for rank 1-3

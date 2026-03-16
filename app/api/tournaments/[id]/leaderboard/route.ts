@@ -51,6 +51,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         teamSizeDefault: true,
         trapTeamSize: true,
         leaderboardHideTeams: true,
+        leaderboardTeamDisplay: true,
         longRunDisciplines: true,
         tiebreakOrder: true,
         shootOffMaxPlace: true,
@@ -111,6 +112,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                   select: {
                     id: true,
                     name: true,
+                    abbreviation: true,
                     logoUrl: true
                   }
                 }

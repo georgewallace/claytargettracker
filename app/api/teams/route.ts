@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     const user = await requireAuth()
     const {
       name,
+      abbreviation,
       affiliation,
       headCoach,
       headCoachEmail,
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
     const team = await prisma.team.create({
       data: {
         name,
+        abbreviation: abbreviation || null,
         affiliation: affiliation || null,
         headCoach: headCoach || null,
         headCoachEmail: headCoachEmail || null,

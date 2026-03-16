@@ -80,10 +80,12 @@ function getTieGroupStatus(
   }
 
   // Standard shoot-off criteria path
-  // USAYESS (shootOffMaxPlace > 0): places 1-3 are shoot-off ONLY — longrun/countback don't break these ties.
+  // USAYESS (shootOffMaxPlace > 0): sporting uses countback first, then shoot-off for remaining ties.
   // Standard mode (shootOffMaxPlace === 0): apply full tiebreakOrder with countback injected for sporting.
   const effectiveTBOrder: string[] = shootOffMaxPlace > 0
-    ? (longRunBreaksTopTies && useLongRun ? ['shootoff', 'longrun'] : ['shootoff'])
+    ? (useCountback
+        ? ['countback', 'shootoff']
+        : longRunBreaksTopTies && useLongRun ? ['shootoff', 'longrun'] : ['shootoff'])
     : useCountback && !tiebreakOrder.includes('countback')
       ? ['countback', ...tiebreakOrder]
       : tiebreakOrder
@@ -220,6 +222,19 @@ function computeTieRanks(
   // Sort athletes by whichever criteria apply, best first
   const sorted = [...athletes].sort((a, b) => {
     if (needsShootOff) {
+      // For sporting: apply countback first, then shoot-off for remaining ties
+      if (useCountback) {
+        const allNums = [...new Set(athletes.flatMap(x =>
+          (x.scores ?? []).map(s => s.stationNumber ?? s.roundNumber ?? 0)
+        ))].filter(n => n > 0)
+        const maxSt = countbackStartStation > 0 ? countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
+        const stations = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
+        for (const st of stations) {
+          const aScore = (a.scores ?? []).find(s => (s.stationNumber ?? s.roundNumber ?? 0) === st)?.targets ?? 0
+          const bScore = (b.scores ?? []).find(s => (s.stationNumber ?? s.roundNumber ?? 0) === st)?.targets ?? 0
+          if (bScore !== aScore) return bScore - aScore
+        }
+      }
       // Shoot-off score descending; null/missing goes last
       const diff = (b.tiebreakScore ?? -1) - (a.tiebreakScore ?? -1)
       if (diff !== 0) return diff
@@ -252,7 +267,21 @@ function computeTieRanks(
       const curr = sorted[i]
       let same = false
       if (needsShootOff) {
-        same = (curr.tiebreakScore ?? -1) === (prev.tiebreakScore ?? -1)
+        if (useCountback) {
+          const allNums = [...new Set(athletes.flatMap(x =>
+            (x.scores ?? []).map(s => s.stationNumber ?? s.roundNumber ?? 0)
+          ))].filter(n => n > 0)
+          const maxSt = countbackStartStation > 0 ? countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
+          const stations = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
+          const cbSame = stations.every(st => {
+            const cs = (curr.scores ?? []).find(s => (s.stationNumber ?? s.roundNumber ?? 0) === st)?.targets ?? 0
+            const ps = (prev.scores ?? []).find(s => (s.stationNumber ?? s.roundNumber ?? 0) === st)?.targets ?? 0
+            return cs === ps
+          })
+          same = cbSame && (curr.tiebreakScore ?? -1) === (prev.tiebreakScore ?? -1)
+        } else {
+          same = (curr.tiebreakScore ?? -1) === (prev.tiebreakScore ?? -1)
+        }
       } else if (useLongRun) {
         same = (curr.longRunFront ?? 0) === (prev.longRunFront ?? 0) &&
                (curr.longRunBack ?? 0) === (prev.longRunBack ?? 0)
@@ -521,6 +550,13 @@ function TiesPanel({
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{group.disciplineName}</span>
                     <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${group.broken ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>
                       {group.score} pts
+                    </span>
+                    <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                      {(() => {
+                        const r = group.startingRank
+                        const suffix = r === 1 ? 'st' : r === 2 ? 'nd' : r === 3 ? 'rd' : 'th'
+                        return `Tied for ${r}${suffix}`
+                      })()}
                     </span>
                     {group.broken
                       ? <span className="text-xs text-green-600 font-medium">
@@ -794,7 +830,7 @@ function Combobox({
 
   const filtered = useMemo(() => {
     const q = value.trim().toLowerCase()
-    return (q ? options.filter(o => o.toLowerCase().includes(q)) : options).slice(0, 14)
+    return q ? options.filter(o => o.toLowerCase().includes(q)) : options
   }, [value, options])
 
   useEffect(() => {

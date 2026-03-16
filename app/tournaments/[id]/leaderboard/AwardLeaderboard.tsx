@@ -34,7 +34,7 @@ interface AwardLeaderboardProps {
         division: string | null
         gender: string | null
         user: { name: string }
-        team: { id: string; name: string; logoUrl?: string | null } | null
+        team: { id: string; name: string; abbreviation?: string | null; logoUrl?: string | null } | null
       }
     }>
     awardStructureVersion: string
@@ -47,6 +47,7 @@ interface AwardLeaderboardProps {
     teamSizeDefault: number
     trapTeamSize: number
     leaderboardHideTeams: boolean
+    leaderboardTeamDisplay?: string
     longRunDisciplines?: string
     tiebreakOrder?: string
     shootOffMaxPlace?: number
@@ -172,6 +173,16 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
 
     if (useShootOff) {
       if (config.shootOffMaxPlace > 0) {
+        // For sporting: apply countback first (NSCA rule), then shoot-off only if countback doesn't differentiate
+        if (category === 'sporting') {
+          const allNums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))].filter(n => n > 0)
+          const maxSt = config.countbackStartStation > 0 ? config.countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
+          const nums = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
+          for (const num of nums) {
+            const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
+            parts.push(`cb${num}:${score}`)
+          }
+        }
         parts.push(`so:${e.tiebreakScore ?? 'null'}`)
         if (config.longRunBreaksTopTies && useLongRun) {
           parts.push(`lrf:${e.longRunFront ?? 0}`)
@@ -346,7 +357,8 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [zoom, setZoom] = useState(100)
   const [allAthletesPage, setAllAthletesPage] = useState(0)
-  const showAthleteTeams = !tournament.leaderboardHideTeams
+  const teamDisplayMode = tournament.leaderboardTeamDisplay ?? (tournament.leaderboardHideTeams ? 'none' : 'name')
+  const showAthleteTeams = teamDisplayMode !== 'none'
   const ALL_ATHLETES_PAGE_SIZE = 20
 
   const activeTabRef = useRef(activeTab)
@@ -420,14 +432,22 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
     return map
   }, [tournament.shoots])
 
-  // Team names lookup: teamId → teamName
+  // Team display lookup: teamId → display string (name, abbreviation in parens, or auto-abbrev)
   const teamNames = useMemo(() => {
     const m: Record<string, string> = {}
     for (const shoot of tournament.shoots) {
-      if (shoot.athlete.team) m[shoot.athlete.team.id] = shoot.athlete.team.name
+      const team = shoot.athlete.team
+      if (!team) continue
+      if (teamDisplayMode === 'abbreviation') {
+        const abbr = team.abbreviation
+          ?? team.name.split(/\s+/).map((w: string) => w[0]?.toUpperCase() ?? '').join('')
+        m[team.id] = `(${abbr})`
+      } else {
+        m[team.id] = team.name
+      }
     }
     return m
-  }, [tournament.shoots])
+  }, [tournament.shoots, teamDisplayMode])
 
   const hoaResult = useMemo(() => calculateHOAAwards(entriesByDiscipline, config), [entriesByDiscipline, config])
   const collegiateResult = useMemo(() => calculateCollegiateHOA(entriesByDiscipline, config), [entriesByDiscipline, config])

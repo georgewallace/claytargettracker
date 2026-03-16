@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 interface Team {
   id: string
   name: string
+  abbreviation: string | null
   affiliation: string | null
   headCoach: string | null
   headCoachEmail: string | null
@@ -29,6 +30,7 @@ export default function TeamInfoEdit({ team }: TeamInfoEditProps) {
 
   const [formData, setFormData] = useState({
     name: team.name,
+    abbreviation: team.abbreviation || team.name.split(/\s+/).filter(Boolean).map(w => w[0]?.toUpperCase() ?? '').join(''),
     affiliation: team.affiliation || '',
     headCoach: team.headCoach || '',
     headCoachEmail: team.headCoachEmail || '',
@@ -75,6 +77,7 @@ export default function TeamInfoEdit({ team }: TeamInfoEditProps) {
   const handleCancel = () => {
     setFormData({
       name: team.name,
+      abbreviation: team.abbreviation || team.name.split(/\s+/).filter(Boolean).map(w => w[0]?.toUpperCase() ?? '').join(''),
       affiliation: team.affiliation || '',
       headCoach: team.headCoach || '',
       headCoachEmail: team.headCoachEmail || '',
@@ -129,6 +132,24 @@ export default function TeamInfoEdit({ team }: TeamInfoEditProps) {
               />
             ) : (
               <p className="text-sm text-gray-900">{team.name}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Abbreviation <span className="text-gray-400 font-normal">(for leaderboard)</span>
+            </label>
+            {isEditing ? (
+              <input
+                type="text"
+                maxLength={10}
+                value={formData.abbreviation}
+                onChange={(e) => setFormData(prev => ({ ...prev, abbreviation: e.target.value.toUpperCase() }))}
+                placeholder="e.g. RMCB"
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            ) : (
+              <p className="text-sm text-gray-900">{team.abbreviation || <span className="text-gray-400">Auto ({team.name.split(/\s+/).filter(Boolean).map(w => w[0]?.toUpperCase() ?? '').join('')})</span>}</p>
             )}
           </div>
 

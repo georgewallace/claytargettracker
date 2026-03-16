@@ -41,6 +41,7 @@ interface Tournament {
   teamSizeDefault: number
   trapTeamSize: number
   leaderboardHideTeams: boolean
+  leaderboardTeamDisplay?: string
   longRunDisciplines: string
   tiebreakOrder: string
   shootOffMaxPlace?: number
@@ -146,6 +147,9 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
   const [teamSizeDefault, setTeamSizeDefault] = useState(tournament.teamSizeDefault ?? 3)
   const [trapTeamSize, setTrapTeamSize] = useState(tournament.trapTeamSize ?? 5)
   const [leaderboardHideTeams, setLeaderboardHideTeams] = useState(tournament.leaderboardHideTeams ?? false)
+  const [leaderboardTeamDisplay, setLeaderboardTeamDisplay] = useState(
+    tournament.leaderboardTeamDisplay ?? (tournament.leaderboardHideTeams ? 'none' : 'name')
+  )
   const [shootOffMaxPlace, setShootOffMaxPlace] = useState(tournament.shootOffMaxPlace ?? 0)
   const [countbackStartStation, setCountbackStartStation] = useState(tournament.countbackStartStation ?? 0)
   const [longRunBreaksTopTies, setLongRunBreaksTopTies] = useState(tournament.longRunBreaksTopTies ?? false)
@@ -196,7 +200,8 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           teamEventPlaces,
           teamSizeDefault,
           trapTeamSize,
-          leaderboardHideTeams,
+          leaderboardHideTeams: leaderboardTeamDisplay === 'none',
+          leaderboardTeamDisplay,
           longRunDisciplines,
           tiebreakOrder: tiebreakOrder.split(',').map(s => s.trim()).filter(Boolean),
           shootOffMaxPlace,
@@ -379,60 +384,6 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                     {cannotUncheck && (
                       <div className="text-xs text-orange-600 mt-1 font-medium">⚠️ Cannot remove - athletes registered</div>
                     )}
-                    {/* Tiebreak rules note — v2 only, per sport governing body */}
-                    {isSelected && awardStructureVersion === 'v2' && sport === 'nssa' && showRounds && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id={`longrun-${discipline.id}`}
-                          checked={longRunDisciplines.includes(discipline.id)}
-                          onChange={e => {
-                            setLongRunDisciplines(prev =>
-                              e.target.checked
-                                ? [...prev, discipline.id]
-                                : prev.filter(id => id !== discipline.id)
-                            )
-                          }}
-                          onClick={e => e.stopPropagation()}
-                          className="w-4 h-4 text-indigo-600 rounded"
-                        />
-                        <label
-                          htmlFor={`longrun-${discipline.id}`}
-                          className="text-sm text-gray-700"
-                          onClick={e => e.preventDefault()}
-                        >
-                          Long run tiebreakers (LRF / LRB) — <span className="text-blue-600 font-medium">NSSA rule d</span>
-                        </label>
-                      </div>
-                    )}
-                    {isSelected && awardStructureVersion === 'v2' && sport === 'ata' && (
-                      <div className="mt-2 text-xs text-orange-700">
-                        ATA rules — shoot-off only; long run tiebreakers do not apply
-                      </div>
-                    )}
-                    {isSelected && awardStructureVersion === 'v2' && sport === 'nsca' && (
-                      <div className="mt-2 text-xs text-green-700">
-                        NSCA rules — countback by station (8→1) for places below 3rd; shoot-off for top 3
-                      </div>
-                    )}
-                    {isSelected && awardStructureVersion === 'v2' && sport === 'nsca' && (
-                      <div className="mt-2" onClick={e => e.preventDefault()}>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Countback starting station
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          max={20}
-                          value={countbackStartStation}
-                          onChange={e => setCountbackStartStation(parseInt(e.target.value) || 0)}
-                          className="w-24 px-2 py-1 text-sm border border-gray-300 rounded"
-                        />
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          0 = auto (highest station). Set to 8 for a 10-station course that starts countback at station 8.
-                        </p>
-                      </div>
-                    )}
                     {/* Per-discipline scoring config */}
                     {isSelected && (showRounds || showStations) && (
                       <div className="mt-3 pt-3 border-t border-indigo-200" onClick={e => e.preventDefault()}>
@@ -516,57 +467,14 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
                 onChange={e => setCollegiateHOAEnabled(e.target.checked)} className="w-4 h-4" />
               <label htmlFor="collegiateHOAEnabled" className="text-sm text-gray-700">Enable Collegiate HOA</label>
             </div>
-            <div className="flex items-center gap-3">
-              <input type="checkbox" id="leaderboardHideTeams" checked={leaderboardHideTeams}
-                onChange={e => setLeaderboardHideTeams(e.target.checked)} className="w-4 h-4" />
-              <label htmlFor="leaderboardHideTeams" className="text-sm text-gray-700">Hide team names under athletes in leaderboard</label>
-            </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tiebreak Order</label>
-              <select value={tiebreakOrder} onChange={e => setTiebreakOrder(e.target.value)}
+              <label className="block text-sm font-medium text-gray-700 mb-2">Team Display on Leaderboard</label>
+              <select value={leaderboardTeamDisplay} onChange={e => setLeaderboardTeamDisplay(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="shootoff,longrun">Shoot-off → Long Run (NSSA skeet default)</option>
-                <option value="shootoff,countback">Shoot-off → Countback (NSCA sporting default)</option>
-                <option value="shootoff,longrun,countback">All sport rules — shoot-off → long run / countback by discipline</option>
-                <option value="shootoff">Shoot-off only (ATA trap)</option>
-                <option value="longrun,shootoff">Long Run → Shoot-off</option>
-                <option value="countback,shootoff">Countback → Shoot-off</option>
+                <option value="name">Team Name</option>
+                <option value="abbreviation">Team Abbreviation</option>
+                <option value="none">None (hide team)</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">
-                NSSA skeet: shoot-off for championships, long run (best of LRF/LRB then opposite end) for other places.
-                ATA trap: shoot-off only.
-                NSCA sporting: shoot-off for top 3, countback by station (8→1) for other places.
-                Criteria automatically apply only to the matching discipline type.
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Shoot-off Required For Top How Many Places?</label>
-              <select value={shootOffMaxPlace} onChange={e => setShootOffMaxPlace(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value={0}>All tied places (standard)</option>
-                <option value={3}>Places 1–3 only (USAYESS)</option>
-                <option value={5}>Places 1–5 only</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                USAYESS: only 1st–3rd place ties are shot off.
-                Other ties broken by LRF → LRB (skeet) or countback (sporting).
-                Requires &quot;Long run tiebreakers&quot; enabled on skeet disciplines.
-              </p>
-            </div>
-            <div className="mt-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={longRunBreaksTopTies}
-                  onChange={e => setLongRunBreaksTopTies(e.target.checked)}
-                  className="w-4 h-4 rounded accent-indigo-600"
-                />
-                <span className="text-sm font-medium text-gray-700">Long run breaks top-place ties</span>
-              </label>
-              <p className="text-xs text-gray-500 mt-1 ml-6">
-                When enabled, different LRF/LRB values automatically resolve ties at places 1–{shootOffMaxPlace || '3'},
-                without requiring a shoot-off.
-              </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -597,6 +505,133 @@ export default function EditTournamentForm({ tournament, allDisciplines, discipl
           </div>
         )}
       </div>
+
+      {/* Tiebreaking Section */}
+      {awardStructureVersion === 'v2' && (
+        <div className="border border-gray-200 rounded-lg p-4 space-y-5">
+          <h3 className="text-sm font-semibold text-gray-700">Tiebreaking</h3>
+
+          {/* Per-discipline method */}
+          {selectedDisciplines.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Method per Discipline</label>
+              <div className="space-y-2">
+                {selectedDisciplines.map(discId => {
+                  const disc = allDisciplines.find(d => d.id === discId)
+                  if (!disc) return null
+                  const sport = getDisciplineSport(disc.name)
+                  const badge = sport ? SPORT_BADGE[sport] : null
+                  const usesLRF = longRunDisciplines.includes(discId)
+                  const isNSCA = sport === 'nsca'
+
+                  type MethodValue = 'shootoff' | 'longrun' | 'countback' | 'countback_lrf'
+                  const currentMethod: MethodValue = isNSCA
+                    ? (usesLRF ? 'countback_lrf' : 'countback')
+                    : (usesLRF ? 'longrun' : 'shootoff')
+
+                  const methodOptions: { value: MethodValue; label: string }[] = isNSCA
+                    ? [
+                        { value: 'countback', label: 'Countback by station → Shoot-off (NSCA default)' },
+                        { value: 'countback_lrf', label: 'Countback + Long Run (LRF/LRB) → Shoot-off' },
+                      ]
+                    : [
+                        { value: 'shootoff', label: 'Shoot-off only' },
+                        { value: 'longrun', label: 'Long Run (LRF / LRB) → Shoot-off' },
+                      ]
+
+                  return (
+                    <div key={discId} className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 w-40 shrink-0">
+                        <span className="text-sm text-gray-800 font-medium">{disc.displayName}</span>
+                        {badge && (
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${badge.color}`}>
+                            {badge.label}
+                          </span>
+                        )}
+                      </div>
+                      <select
+                        value={currentMethod}
+                        onChange={e => {
+                          const v = e.target.value
+                          setLongRunDisciplines(prev =>
+                            (v === 'longrun' || v === 'countback_lrf')
+                              ? [...prev.filter(id => id !== discId), discId]
+                              : prev.filter(id => id !== discId)
+                          )
+                        }}
+                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        {methodOptions.map(o => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Countback starting station — only when NSCA discipline selected */}
+          {selectedDisciplines.some(id => getDisciplineSport(allDisciplines.find(d => d.id === id)?.name ?? '') === 'nsca') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Countback Starting Station</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number" min={0} max={20} value={countbackStartStation}
+                  onChange={e => setCountbackStartStation(parseInt(e.target.value) || 0)}
+                  className="w-24 px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-xs text-gray-500">0 = auto (highest station on course). Set to 8 for a 10-station course.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Shoot-off threshold */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Shoot-off Required for Top N Places</label>
+            <select value={shootOffMaxPlace} onChange={e => setShootOffMaxPlace(parseInt(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value={0}>All tied places (standard)</option>
+              <option value={3}>Places 1–3 only (USAYESS)</option>
+              <option value={5}>Places 1–5 only</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              USAYESS: only 1st–3rd place ties are shot off. Places 4+ are broken automatically by the per-discipline method above.
+            </p>
+          </div>
+
+          {/* Long run breaks top ties */}
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={longRunBreaksTopTies}
+                onChange={e => setLongRunBreaksTopTies(e.target.checked)}
+                className="w-4 h-4 rounded accent-indigo-600" />
+              <span className="text-sm font-medium text-gray-700">Long Run breaks top-place ties</span>
+            </label>
+            <p className="text-xs text-gray-500 mt-1 ml-6">
+              When enabled, different LRF/LRB values automatically resolve ties at places 1–{shootOffMaxPlace || '3'} without a shoot-off.
+            </p>
+          </div>
+
+          {/* Fallback tiebreak order (standard mode only) */}
+          {shootOffMaxPlace === 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fallback Tiebreak Order</label>
+              <select value={tiebreakOrder} onChange={e => setTiebreakOrder(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="shootoff,longrun">Shoot-off → Long Run</option>
+                <option value="shootoff,countback">Shoot-off → Countback</option>
+                <option value="shootoff,longrun,countback">Shoot-off → Long Run / Countback by discipline</option>
+                <option value="shootoff">Shoot-off only</option>
+                <option value="longrun,shootoff">Long Run → Shoot-off</option>
+                <option value="countback,shootoff">Countback → Shoot-off</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Applies when shoot-off threshold is set to &quot;All tied places&quot;.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-4">
         <button type="submit" disabled={loading}

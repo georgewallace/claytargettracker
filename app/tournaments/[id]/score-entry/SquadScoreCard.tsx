@@ -220,7 +220,9 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, row: number, col: number) => {
     const lastRow = members.length - 1
-    const lastCol = inputCount - 1
+    // Total columns per row: score inputs + LRF + LRB (if useLongRun)
+    const totalCols = inputCount + (useLongRun ? 2 : 0)
+    const lastCol = totalCols - 1
 
     switch (e.key) {
       case 'Tab': {
@@ -403,6 +405,10 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
                     <>
                       <td className="p-0 border-b border-r border-gray-200">
                         <input
+                          ref={el => {
+                            if (!inputRefs.current[rowIdx]) inputRefs.current[rowIdx] = []
+                            inputRefs.current[rowIdx][inputCount] = el
+                          }}
                           type="number"
                           min={0}
                           step={1}
@@ -413,11 +419,16 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
                             setLongRunValue(member.athleteId, 'front', raw === '' ? null : parseInt(raw, 10))
                           }}
                           onFocus={e => e.target.select()}
+                          onKeyDown={e => handleKeyDown(e, rowIdx, inputCount)}
                           className={`w-full h-9 text-center text-sm font-mono bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${lr.front === null ? 'text-gray-300' : 'text-indigo-700 font-semibold'}`}
                         />
                       </td>
                       <td className="p-0 border-b border-gray-200">
                         <input
+                          ref={el => {
+                            if (!inputRefs.current[rowIdx]) inputRefs.current[rowIdx] = []
+                            inputRefs.current[rowIdx][inputCount + 1] = el
+                          }}
                           type="number"
                           min={0}
                           step={1}
@@ -428,6 +439,7 @@ export default function SquadScoreCard({ tournamentId, squad, discipline, config
                             setLongRunValue(member.athleteId, 'back', raw === '' ? null : parseInt(raw, 10))
                           }}
                           onFocus={e => e.target.select()}
+                          onKeyDown={e => handleKeyDown(e, rowIdx, inputCount + 1)}
                           className={`w-full h-9 text-center text-sm font-mono bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${lr.back === null ? 'text-gray-300' : 'text-indigo-700 font-semibold'}`}
                         />
                       </td>
