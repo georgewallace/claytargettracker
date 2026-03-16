@@ -215,7 +215,9 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
       parts.push(`lrf:${e.longRunFront ?? 0}`)
       parts.push(`lrb:${e.longRunBack ?? 0}`)
     } else if (category === 'sporting') {
-      // Countback for sporting places 4+
+      // Countback for sporting places 4+ (USAYESS: beyond shoot-off threshold).
+      // Final tiebreaker is alphabetical — always deterministic, never needs shoot-off.
+      // Append athlete name so the key is always unique: no TIE badge for these athletes.
       const allNums = [...new Set(e.scores.map(s => s.stationNumber ?? s.roundNumber ?? 0))]
         .filter(n => n > 0)
       const maxSt = config.countbackStartStation > 0 ? config.countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
@@ -224,6 +226,7 @@ function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, d
         const score = e.scores.find(s => (s.stationNumber ?? s.roundNumber ?? 0) === num)?.targets ?? 0
         parts.push(`cb${num}:${score}`)
       }
+      parts.push(`name:${e.athlete.name}`)
     }
     // trap 4+: no additional criteria (remains tied)
     return parts.join('|')
