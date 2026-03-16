@@ -207,6 +207,76 @@ function computeCountbackRanks(
   return rankMap
 }
 
+// Compute ranks for any tie group — covers LRF/LRB, shoot-off, countback, and mixed.
+// Returns a map of athleteId → rank (1-based from groupStartingRank).
+function computeTieRanks(
+  athletes: TieGroupAthlete[],
+  needsShootOff: boolean,
+  useLongRun: boolean,
+  useCountback: boolean,
+  countbackStartStation: number,
+  groupStartingRank: number
+): Map<string, number> {
+  // Sort athletes by whichever criteria apply, best first
+  const sorted = [...athletes].sort((a, b) => {
+    if (needsShootOff) {
+      // Shoot-off score descending; null/missing goes last
+      const diff = (b.tiebreakScore ?? -1) - (a.tiebreakScore ?? -1)
+      if (diff !== 0) return diff
+    } else if (useLongRun) {
+      const lrfDiff = (b.longRunFront ?? 0) - (a.longRunFront ?? 0)
+      if (lrfDiff !== 0) return lrfDiff
+      const lrbDiff = (b.longRunBack ?? 0) - (a.longRunBack ?? 0)
+      if (lrbDiff !== 0) return lrbDiff
+    } else if (useCountback) {
+      const allNums = [...new Set(athletes.flatMap(x =>
+        (x.scores ?? []).map(s => s.stationNumber ?? s.roundNumber ?? 0)
+      ))].filter(n => n > 0)
+      const maxSt = countbackStartStation > 0 ? countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
+      const stations = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
+      for (const st of stations) {
+        const aScore = (a.scores ?? []).find(s => (s.stationNumber ?? s.roundNumber ?? 0) === st)?.targets ?? 0
+        const bScore = (b.scores ?? []).find(s => (s.stationNumber ?? s.roundNumber ?? 0) === st)?.targets ?? 0
+        if (bScore !== aScore) return bScore - aScore
+      }
+    }
+    return a.name.localeCompare(b.name)
+  })
+
+  // Assign ranks — share rank when all sort criteria are equal
+  const rankMap = new Map<string, number>()
+  let rank = groupStartingRank
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0) {
+      const prev = sorted[i - 1]
+      const curr = sorted[i]
+      let same = false
+      if (needsShootOff) {
+        same = (curr.tiebreakScore ?? -1) === (prev.tiebreakScore ?? -1)
+      } else if (useLongRun) {
+        same = (curr.longRunFront ?? 0) === (prev.longRunFront ?? 0) &&
+               (curr.longRunBack ?? 0) === (prev.longRunBack ?? 0)
+      } else if (useCountback) {
+        const allNums = [...new Set(athletes.flatMap(x =>
+          (x.scores ?? []).map(s => s.stationNumber ?? s.roundNumber ?? 0)
+        ))].filter(n => n > 0)
+        const maxSt = countbackStartStation > 0 ? countbackStartStation : (allNums.length > 0 ? Math.max(...allNums) : 0)
+        const stations = allNums.filter(n => n <= maxSt).sort((x, y) => y - x)
+        same = stations.every(st => {
+          const aScore = (curr.scores ?? []).find(s => (s.stationNumber ?? s.roundNumber ?? 0) === st)?.targets ?? 0
+          const bScore = (prev.scores ?? []).find(s => (s.stationNumber ?? s.roundNumber ?? 0) === st)?.targets ?? 0
+          return aScore === bScore
+        })
+      } else {
+        same = false
+      }
+      if (!same) rank = groupStartingRank + i
+    }
+    rankMap.set(sorted[i].athleteId, rank)
+  }
+  return rankMap
+}
+
 function TiesPanel({
   tournamentId,
   tiebreakOrder,
@@ -435,7 +505,12 @@ function TiesPanel({
                     ))].filter((n): n is number => n > 0).sort((x, y) => y - x)
                   : []
 
-                // Compute countback ranks for this group (only for countback-eligible groups)
+                // Compute ranks for this group (always shown — covers shoot-off, LRF/LRB, countback)
+                const tieRankMap = computeTieRanks(
+                  group.athletes, needsShootOff, useLongRun, useCountback,
+                  countbackStartStation, group.startingRank
+                )
+                // Keep countbackRankMap for the countback column highlight (reuse existing logic)
                 const countbackRankMap = useCountback
                   ? computeCountbackRanks(group.athletes, countbackStartStation, group.startingRank)
                   : null
@@ -469,7 +544,7 @@ function TiesPanel({
                     <table className="text-sm border-collapse w-full">
                       <thead>
                         <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
-                          {countbackRankMap && <th className="px-2 py-1.5 text-center font-semibold text-gray-700 w-10">Rank</th>}
+                          <th className="px-2 py-1.5 text-center font-semibold text-gray-700 w-10">Rank</th>
                           <th className="px-3 py-1.5 text-left font-semibold">Athlete</th>
                           <th className="px-3 py-1.5 text-left font-semibold hidden sm:table-cell">Concurrent</th>
                           <th className="px-3 py-1.5 text-left font-semibold hidden sm:table-cell">Team</th>
@@ -526,17 +601,23 @@ function TiesPanel({
 
                           return (
                             <tr key={a.athleteId} className={`border-t border-gray-100 ${group.broken && !isDuplicate ? 'bg-green-50/60' : isDuplicate ? 'bg-orange-50' : 'bg-red-50'}`}>
-                              {countbackRankMap && (
-                                <td className="px-2 py-2 text-center">
-                                  <span className={`inline-block text-xs font-bold px-1.5 py-0.5 rounded ${
-                                    countbackRankMap.get(a.athleteId) === group.startingRank ? 'bg-yellow-100 text-yellow-800' :
-                                    countbackRankMap.get(a.athleteId) === group.startingRank + 1 ? 'bg-gray-100 text-gray-700' :
-                                    'bg-gray-50 text-gray-600'
-                                  }`}>
-                                    {countbackRankMap.get(a.athleteId)}
-                                  </span>
-                                </td>
-                              )}
+                              <td className="px-2 py-2 text-center">
+                                {(() => {
+                                  const r = tieRankMap.get(a.athleteId)
+                                  if (r == null) return null
+                                  const isFirst = r === group.startingRank
+                                  const isSecond = r === group.startingRank + 1
+                                  return (
+                                    <span className={`inline-block text-xs font-bold px-1.5 py-0.5 rounded ${
+                                      isFirst ? 'bg-yellow-100 text-yellow-800' :
+                                      isSecond ? 'bg-gray-100 text-gray-700' :
+                                      'bg-gray-50 text-gray-500'
+                                    }`}>
+                                      {r}
+                                    </span>
+                                  )
+                                })()}
+                              </td>
                               <td className="px-3 py-2 font-medium text-gray-900">{a.name}</td>
                               <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{a.division || '—'}</td>
                               <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{a.teamName || '—'}</td>
