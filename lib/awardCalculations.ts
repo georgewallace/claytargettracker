@@ -62,6 +62,7 @@ export interface AwardConfig {
   shootOffMaxPlace: number     // 0 = all places; 3 = USAYESS (only places 1–3 require shoot-offs)
   countbackStartStation: number  // 0 = auto; N = start from station N
   longRunBreaksTopTies: boolean  // When true, LRF/LRB also breaks top-place (rank 1-3) ties
+  disciplineNames: Record<string, string>  // disciplineId → discipline name (e.g. 'sporting_clays')
 }
 
 type SortItem = { total: number; tiebreak?: number | null; lrf?: number | null; lrb?: number | null; entry: AthleteScoreEntry }
@@ -96,7 +97,7 @@ function makeSortByScore(config: AwardConfig) {
 //   sporting → 'countback' applies (NSCA rule 18.2: from last station back)
 //   trap    → only 'shootoff' applies (ATA: shoot-off only)
 function makeSortEntriesByScore(config: AwardConfig, disciplineId?: string) {
-  const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
+  const category = disciplineId ? getDisciplineCategory(disciplineId, config.disciplineNames) : 'other'
   return (a: AthleteScoreEntry, b: AthleteScoreEntry): number => {
     if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
     // Sporting: always apply countback first (NSCA rule 18.2), regardless of tiebreakOrder
@@ -154,8 +155,9 @@ export function parseTiebreakOrder(raw: string | null | undefined): string[] {
  * trap    → ATA  (shoot-off only)
  * sporting → NSCA (countback by station/layout, shoot-off for top 3)
  */
-export function getDisciplineCategory(disciplineId: string): 'skeet' | 'trap' | 'sporting' | 'other' {
-  const n = disciplineId.toLowerCase()
+export function getDisciplineCategory(disciplineId: string, nameMap?: Record<string, string>): 'skeet' | 'trap' | 'sporting' | 'other' {
+  // Discipline IDs are CUIDs; look up the human-readable name if a map is provided
+  const n = (nameMap?.[disciplineId] ?? disciplineId).toLowerCase()
   if (n.includes('skeet')) return 'skeet'
   if (n.includes('trap')) return 'trap'
   if (n.includes('sporting') || n.includes('super_sport')) return 'sporting'
@@ -364,7 +366,7 @@ export function sortWithPlaceAwareTiebreaks(
     return [...entries].sort(makeSortEntriesByScore(config, disciplineId))
   }
 
-  const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
+  const category = disciplineId ? getDisciplineCategory(disciplineId, config.disciplineNames) : 'other'
   const useLongRun = disciplineId != null && config.longRunDisciplines.includes(disciplineId)
 
   // Phase 1: sort by total score descending only
@@ -468,7 +470,7 @@ export function calculateTeamAwards(
 ): TeamAwardResult {
   const { teamSizeDefault, trapTeamSize, teamEventPlaces } = config
   const sortEntriesByScore = makeSortEntriesByScore(config, disciplineId)
-  const category = getDisciplineCategory(disciplineId)
+  const category = getDisciplineCategory(disciplineId, config.disciplineNames)
   const useCountback = category === 'sporting' && config.tiebreakOrder.includes('countback')
   const teamSize = isTrapDiscipline(disciplineId) ? trapTeamSize : teamSizeDefault
 

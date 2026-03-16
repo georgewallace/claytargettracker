@@ -152,7 +152,7 @@ function divLabel(div: string | null) { return div ? (DIVISION_LABELS[div] ?? di
 // (sporting) instead of shoot-off.
 function getUnbrokenTiedIds(entries: AthleteScoreEntry[], config: AwardConfig, disciplineId?: string, rankContext?: AthleteScoreEntry[]): Set<string> {
   if (entries.length === 0) return new Set()
-  const category = disciplineId ? getDisciplineCategory(disciplineId) : 'other'
+  const category = disciplineId ? getDisciplineCategory(disciplineId, config.disciplineNames) : 'other'
   // Sporting/super_sport: NSCA countback → alphabetical always gives a definitive order.
   // No "unresolved" ties exist — never show TIE badge. Shoot-off needs shown in separate section.
   if (category === 'sporting') return new Set()
@@ -416,6 +416,9 @@ export default function AwardLeaderboard({ tournament }: AwardLeaderboardProps) 
     shootOffMaxPlace: tournament.shootOffMaxPlace ?? 0,
     countbackStartStation: tournament.countbackStartStation ?? 0,
     longRunBreaksTopTies: tournament.longRunBreaksTopTies ?? false,
+    disciplineNames: Object.fromEntries(
+      tournament.disciplines.map(d => [d.disciplineId, d.discipline.name])
+    ),
   }), [tournament])
 
   // Build AthleteScoreEntry map per discipline

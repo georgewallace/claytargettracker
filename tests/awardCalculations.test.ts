@@ -24,6 +24,7 @@ const baseConfig: AwardConfig = {
   shootOffMaxPlace: 0,
   countbackStartStation: 0,
   longRunBreaksTopTies: false,
+  disciplineNames: {},
 }
 
 function makeEntry(
